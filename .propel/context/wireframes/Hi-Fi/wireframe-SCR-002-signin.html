@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCR-002 Sign In - UPACIP Wireframe</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .signin-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--color-blue-50) 0%, var(--color-teal-50) 100%);
+      padding: var(--spacing-4);
+    }
+    .signin-card {
+      background: var(--color-surface-primary);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      padding: var(--spacing-8);
+      width: 100%;
+      max-width: 400px;
+    }
+    .signin-logo {
+      text-align: center;
+      margin-bottom: var(--spacing-6);
+    }
+    .signin-logo h1 {
+      font-size: var(--font-size-h1);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+    }
+    .signin-title {
+      text-align: center;
+      margin-bottom: var(--spacing-6);
+    }
+    .signin-title h2 {
+      font-size: var(--font-size-h2);
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: var(--spacing-2);
+    }
+    .signin-title p {
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-body-sm);
+    }
+    .signin-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-4);
+    }
+    .signin-footer {
+      text-align: center;
+      margin-top: var(--spacing-6);
+      padding-top: var(--spacing-4);
+      border-top: 1px solid var(--color-border-default);
+    }
+    .signin-footer p {
+      font-size: var(--font-size-body-sm);
+      color: var(--color-text-secondary);
+    }
+    .signin-footer a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: var(--font-weight-medium);
+    }
+    .forgot-link {
+      text-align: right;
+      margin-top: var(--spacing-2);
+    }
+    .forgot-link a {
+      font-size: var(--font-size-body-sm);
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+    .role-selector {
+      display: flex;
+      gap: var(--spacing-2);
+      margin-bottom: var(--spacing-4);
+    }
+    .role-btn {
+      flex: 1;
+      padding: var(--spacing-3);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-md);
+      background: var(--color-surface-primary);
+      cursor: pointer;
+      text-align: center;
+      font-size: var(--font-size-body-sm);
+      transition: all var(--duration-fast);
+    }
+    .role-btn.active {
+      border-color: var(--color-primary);
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+    }
+    .role-btn:hover:not(.active) {
+      border-color: var(--color-border-strong);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Map
+  | Element | Action | Target Screen |
+  |---------|--------|---------------|
+  | #signin-submit (Patient) | click | SCR-003 (Patient Dashboard) |
+  | #signin-submit (Staff) | click | SCR-011 (Staff Dashboard) |
+  | #signin-submit (Admin) | click | SCR-018 (Admin Dashboard) |
+  | #forgot-pwd | click | Password Reset (external) |
+  | #signup-link | click | Sign Up flow |
+  | #logo-link | click | SCR-001 (Landing) |
+  -->
+
+  <main class="signin-page">
+    <div class="signin-card">
+      <div class="signin-logo">
+        <a href="wireframe-SCR-001-landing.html" id="logo-link">
+          <h1>UPACIP</h1>
+        </a>
+      </div>
+      
+      <div class="signin-title">
+        <h2>Welcome back</h2>
+        <p>Sign in to access your health portal</p>
+      </div>
+
+      <!-- Demo: Role Selector (for wireframe navigation) -->
+      <div class="role-selector" role="tablist" aria-label="Select portal type">
+        <button class="role-btn active" role="tab" aria-selected="true" data-role="patient">Patient</button>
+        <button class="role-btn" role="tab" aria-selected="false" data-role="staff">Staff</button>
+        <button class="role-btn" role="tab" aria-selected="false" data-role="admin">Admin</button>
+      </div>
+
+      <form class="signin-form" action="#" method="post">
+        <div class="input-group">
+          <label for="email" class="input-label">Email address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            class="input" 
+            placeholder="you@example.com"
+            autocomplete="email"
+            required
+            aria-describedby="email-helper"
+          >
+          <span id="email-helper" class="input-helper">Enter your registered email</span>
+        </div>
+
+        <div class="input-group">
+          <label for="password" class="input-label">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            class="input" 
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          >
+          <div class="forgot-link">
+            <a href="#" id="forgot-pwd">Forgot password?</a>
+          </div>
+        </div>
+
+        <!-- Error State Example (hidden by default) -->
+        <div class="alert alert-error" style="display: none;" id="error-alert" role="alert">
+          <span>⚠️</span>
+          <span>Invalid email or password. Please try again.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-full" id="signin-submit">
+          Sign In
+        </button>
+      </form>
+
+      <div class="signin-footer">
+        <p>Don't have an account? <a href="#" id="signup-link">Create one</a></p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Wireframe navigation logic
+    document.querySelector('.signin-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const activeRole = document.querySelector('.role-btn.active').dataset.role;
+      const targetScreens = {
+        patient: 'wireframe-SCR-003-patient-dashboard.html',
+        staff: 'wireframe-SCR-011-staff-dashboard.html',
+        admin: 'wireframe-SCR-018-admin-dashboard.html'
+      };
+      window.location.href = targetScreens[activeRole];
+    });
+
+    // Role selector toggle
+    document.querySelectorAll('.role-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.role-btn').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
+      });
+    });
+  </script>
+</body>
+</html>

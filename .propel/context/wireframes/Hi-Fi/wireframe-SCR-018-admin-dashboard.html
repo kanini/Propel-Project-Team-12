@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCR-018 Admin Dashboard - UPACIP Wireframe</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .sidebar-logo span { color: var(--color-orange-500); }
+    .sidebar-section-title {
+      font-size: var(--font-size-overline);
+      color: var(--color-text-tertiary);
+      padding: var(--spacing-2) var(--spacing-4);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .sidebar-footer {
+      padding: var(--spacing-4);
+      border-top: 1px solid var(--color-border-default);
+    }
+    .activity-feed {
+      background: var(--color-surface-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+    }
+    .activity-item {
+      display: flex;
+      gap: var(--spacing-3);
+      padding: var(--spacing-3) var(--spacing-4);
+      border-bottom: 1px solid var(--color-border-default);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .system-health {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--spacing-4);
+    }
+    .health-card {
+      background: var(--color-surface-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-4);
+      text-align: center;
+    }
+    .health-value {
+      font-size: var(--font-size-display-sm);
+      font-weight: var(--font-weight-bold);
+    }
+    .health-value.good { color: var(--color-success); }
+    .health-value.warning { color: var(--color-warning); }
+  </style>
+</head>
+<body>
+  <!-- Navigation Map
+  | Element | Action | Target Screen |
+  |---------|--------|---------------|
+  | #nav-users | click | SCR-019 (User Management) |
+  | #nav-roles | click | SCR-020 (Role Configuration) |
+  | #nav-audit | click | SCR-021 (Audit Logs) |
+  | #manage-users-btn | click | SCR-019 (User Management) |
+  | #logout-btn | click | SCR-001 (Landing) |
+  -->
+
+  <div class="page-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo" style="padding: var(--spacing-4);">
+        <span style="font-size: var(--font-size-h2); font-weight: var(--font-weight-bold);">UPACIP</span>
+        <div class="badge" style="background: var(--color-orange-50); color: var(--color-orange-500); margin-top: var(--spacing-2);">Admin Portal</div>
+      </div>
+      
+      <nav style="flex: 1; padding: var(--spacing-4) 0;">
+        <div class="sidebar-section-title">Management</div>
+        <a href="#" class="nav-item active">🏠 Dashboard</a>
+        <a href="wireframe-SCR-019-user-mgmt.html" class="nav-item" id="nav-users">👥 Users</a>
+        <a href="wireframe-SCR-020-roles.html" class="nav-item" id="nav-roles">🔐 Roles</a>
+        
+        <div class="sidebar-section-title" style="margin-top: var(--spacing-4);">Compliance</div>
+        <a href="wireframe-SCR-021-audit-logs.html" class="nav-item" id="nav-audit">📋 Audit Logs</a>
+        <a href="#" class="nav-item">📊 Reports</a>
+        <a href="#" class="nav-item">⚙️ Settings</a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="avatar" style="background: var(--color-orange-50); color: var(--color-orange-500);">AD</div>
+          <div>
+            <div class="body-sm" style="font-weight: var(--font-weight-medium);">Admin User</div>
+            <div class="caption">System Admin</div>
+          </div>
+        </div>
+        <a href="wireframe-SCR-001-landing.html" class="btn btn-ghost btn-sm w-full" id="logout-btn">Logout</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="header">
+        <div>
+          <h1 class="h1">Admin Dashboard</h1>
+          <span class="caption">System Overview</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="caption">March 16, 2026</span>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-orange-50); color: var(--color-orange-500);">👥</div>
+            <div class="stat-card-value">156</div>
+            <div class="stat-card-label">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-success-bg); color: var(--color-success);">✓</div>
+            <div class="stat-card-value">142</div>
+            <div class="stat-card-label">Active Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-primary-subtle); color: var(--color-primary);">🔐</div>
+            <div class="stat-card-value">8</div>
+            <div class="stat-card-label">Defined Roles</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-warning-bg); color: var(--color-warning);">📋</div>
+            <div class="stat-card-value">1.2k</div>
+            <div class="stat-card-label">Audit Events Today</div>
+          </div>
+        </div>
+
+        <!-- System Health -->
+        <h2 class="h2 mb-4">System Health</h2>
+        <div class="system-health mb-6">
+          <div class="health-card">
+            <div class="health-value good">99.9%</div>
+            <div class="caption">Uptime</div>
+          </div>
+          <div class="health-card">
+            <div class="health-value good">45ms</div>
+            <div class="caption">Avg Response Time</div>
+          </div>
+          <div class="health-card">
+            <div class="health-value warning">78%</div>
+            <div class="caption">Storage Used</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+          <!-- Quick Actions -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Quick Actions</h3>
+            </div>
+            <div class="flex flex-col gap-2">
+              <a href="wireframe-SCR-019-user-mgmt.html" class="btn btn-secondary btn-md w-full" id="manage-users-btn">
+                👥 Manage Users
+              </a>
+              <a href="wireframe-SCR-020-roles.html" class="btn btn-secondary btn-md w-full">
+                🔐 Configure Roles
+              </a>
+              <a href="wireframe-SCR-021-audit-logs.html" class="btn btn-secondary btn-md w-full">
+                📋 View Audit Logs
+              </a>
+              <button class="btn btn-tertiary btn-md w-full">
+                📊 Generate Report
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="activity-feed">
+            <div style="padding: var(--spacing-4); border-bottom: 1px solid var(--color-border-default);">
+              <h3 class="h3">Recent Activity</h3>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon" style="background: var(--color-success-bg);">✓</div>
+              <div>
+                <div class="body-sm"><strong>User Created</strong></div>
+                <div class="caption">jsmith@clinic.com added by Admin</div>
+              </div>
+              <div class="caption">2m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon" style="background: var(--color-warning-bg);">🔐</div>
+              <div>
+                <div class="body-sm"><strong>Role Modified</strong></div>
+                <div class="caption">Staff role permissions updated</div>
+              </div>
+              <div class="caption">15m ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon" style="background: var(--color-primary-subtle);">👤</div>
+              <div>
+                <div class="body-sm"><strong>Login Success</strong></div>
+                <div class="caption">admin@upacip.com logged in</div>
+              </div>
+              <div class="caption">1h ago</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-icon" style="background: var(--color-error-bg);">⚠️</div>
+              <div>
+                <div class="body-sm"><strong>Failed Login Attempt</strong></div>
+                <div class="caption">3 attempts from IP 192.168.1.x</div>
+              </div>
+              <div class="caption">2h ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

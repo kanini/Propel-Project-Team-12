@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCR-003 Patient Dashboard - UPACIP Wireframe</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .patient-header {
+      background: var(--color-surface-primary);
+      border-bottom: 1px solid var(--color-border-default);
+      padding: var(--spacing-4) var(--spacing-8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .patient-nav {
+      display: flex;
+      gap: var(--spacing-1);
+    }
+    .patient-nav-item {
+      padding: var(--spacing-2) var(--spacing-4);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: var(--font-size-body-sm);
+      font-weight: var(--font-weight-medium);
+      border-radius: var(--radius-md);
+      transition: all var(--duration-fast);
+    }
+    .patient-nav-item:hover {
+      background: var(--color-neutral-100);
+    }
+    .patient-nav-item.active {
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+    }
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-3);
+    }
+    .notification-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: var(--color-surface-secondary);
+      cursor: pointer;
+      position: relative;
+    }
+    .notification-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 18px;
+      height: 18px;
+      background: var(--color-error);
+      color: white;
+      font-size: 10px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dashboard-content {
+      padding: var(--spacing-6) var(--spacing-8);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .welcome-section {
+      margin-bottom: var(--spacing-8);
+    }
+    .welcome-section h1 {
+      font-size: var(--font-size-display-sm);
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: var(--spacing-2);
+    }
+    .welcome-section p {
+      color: var(--color-text-secondary);
+    }
+    .quick-actions {
+      display: flex;
+      gap: var(--spacing-3);
+      margin-top: var(--spacing-4);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--spacing-4);
+      margin-bottom: var(--spacing-8);
+    }
+    .content-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: var(--spacing-6);
+    }
+    .appointment-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-3);
+    }
+    .appointment-card {
+      display: flex;
+      align-items: center;
+      padding: var(--spacing-4);
+      background: var(--color-surface-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+      border-left: 4px solid var(--color-primary);
+    }
+    .appointment-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    .appointment-date {
+      text-align: center;
+      padding-right: var(--spacing-4);
+      border-right: 1px solid var(--color-border-default);
+      margin-right: var(--spacing-4);
+      min-width: 60px;
+    }
+    .appointment-date .day {
+      font-size: var(--font-size-h1);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+    }
+    .appointment-date .month {
+      font-size: var(--font-size-caption);
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+    }
+    .appointment-info {
+      flex: 1;
+    }
+    .appointment-type {
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: var(--spacing-1);
+    }
+    .appointment-details {
+      font-size: var(--font-size-body-sm);
+      color: var(--color-text-secondary);
+    }
+    .appointment-actions {
+      display: flex;
+      gap: var(--spacing-2);
+    }
+    .intake-prompt {
+      background: linear-gradient(135deg, var(--color-blue-50), var(--color-teal-50));
+      border: 1px solid var(--color-primary);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-6);
+      text-align: center;
+    }
+    .intake-prompt h3 {
+      margin-bottom: var(--spacing-2);
+    }
+    .intake-prompt p {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--spacing-4);
+    }
+    .recent-activity {
+      background: var(--color-surface-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-4);
+    }
+    .activity-item {
+      display: flex;
+      gap: var(--spacing-3);
+      padding: var(--spacing-3) 0;
+      border-bottom: 1px solid var(--color-border-default);
+    }
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .activity-text {
+      flex: 1;
+    }
+    .activity-text strong {
+      display: block;
+      font-size: var(--font-size-body-sm);
+    }
+    .activity-text span {
+      font-size: var(--font-size-caption);
+      color: var(--color-text-secondary);
+    }
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .patient-header { padding: var(--spacing-3) var(--spacing-4); }
+      .dashboard-content { padding: var(--spacing-4); }
+      .quick-actions { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Map
+  | Element | Action | Target Screen |
+  |---------|--------|---------------|
+  | #book-appointment-btn | click | SCR-004 (Calendar) |
+  | #complete-intake-btn | click | SCR-006 (AI Intake) |
+  | #upload-docs-btn | click | SCR-008 (Document Upload) |
+  | #view-profile | click | SCR-009 (360-View) |
+  | #nav-appointments | click | SCR-010 (History) |
+  | #nav-documents | click | SCR-008 (Document Upload) |
+  | #nav-profile | click | SCR-009 (360-View) |
+  | #logout-btn | click | SCR-001 (Landing) |
+  -->
+
+  <!-- Header -->
+  <header class="patient-header">
+    <div class="flex items-center gap-6">
+      <a href="wireframe-SCR-001-landing.html" style="text-decoration: none;">
+        <span style="font-size: var(--font-size-h2); font-weight: var(--font-weight-bold); color: var(--color-primary);">UPACIP</span>
+      </a>
+      <nav class="patient-nav" role="navigation" aria-label="Main navigation">
+        <a href="#" class="patient-nav-item active" id="nav-dashboard">Dashboard</a>
+        <a href="wireframe-SCR-010-history.html" class="patient-nav-item" id="nav-appointments">Appointments</a>
+        <a href="wireframe-SCR-008-doc-upload.html" class="patient-nav-item" id="nav-documents">Documents</a>
+        <a href="wireframe-SCR-009-360-view.html" class="patient-nav-item" id="nav-profile">Profile</a>
+      </nav>
+    </div>
+    <div class="user-menu">
+      <button class="notification-btn" aria-label="Notifications (3 unread)">
+        🔔
+        <span class="notification-badge">3</span>
+      </button>
+      <div class="avatar" title="John Doe">JD</div>
+      <a href="wireframe-SCR-001-landing.html" class="btn btn-ghost btn-sm" id="logout-btn">Logout</a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="dashboard-content" role="main">
+    <!-- Welcome Section -->
+    <section class="welcome-section">
+      <h1>Good morning, John</h1>
+      <p>Here's an overview of your health journey</p>
+      <div class="quick-actions">
+        <a href="wireframe-SCR-004-calendar.html" class="btn btn-primary btn-md" id="book-appointment-btn">
+          📅 Book Appointment
+        </a>
+        <a href="wireframe-SCR-006-ai-intake.html" class="btn btn-secondary btn-md" id="complete-intake-btn">
+          📝 Complete Intake
+        </a>
+        <a href="wireframe-SCR-008-doc-upload.html" class="btn btn-tertiary btn-md" id="upload-docs-btn">
+          📄 Upload Documents
+        </a>
+      </div>
+    </section>
+
+    <!-- Stats Grid -->
+    <section class="stats-grid" aria-label="Health summary statistics">
+      <div class="stat-card">
+        <div class="stat-card-icon" style="background: var(--color-primary-subtle); color: var(--color-primary);">📅</div>
+        <div class="stat-card-value">2</div>
+        <div class="stat-card-label">Upcoming Appointments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon" style="background: var(--color-success-bg); color: var(--color-success);">✓</div>
+        <div class="stat-card-value">85%</div>
+        <div class="stat-card-label">Intake Complete</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon" style="background: var(--color-warning-bg); color: var(--color-warning);">📄</div>
+        <div class="stat-card-value">3</div>
+        <div class="stat-card-label">Pending Documents</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon" style="background: var(--color-teal-50); color: var(--color-teal-500);">💊</div>
+        <div class="stat-card-value">4</div>
+        <div class="stat-card-label">Active Medications</div>
+      </div>
+    </section>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+      <!-- Appointments Section -->
+      <section>
+        <div class="card-header mb-4">
+          <h2 class="h2">Upcoming Appointments</h2>
+          <a href="wireframe-SCR-010-history.html" class="btn btn-tertiary btn-sm">View All</a>
+        </div>
+        <div class="appointment-list">
+          <article class="appointment-card">
+            <div class="appointment-date">
+              <div class="day">18</div>
+              <div class="month">Mar</div>
+            </div>
+            <div class="appointment-info">
+              <div class="appointment-type">Annual Physical</div>
+              <div class="appointment-details">Dr. Sarah Chen • 10:00 AM • Primary Care</div>
+            </div>
+            <div class="appointment-actions">
+              <button class="btn btn-secondary btn-sm">Reschedule</button>
+              <button class="btn btn-ghost btn-sm">Cancel</button>
+            </div>
+          </article>
+          <article class="appointment-card">
+            <div class="appointment-date">
+              <div class="day">25</div>
+              <div class="month">Mar</div>
+            </div>
+            <div class="appointment-info">
+              <div class="appointment-type">Follow-up Consultation</div>
+              <div class="appointment-details">Dr. Michael Park • 2:30 PM • Cardiology</div>
+            </div>
+            <div class="appointment-actions">
+              <button class="btn btn-secondary btn-sm">Reschedule</button>
+              <button class="btn btn-ghost btn-sm">Cancel</button>
+            </div>
+          </article>
+        </div>
+
+        <!-- Intake Prompt -->
+        <div class="intake-prompt mt-6">
+          <h3 class="h3">✨ Complete Your Intake</h3>
+          <p>Help us prepare for your visit by completing your intake form. Our AI assistant makes it quick and easy!</p>
+          <a href="wireframe-SCR-006-ai-intake.html" class="btn btn-primary btn-md">Start AI Intake</a>
+        </div>
+      </section>
+
+      <!-- Sidebar -->
+      <aside>
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+          <h3 class="h3 mb-3">Recent Activity</h3>
+          <div class="activity-item">
+            <div class="activity-icon">📅</div>
+            <div class="activity-text">
+              <strong>Appointment Confirmed</strong>
+              <span>Annual Physical - Mar 18</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon">📄</div>
+            <div class="activity-text">
+              <strong>Document Uploaded</strong>
+              <span>Insurance Card - Mar 15</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon">✉️</div>
+            <div class="activity-text">
+              <strong>Message from Dr. Chen</strong>
+              <span>Pre-visit instructions - Mar 14</span>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon">💊</div>
+            <div class="activity-text">
+              <strong>Prescription Renewed</strong>
+              <span>Lisinopril 10mg - Mar 12</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card mt-4">
+          <h3 class="h3 mb-3">Quick Links</h3>
+          <div class="flex flex-col gap-2">
+            <a href="wireframe-SCR-009-360-view.html" class="nav-item" id="view-profile">
+              <span>👤</span> View My Profile
+            </a>
+            <a href="#" class="nav-item">
+              <span>💬</span> Message Provider
+            </a>
+            <a href="#" class="nav-item">
+              <span>🧪</span> View Test Results
+            </a>
+            <a href="#" class="nav-item">
+              <span>📋</span> Request Records
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Toast Container (for success/error messages) -->
+  <div class="toast-container" role="region" aria-label="Notifications" id="toast-container">
+    <!-- Toasts appear here dynamically -->
+  </div>
+</body>
+</html>

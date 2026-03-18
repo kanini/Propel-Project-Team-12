@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCR-011 Staff Dashboard - UPACIP Wireframe</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .sidebar-logo {
+      padding: var(--spacing-4) var(--spacing-4);
+      border-bottom: 1px solid var(--color-border-default);
+    }
+    .sidebar-logo span {
+      font-size: var(--font-size-h2);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-teal-500);
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: var(--spacing-4) 0;
+      overflow-y: auto;
+    }
+    .sidebar-section {
+      margin-bottom: var(--spacing-4);
+    }
+    .sidebar-section-title {
+      font-size: var(--font-size-overline);
+      color: var(--color-text-tertiary);
+      padding: var(--spacing-2) var(--spacing-4);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .sidebar-footer {
+      padding: var(--spacing-4);
+      border-top: 1px solid var(--color-border-default);
+    }
+    .queue-card {
+      background: var(--color-surface-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-4);
+      border-bottom: 1px solid var(--color-border-default);
+    }
+    .queue-item {
+      display: flex;
+      align-items: center;
+      padding: var(--spacing-3) var(--spacing-4);
+      border-bottom: 1px solid var(--color-border-default);
+      gap: var(--spacing-3);
+    }
+    .queue-item:hover {
+      background: var(--color-neutral-50);
+    }
+    .queue-item:last-child {
+      border-bottom: none;
+    }
+    .queue-position {
+      width: 32px;
+      height: 32px;
+      background: var(--color-neutral-100);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-body-sm);
+    }
+    .queue-patient {
+      flex: 1;
+    }
+    .queue-patient-name {
+      font-weight: var(--font-weight-medium);
+      margin-bottom: 2px;
+    }
+    .queue-patient-details {
+      font-size: var(--font-size-caption);
+      color: var(--color-text-secondary);
+    }
+    .queue-wait-time {
+      text-align: right;
+    }
+    .queue-wait-time .time {
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-body-sm);
+    }
+    .queue-wait-time .time.warning {
+      color: var(--color-warning);
+    }
+    .queue-wait-time .time.critical {
+      color: var(--color-error);
+    }
+    .action-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-4);
+      margin-bottom: var(--spacing-6);
+    }
+    .action-card {
+      background: var(--color-surface-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-4);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-3);
+      cursor: pointer;
+      transition: all var(--duration-fast);
+      text-decoration: none;
+      color: inherit;
+    }
+    .action-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-teal-500);
+    }
+    .action-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .action-card-content h3 {
+      font-size: var(--font-size-h4);
+      font-weight: var(--font-weight-semibold);
+    }
+    .action-card-content p {
+      font-size: var(--font-size-caption);
+      color: var(--color-text-secondary);
+    }
+    .nav-item .badge {
+      margin-left: auto;
+    }
+    @media (max-width: 1024px) {
+      .action-cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Map
+  | Element | Action | Target Screen |
+  |---------|--------|---------------|
+  | #nav-dashboard | click | SCR-011 (Staff Dashboard) |
+  | #nav-queue | click | SCR-013 (Queue Management) |
+  | #nav-patients | click | SCR-012 (Patient Search) |
+  | #nav-walkin | click | SCR-014 (Walk-in Booking) |
+  | #nav-conflicts | click | SCR-015 (Conflict Review) |
+  | #nav-codes | click | SCR-016 (Code Verification) |
+  | #nav-insurance | click | SCR-017 (Insurance Validation) |
+  | #walkin-btn | click | SCR-014 (Walk-in Booking) |
+  | #view-queue-btn | click | SCR-013 (Queue Management) |
+  | #conflicts-badge | click | SCR-015 (Conflict Review) |
+  | #codes-badge | click | SCR-016 (Code Verification) |
+  | #logout-btn | click | SCR-001 (Landing) |
+  -->
+
+  <div class="page-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar" role="navigation" aria-label="Staff portal navigation">
+      <div class="sidebar-logo">
+        <span>UPACIP</span>
+        <div class="badge badge-primary mt-2">Staff Portal</div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Overview</div>
+          <a href="#" class="nav-item active" id="nav-dashboard">
+            <span class="nav-item-icon">🏠</span>
+            Dashboard
+          </a>
+          <a href="wireframe-SCR-013-queue.html" class="nav-item" id="nav-queue">
+            <span class="nav-item-icon">👥</span>
+            Queue
+            <span class="badge badge-warning">8</span>
+          </a>
+        </div>
+        
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Patients</div>
+          <a href="wireframe-SCR-012-patient-search.html" class="nav-item" id="nav-patients">
+            <span class="nav-item-icon">🔍</span>
+            Search Patients
+          </a>
+          <a href="wireframe-SCR-014-walkin.html" class="nav-item" id="nav-walkin">
+            <span class="nav-item-icon">➕</span>
+            Walk-in Booking
+          </a>
+        </div>
+        
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Clinical</div>
+          <a href="wireframe-SCR-015-conflict.html" class="nav-item" id="nav-conflicts">
+            <span class="nav-item-icon">⚠️</span>
+            Conflicts
+            <span class="badge badge-error" id="conflicts-badge">5</span>
+          </a>
+          <a href="wireframe-SCR-016-code-verify.html" class="nav-item" id="nav-codes">
+            <span class="nav-item-icon">🏷️</span>
+            Code Verification
+            <span class="badge badge-ai" id="codes-badge">12</span>
+          </a>
+          <a href="wireframe-SCR-017-insurance.html" class="nav-item" id="nav-insurance">
+            <span class="nav-item-icon">🏥</span>
+            Insurance
+          </a>
+        </div>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="avatar" style="background: var(--color-teal-50); color: var(--color-teal-500);">SM</div>
+          <div>
+            <div class="body-sm" style="font-weight: var(--font-weight-medium);">Sarah Miller</div>
+            <div class="caption">Front Desk</div>
+          </div>
+        </div>
+        <a href="wireframe-SCR-001-landing.html" class="btn btn-ghost btn-sm w-full" id="logout-btn">
+          Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="header">
+        <div>
+          <h1 class="h1">Dashboard</h1>
+          <span class="caption">Welcome back, Sarah</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="caption">Today: March 16, 2026</span>
+          <button class="btn btn-secondary btn-sm">🔔 Notifications</button>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-teal-50); color: var(--color-teal-500);">👥</div>
+            <div class="stat-card-value">8</div>
+            <div class="stat-card-label">In Queue</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-success-bg); color: var(--color-success);">✓</div>
+            <div class="stat-card-value">24</div>
+            <div class="stat-card-label">Checked In Today</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-warning-bg); color: var(--color-warning);">⏱️</div>
+            <div class="stat-card-value">12m</div>
+            <div class="stat-card-label">Avg Wait Time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--color-error-bg); color: var(--color-error);">⚠️</div>
+            <div class="stat-card-value">5</div>
+            <div class="stat-card-label">Pending Conflicts</div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <h2 class="h2 mb-4">Quick Actions</h2>
+        <div class="action-cards">
+          <a href="wireframe-SCR-014-walkin.html" class="action-card" id="walkin-btn">
+            <div class="action-card-icon" style="background: var(--color-primary-subtle);">➕</div>
+            <div class="action-card-content">
+              <h3>Walk-in Booking</h3>
+              <p>Register a walk-in patient</p>
+            </div>
+          </a>
+          <a href="wireframe-SCR-013-queue.html" class="action-card" id="view-queue-btn">
+            <div class="action-card-icon" style="background: var(--color-teal-50);">👥</div>
+            <div class="action-card-content">
+              <h3>Manage Queue</h3>
+              <p>View and update patient queue</p>
+            </div>
+          </a>
+          <a href="wireframe-SCR-015-conflict.html" class="action-card">
+            <div class="action-card-icon" style="background: var(--color-warning-bg);">⚠️</div>
+            <div class="action-card-content">
+              <h3>Review Conflicts</h3>
+              <p>5 data conflicts need review</p>
+            </div>
+          </a>
+          <a href="wireframe-SCR-016-code-verify.html" class="action-card">
+            <div class="action-card-icon" style="background: var(--color-ai-suggestion-bg);">🏷️</div>
+            <div class="action-card-content">
+              <h3>Verify Codes</h3>
+              <p>12 AI-suggested codes pending</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- Current Queue -->
+        <div class="queue-card">
+          <div class="queue-header">
+            <h2 class="h2">Current Queue</h2>
+            <a href="wireframe-SCR-013-queue.html" class="btn btn-tertiary btn-sm">View All →</a>
+          </div>
+          <div class="queue-item">
+            <div class="queue-position">1</div>
+            <div class="avatar avatar-sm">MJ</div>
+            <div class="queue-patient">
+              <div class="queue-patient-name">Maria Johnson</div>
+              <div class="queue-patient-details">Annual Physical • Dr. Chen</div>
+            </div>
+            <span class="badge badge-success">Checked In</span>
+            <div class="queue-wait-time">
+              <div class="time">5m</div>
+              <div class="caption">wait</div>
+            </div>
+            <button class="btn btn-primary btn-sm">Mark Arrived</button>
+          </div>
+          <div class="queue-item">
+            <div class="queue-position">2</div>
+            <div class="avatar avatar-sm">RW</div>
+            <div class="queue-patient">
+              <div class="queue-patient-name">Robert Williams</div>
+              <div class="queue-patient-details">Follow-up • Dr. Park</div>
+            </div>
+            <span class="badge badge-warning">Waiting</span>
+            <div class="queue-wait-time">
+              <div class="time warning">18m</div>
+              <div class="caption">wait</div>
+            </div>
+            <button class="btn btn-secondary btn-sm">View</button>
+          </div>
+          <div class="queue-item">
+            <div class="queue-position">3</div>
+            <div class="avatar avatar-sm">EL</div>
+            <div class="queue-patient">
+              <div class="queue-patient-name">Elizabeth Lee</div>
+              <div class="queue-patient-details">Walk-in • Dr. Chen</div>
+            </div>
+            <span class="badge badge-default">Pending</span>
+            <div class="queue-wait-time">
+              <div class="time critical">32m</div>
+              <div class="caption">wait</div>
+            </div>
+            <button class="btn btn-secondary btn-sm">View</button>
+          </div>
+        </div>
+
+        <!-- Pending Items Summary -->
+        <div class="grid grid-cols-2 gap-4 mt-6">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">⚠️ Active Conflicts</h3>
+              <a href="wireframe-SCR-015-conflict.html" class="btn btn-tertiary btn-sm">Review All</a>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between p-2 bg-primary-subtle" style="border-radius: var(--radius-sm);">
+                <span class="body-sm">Medication discrepancy - Patient #2847</span>
+                <span class="badge badge-warning">High</span>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <span class="body-sm">Allergy conflict - Patient #3102</span>
+                <span class="badge badge-error">Critical</span>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <span class="body-sm">Insurance info mismatch - Patient #2956</span>
+                <span class="badge badge-default">Medium</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">✨ AI Code Suggestions</h3>
+              <a href="wireframe-SCR-016-code-verify.html" class="btn btn-tertiary btn-sm">Verify All</a>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between p-2 bg-primary-subtle" style="border-radius: var(--radius-sm);">
+                <span class="body-sm">ICD-10: E11.9 - Type 2 Diabetes</span>
+                <span class="badge badge-ai">95% conf</span>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <span class="body-sm">CPT: 99213 - Office Visit</span>
+                <span class="badge badge-ai">92% conf</span>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <span class="body-sm">ICD-10: I10 - Hypertension</span>
+                <span class="badge badge-ai">88% conf</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

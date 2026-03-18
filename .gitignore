@@ -12,8 +12,10 @@ Thumbs.db
 *.temp
 nul
 */settings.local.json
-.propel
 .github
+.propel/orchestrators 
+.propel/prompts
+.propel/rules
 
 .env
 .github/*

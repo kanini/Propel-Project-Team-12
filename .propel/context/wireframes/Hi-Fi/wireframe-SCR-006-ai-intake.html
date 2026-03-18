@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCR-006 AI Intake - UPACIP Wireframe</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .intake-layout {
+      display: flex;
+      height: 100vh;
+    }
+    .chat-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface-primary);
+    }
+    .chat-header {
+      padding: var(--spacing-4) var(--spacing-6);
+      border-bottom: 1px solid var(--color-border-default);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-3);
+    }
+    .chat-title h1 {
+      font-size: var(--font-size-h2);
+    }
+    .mode-toggle {
+      display: flex;
+      background: var(--color-surface-secondary);
+      border-radius: var(--radius-full);
+      padding: 4px;
+    }
+    .mode-btn {
+      padding: var(--spacing-2) var(--spacing-4);
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-body-sm);
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: all var(--duration-fast);
+    }
+    .mode-btn.active {
+      background: var(--color-surface-primary);
+      box-shadow: var(--shadow-sm);
+      color: var(--color-primary);
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--spacing-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-4);
+    }
+    .message {
+      max-width: 70%;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-2);
+    }
+    .message.ai {
+      align-self: flex-start;
+    }
+    .message.user {
+      align-self: flex-end;
+    }
+    .message-bubble {
+      padding: var(--spacing-3) var(--spacing-4);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-body-sm);
+      line-height: 1.5;
+    }
+    .message.ai .message-bubble {
+      background: var(--color-surface-secondary);
+      border-bottom-left-radius: var(--radius-sm);
+    }
+    .message.user .message-bubble {
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      border-bottom-right-radius: var(--radius-sm);
+    }
+    .message-meta {
+      font-size: var(--font-size-caption);
+      color: var(--color-text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-2);
+    }
+    .ai-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-1);
+      color: var(--color-ai-suggestion);
+    }
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-2);
+      margin-top: var(--spacing-2);
+    }
+    .suggestion-btn {
+      padding: var(--spacing-2) var(--spacing-3);
+      background: var(--color-surface-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-body-sm);
+      cursor: pointer;
+      transition: all var(--duration-fast);
+    }
+    .suggestion-btn:hover {
+      border-color: var(--color-primary);
+      background: var(--color-primary-subtle);
+    }
+    .chat-input-area {
+      padding: var(--spacing-4) var(--spacing-6);
+      border-top: 1px solid var(--color-border-default);
+      background: var(--color-surface-primary);
+    }
+    .chat-input-container {
+      display: flex;
+      gap: var(--spacing-3);
+      align-items: flex-end;
+    }
+    .chat-input {
+      flex: 1;
+      min-height: 48px;
+      max-height: 120px;
+      padding: var(--spacing-3) var(--spacing-4);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-body-sm);
+      resize: none;
+    }
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--color-border-focus);
+      box-shadow: var(--shadow-focus);
+    }
+    .progress-panel {
+      width: 320px;
+      background: var(--color-surface-secondary);
+      border-left: 1px solid var(--color-border-default);
+      padding: var(--spacing-6);
+      overflow-y: auto;
+    }
+    .progress-header {
+      margin-bottom: var(--spacing-6);
+    }
+    .progress-bar-container {
+      background: var(--color-neutral-200);
+      border-radius: var(--radius-full);
+      height: 8px;
+      margin-top: var(--spacing-3);
+      overflow: hidden;
+    }
+    .progress-bar {
+      background: var(--color-primary);
+      height: 100%;
+      border-radius: var(--radius-full);
+      transition: width var(--duration-normal);
+    }
+    .progress-section {
+      margin-bottom: var(--spacing-4);
+    }
+    .progress-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-2) 0;
+      font-size: var(--font-size-body-sm);
+      font-weight: var(--font-weight-medium);
+    }
+    .section-status {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-2);
+    }
+    .section-status.complete {
+      color: var(--color-success);
+    }
+    .section-status.active {
+      color: var(--color-primary);
+    }
+    .section-status.pending {
+      color: var(--color-text-tertiary);
+    }
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: var(--spacing-3) var(--spacing-4);
+      background: var(--color-surface-secondary);
+      border-radius: var(--radius-lg);
+      width: fit-content;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--color-neutral-400);
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    @media (max-width: 768px) {
+      .progress-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Map
+  | Element | Action | Target Screen |
+  |---------|--------|---------------|
+  | #mode-toggle-manual | click | SCR-007 (Manual Intake) |
+  | #back-btn | click | SCR-003 (Patient Dashboard) |
+  | #submit-intake-btn | click | SCR-003 (Patient Dashboard) - success toast |
+  -->
+
+  <div class="intake-layout">
+    <!-- Chat Panel -->
+    <div class="chat-panel">
+      <header class="chat-header">
+        <div class="chat-title">
+          <a href="wireframe-SCR-003-patient-dashboard.html" class="btn btn-ghost btn-sm" id="back-btn">← Back</a>
+          <h1>Health Intake</h1>
+          <span class="badge badge-ai">✨ AI-Assisted</span>
+        </div>
+        <div class="mode-toggle" role="tablist" id="mode-toggle">
+          <button class="mode-btn active" role="tab" aria-selected="true">AI Chat</button>
+          <a href="wireframe-SCR-007-manual-intake.html" class="mode-btn" role="tab" aria-selected="false" id="mode-toggle-manual">Manual Form</a>
+        </div>
+      </header>
+
+      <div class="chat-messages" role="log" aria-live="polite">
+        <!-- AI Welcome -->
+        <div class="message ai">
+          <div class="message-meta">
+            <span class="ai-indicator">✨ AI Assistant</span>
+            <span>Just now</span>
+          </div>
+          <div class="message-bubble">
+            Hi John! 👋 I'm here to help you complete your intake form. This should only take about 5 minutes. Let's start with some basic information.
+          </div>
+        </div>
+
+        <!-- AI Question -->
+        <div class="message ai">
+          <div class="message-bubble">
+            Do you have any allergies to medications? This helps us ensure your safety during treatment.
+          </div>
+          <div class="suggestions">
+            <button class="suggestion-btn">No known allergies</button>
+            <button class="suggestion-btn">Yes, I have allergies</button>
+            <button class="suggestion-btn">I'm not sure</button>
+          </div>
+        </div>
+
+        <!-- User Response -->
+        <div class="message user">
+          <div class="message-bubble">
+            Yes, I have allergies
+          </div>
+          <div class="message-meta" style="justify-content: flex-end;">
+            <span>2:34 PM</span>
+          </div>
+        </div>
+
+        <!-- AI Follow-up -->
+        <div class="message ai">
+          <div class="message-bubble">
+            Got it. Could you tell me which medications you're allergic to? You can list multiple if needed.
+          </div>
+        </div>
+
+        <!-- User Response -->
+        <div class="message user">
+          <div class="message-bubble">
+            I'm allergic to Penicillin. I get hives when I take it.
+          </div>
+        </div>
+
+        <!-- AI Confirmation -->
+        <div class="message ai">
+          <div class="message-bubble">
+            Thanks for letting me know. I've recorded:
+            <br><br>
+            <strong>🚨 Allergy: Penicillin</strong><br>
+            Reaction: Hives (skin reaction)
+            <br><br>
+            Does this look correct?
+          </div>
+          <div class="suggestions">
+            <button class="suggestion-btn">Yes, that's correct</button>
+            <button class="suggestion-btn">I need to edit this</button>
+            <button class="suggestion-btn">Add another allergy</button>
+          </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="message ai">
+          <div class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-container">
+          <textarea class="chat-input" placeholder="Type your message..." rows="1" aria-label="Chat message input"></textarea>
+          <button class="btn btn-primary btn-md">Send</button>
+        </div>
+        <div class="caption mt-2 text-center">
+          Press Enter to send • AI responses are suggestions only
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Panel -->
+    <aside class="progress-panel" aria-label="Intake progress">
+      <div class="progress-header">
+        <h2 class="h3">Your Progress</h2>
+        <p class="caption">3 of 6 sections complete</p>
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: 50%;"></div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-section-title">
+          <span>Personal Information</span>
+          <span class="section-status complete">✓ Complete</span>
+        </div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-section-title">
+          <span>Medical History</span>
+          <span class="section-status complete">✓ Complete</span>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-section-title">
+          <span>Allergies</span>
+          <span class="section-status active">● In Progress</span>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-section-title">
+          <span>Current Medications</span>
+          <span class="section-status pending">○ Pending</span>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-section-title">
+          <span>Family History</span>
+          <span class="section-status pending">○ Pending</span>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-section-title">
+          <span>Lifestyle & Habits</span>
+          <span class="section-status pending">○ Pending</span>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <div class="card">
+          <h3 class="h4 mb-2">Summary Preview</h3>
+          <div class="body-sm text-secondary mb-3">
+            Your information will be reviewed by your care team before your visit.
+          </div>
+          <div class="flex flex-col gap-2">
+            <div class="flex justify-between body-sm">
+              <span class="text-secondary">Allergies:</span>
+              <span>Penicillin</span>
+            </div>
+            <div class="flex justify-between body-sm">
+              <span class="text-secondary">Conditions:</span>
+              <span>Hypertension, Diabetes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <button class="btn btn-secondary btn-md w-full mb-2" disabled>
+          Review Summary
+        </button>
+        <a href="wireframe-SCR-003-patient-dashboard.html" class="btn btn-ghost btn-sm w-full" id="submit-intake-btn">
+          Save & Exit
+        </a>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>
