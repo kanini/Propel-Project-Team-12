@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-005: Manual Form Intake - PulseCare Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-field { border: 1px solid #e5e7eb; transition: all 200ms ease; }
+        .input-field:focus { outline: 2px solid #3b82f6; border-color: #3b82f6; }
+        .input-field.error { border-color: #ef4444; }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #back-to-dashboard | click | SCR-001 (Patient Dashboard) |
+    | #switch-to-ai | click | SCR-004 (AI Intake - FR-012) |
+    | #submit-intake-btn | click | Submit → Success → SCR-001 |
+    -->
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="wireframe-SCR-001-patient-dashboard.html" id="back-to-dashboard" class="flex items-center text-gray-600 hover:text-gray-800 mr-8">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        Back
+                    </a>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg mr-2 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                        </div>
+                        <span class="text-lg font-semibold text-gray-800">PulseCare</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500 hidden sm:block">Jane Smith</span>
+                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">JS</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Health Intake Form</h1>
+                <p class="text-gray-600">Complete your health information before your appointment</p>
+            </div>
+            <button id="switch-to-ai" class="text-sm text-blue-500 hover:text-blue-600 font-medium">Try AI chat →</button>
+        </div>
+        
+        <!-- Form -->
+        <form id="intake-form" class="space-y-6">
+            <!-- Current Symptoms Section -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Current Symptoms</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">What brings you in today?</label>
+                        <textarea
+                            name="chief-complaint"
+                            rows="3"
+                            class="input-field w-full px-4 py-3 rounded-lg text-base text-gray-700"
+                            placeholder="Describe your main reason for visit..."
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">When did symptoms start?</label>
+                        <input
+                            type="date"
+                            name="symptom-onset"
+                            class="input-field w-full px-4 py-3 rounded-lg text-base text-gray-700"
+                            required
+                        />
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pain level (if applicable)</label>
+                        <div class="flex items-center space-x-4">
+                            <input type="range" id="pain-level" min="0" max="10" value="0" class="flex-1" />
+                            <span id="pain-value" class="text-2xl font-bold text-blue-500 w-12 text-center">0</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>No pain</span>
+                            <span>Worst pain</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Medical History Section -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Medical History</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Current medications</label>
+                        <textarea
+                            name="medications"
+                            rows="3"
+                            class="input-field w-full px-4 py-3 rounded-lg text-base text-gray-700"
+                            placeholder="List all current medications, dosages, and frequency..."
+                        ></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Allergies</label>
+                        <input
+                            type="text"
+                            name="allergies"
+                            class="input-field w-full px-4 py-3 rounded-lg text-base text-gray-700"
+                            placeholder="List any drug or environmental allergies..."
+                        />
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Do you have any of these conditions? (check all that apply)</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="condition" value="diabetes" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Diabetes</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="condition" value="hypertension" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">High blood pressure</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="condition" value="asthma" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Asthma</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="condition" value="heart-disease" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Heart disease</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lifestyle Section -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Lifestyle</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Do you smoke?</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="smoking" value="never" class="w-4 h-4 text-blue-500 focus:ring-2 focus:ring-blue-500" checked />
+                                <span class="ml-2 text-sm text-gray-700">Never</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="smoking" value="former" class="w-4 h-4 text-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Former</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="smoking" value="current" class="w-4 h-4 text-blue-500 focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Current</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Alcohol consumption</label>
+                        <select name="alcohol" class="input-field w-full px-4 py-3 rounded-lg text-base text-gray-700">
+                            <option value="none">None</option>
+                            <option value="occasional">Occasional (1-2 drinks/week)</option>
+                            <option value="moderate">Moderate (3-7 drinks/week)</option>
+                            <option value="heavy">Heavy (8+ drinks/week)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="bg-white rounded-lg shadow-sm p-6 flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">All sections complete</p>
+                    <p class="text-xs text-green-600 flex items-center mt-1">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        Auto-saved 2 minutes ago
+                    </p>
+                </div>
+                <button
+                    type="submit"
+                    id="submit-intake-btn"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-medium text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                    Submit Intake
+                </button>
+            </div>
+        </form>
+    </main>
+    
+    <script>
+        // Pain level slider
+        const painSlider = document.getElementById('pain-level');
+        const painValue = document.getElementById('pain-value');
+        
+        painSlider.addEventListener('input', (e) => {
+            painValue.textContent = e.target.value;
+        });
+        
+        // Form submission
+        document.getElementById('intake-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submit-intake-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            
+            setTimeout(() => {
+                window.location.href = 'wireframe-SCR-001-patient-dashboard.html?intake=completed';
+            }, 1500);
+        });
+        
+        // Switch to AI
+        document.getElementById('switch-to-ai').addEventListener('click', () => {
+            window.location.href = 'wireframe-SCR-004-ai-intake.html';
+        });
+    </script>
+</body>
+</html>

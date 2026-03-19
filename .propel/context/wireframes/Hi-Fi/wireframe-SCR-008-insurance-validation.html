@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-008: Insurance Validation - PulseCare Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #back-to-arrivals | click | SCR-007 (Arrival Management) |
+    | #validate-insurance-btn | click | Validate → Update status → SCR-007 |
+    | #view-patient-360 | click | SCR-009 (360° Patient View) |
+    -->
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="wireframe-SCR-007-arrival-management.html" id="back-to-arrivals" class="flex items-center text-gray-600 hover:text-gray-800 mr-8">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        Back to Arrivals
+                    </a>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg mr-2 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                        </div>
+                        <span class="text-lg font-semibold text-gray-800">PulseCare</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500 hidden sm:block">Dr. Sarah Johnson</span>
+                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-medium text-sm">SJ</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Insurance Validation</h1>
+                <p class="text-gray-600">Verify coverage for Jane Smith • MRN: 123456</p>
+            </div>
+            <a href="wireframe-SCR-009-patient-360-view.html" id="view-patient-360" class="text-blue-500 hover:text-blue-600 font-medium">
+                Full patient view →
+            </a>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Insurance Card Images -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Uploaded Insurance Card</h2>
+                    
+                    <!-- Front of Card -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Front</label>
+                        <div class="border-2 border-gray-300 rounded-lg overflow-hidden">
+                            <div class="bg-gradient-to-br from-blue-600 to-blue-800 p-6 text-white">
+                                <div class="flex justify-between items-start mb-8">
+                                    <div>
+                                        <p class="text-xs opacity-75 mb-1">MEMBER ID</p>
+                                        <p class="text-lg font-bold">ABC123456789</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs opacity-75 mb-1">GROUP</p>
+                                        <p class="font-semibold">GRP987654</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs opacity-75 mb-1">MEMBER NAME</p>
+                                    <p class="text-xl font-bold">JANE SMITH</p>
+                                </div>
+                                <div class="mt-4 flex justify-between items-end">
+                                    <div>
+                                        <p class="text-xs opacity-75">PLAN</p>
+                                        <p class="font-semibold">Blue Shield PPO</p>
+                                    </div>
+                                    <p class="text-xl font-bold">BlueShield</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-gray-500">
+                            <svg class="w-4 h-4 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            AI extracted • 95% confidence
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Extracted Information -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">Extracted Insurance Details</h2>
+                        <button class="text-sm text-blue-500 hover:text-blue-600 font-medium">Edit</button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Insurance Provider</label>
+                            <p class="text-sm font-medium text-gray-800">Blue Shield of California</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Plan Type</label>
+                            <p class="text-sm font-medium text-gray-800">PPO</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Member ID</label>
+                            <p class="text-sm font-medium text-gray-800">ABC123456789</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Group Number</label>
+                            <p class="text-sm font-medium text-gray-800">GRP987654</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Policy Holder</label>
+                            <p class="text-sm font-medium text-gray-800">Jane Smith (Self)</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Effective Date</label>
+                            <p class="text-sm font-medium text-gray-800">January 1, 2026</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Validation Actions -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Validation</h2>
+                    <div class="space-y-3">
+                        <button
+                            id="validate-insurance-btn"
+                            class="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center"
+                        >
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Validate Coverage
+                        </button>
+                        <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium text-base">
+                            Manual Override
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Validation Status Sidebar -->
+            <div class="space-y-6">
+                <!-- Validation Status -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Status</h3>
+                    <div class="text-center py-4">
+                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-8 h-8 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                        </div>
+                        <p class="text-lg font-bold text-gray-800 mb-1">Pending Validation</p>
+                        <p class="text-sm text-gray-500">Click "Validate Coverage" to check eligibility</p>
+                    </div>
+                </div>
+                
+                <!-- Coverage Summary Placeholder -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Coverage Summary</h3>
+                    <div class="space-y-3 text-sm text-gray-500">
+                        <div class="flex justify-between">
+                            <span>Copay:</span>
+                            <span>—</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Deductible:</span>
+                            <span>—</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Coinsurance:</span>
+                            <span>—</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-3">Available after validation</p>
+                </div>
+                
+                <!-- Recent Validations -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Validations</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between text-sm pb-3 border-b border-gray-100">
+                            <div>
+                                <p class="font-medium text-gray-800">John Doe</p>
+                                <p class="text-xs text-gray-500">2 hours ago</p>
+                            </div>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">Active</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm pb-3 border-b border-gray-100">
+                            <div>
+                                <p class="font-medium text-gray-800">Mary Johnson</p>
+                                <p class="text-xs text-gray-500">4 hours ago</p>
+                            </div>
+                            <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">Denied</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.getElementById('validate-insurance-btn').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            
+            setTimeout(() => {
+                window.location.href = 'wireframe-SCR-007-arrival-management.html?insurance=validated';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

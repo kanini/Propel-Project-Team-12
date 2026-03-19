@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-011: Create/Edit User - PulseCare Platform</title>
+    <script src="https://cdn.tail windcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-field { border: 1px solid #e5e7eb; transition: all 200ms ease; }
+        .input-field:focus { outline: 2px solid #3b82f6; border-color: #3b82f6; }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #back-to-users | click | SCR-010 (User List) |
+    | #save-user-btn | click | Save → Success → SCR-010 |
+    | #cancel-btn | click | SCR-010 (User List) |
+    -->
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="wireframe-SCR-010-user-list.html" id="back-to-users" class="flex items-center text-gray-600 hover:text-gray-800 mr-8">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        Back to Users
+                    </a>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg mr-2 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                        </div>
+                        <span class="text-lg font-semibold text-gray-800">PulseCare Admin</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500 hidden sm:block">Admin User</span>
+                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">AU</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Create New User</h1>
+            <p class="text-gray-600">Add a new user to the PulseCare system</p>
+        </div>
+        
+        <!-- Form -->
+        <form id="user-form" class="space-y-6">
+            <!-- Personal Information -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Personal Information</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                        <input
+                            type="text"
+                            name="first-name"
+                            required
+                            class="input-field w-full px-4 py-2 rounded-lg text-base text-gray-700"
+                            placeholder="John"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                        <input
+                            type="text"
+                            name="last-name"
+                            required
+                            class="input-field w-full px-4 py-2 rounded-lg text-base text-gray-700"
+                            placeholder="Doe"
+                        />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                        <input
+                            type="email"
+                            name="email"
+                            required
+                            class="input-field w-full px-4 py-2 rounded-lg text-base text-gray-700"
+                            placeholder="john.doe@pulsecare.com"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            class="input-field w-full px-4 py-2 rounded-lg text-base text-gray-700"
+                            placeholder="(555) 123-4567"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
+                        <input
+                            type="text"
+                            name="employee-id"
+                            class="input-field w-full px-4 py-2 rounded-lg text-base text-gray-700"
+                            placeholder="EMP-12345"
+                        />
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Role and Access -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Role & Access</h2>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                        <select
+                            name="role"
+                            required
+                            class="input-field w-full px-4 py-2 rounded-lg text-base text-gray-700"
+                        >
+                            <option value="">Select role</option>
+                            <option value="admin">Admin</option>
+                            <option value="provider">Provider</option>
+                            <option value="staff">Staff</option>
+                            <option value="patient">Patient</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Determines user permissions and access level</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Permissions</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="perm-patients" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Patient Management</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="perm-appointments" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Appointment Management</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="perm-billing" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Billing & Insurance</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="perm-reports" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">Reports & Analytics</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="perm-admin" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">System Administration</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                        <select
+                            name="department"
+                            class="input-field w-full px-4 py-2 rounded-lg text-base text-gray-700"
+                        >
+                            <option value="">Select department</option>
+                            <option value="primary-care">Primary Care</option>
+                            <option value="cardiology">Cardiology</option>
+                            <option value="pediatrics">Pediatrics</option>
+                            <option value="emergency">Emergency</option>
+                            <option value="administration">Administration</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Settings -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Account Settings</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="send-activation" checked class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                            <span class="ml-2 text-sm text-gray-700">Send activation email to user</span>
+                        </label>
+                        <p class="text-xs text-gray-500 ml-6 mt-1">User will receive an email to set their password</p>
+                    </div>
+                    
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="active-on-creation" checked class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                            <span class="ml-2 text-sm text-gray-700">Set account as active immediately</span>
+                        </label>
+                    </div>
+                    
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="require-password-change" class="w-4 h-4 text-blue-500 rounded focus:ring-2 focus:ring-blue-500" />
+                            <span class="ml-2 text-sm text-gray-700">Require password change on first login</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="bg-white rounded-lg shadow-sm p-6 flex justify-end space-x-3">
+                <button
+                    type="button"
+                    id="cancel-btn"
+                    class="text-gray-600 hover:text-gray-800 px-6 py-2 rounded-lg font-medium text-base"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    id="save-user-btn"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 rounded-lg font-medium text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                    Create User
+                </button>
+            </div>
+        </form>
+    </main>
+    
+    <script>
+        document.getElementById('user-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('save-user-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            
+            setTimeout(() => {
+                window.location.href = 'wireframe-SCR-010-user-list.html?user=created';
+            }, 1500);
+        });
+        
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            window.location.href = 'wireframe-SCR-010-user-list.html';
+        });
+    </script>
+</body>
+</html>

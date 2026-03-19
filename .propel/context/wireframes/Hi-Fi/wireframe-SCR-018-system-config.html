@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-018: System Configuration - PulseCare Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .toggle-checkbox:checked { background: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label { transform: translateX(1.25rem); }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #users-nav | click | SCR-010 (User List) |
+    | #audit-logs-nav | click | SCR-012 (Audit Logs) |
+    | #save-config-btn | click | Save → Success toast |
+    -->
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg mr-2 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    </div>
+                    <span class="text-lg font-semibold text-gray-800">PulseCare Admin</span>
+                </div>
+                
+                <!-- Admin Navigation -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="wireframe-SCR-010-user-list.html" id="users-nav" class="text-gray-600 hover:text-gray-800">Users</a>
+                    <a href="wireframe-SCR-012-audit-logs.html" id="audit-logs-nav" class="text-gray-600 hover:text-gray-800">Audit Logs</a>
+                    <a href="wireframe-SCR-018-system-config.html" class="text-blue-500 font-medium border-b-2 border-blue-500 pb-1">Configuration</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500 hidden sm:block">Admin User</span>
+                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">AU</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">System Configuration</h1>
+            <p class="text-gray-600">Manage platform settings and preferences</p>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Settings Navigation -->
+            <div class="lg:col-span-1">
+                <nav class="bg-white rounded-lg shadow-sm p-4 space-y-1">
+                    <button class="w-full text-left px-4 py-3 rounded-lg bg-blue-50 text-blue-600 font-medium text-sm">
+                        General Settings
+                    </button>
+                    <button class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm">
+                        Appointment Settings
+                    </button>
+                    <button class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm">
+                        Notification Settings
+                    </button>
+                    <button class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm">
+                        AI Configuration
+                    </button>
+                    <button class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm">
+                        Security Settings
+                    </button>
+                    <button class="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm">
+                        Integration Settings
+                    </button>
+                </nav>
+            </div>
+            
+            <!-- Settings Content -->
+            <div class="lg:col-span-3 space-y-6">
+                <!-- Organization Info -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">Organization Information</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
+                            <input
+                                type="text"
+                                value="PulseCare Medical Center"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                            <input
+                                type="email"
+                                value="admin@pulsecare.com"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                            <input
+                                type="tel"
+                                value="(555) 123-4567"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Time Zone</label>
+                            <select class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option>Pacific Time (PT)</option>
+                                <option>Mountain Time (MT)</option>
+                                <option>Central Time (CT)</option>
+                                <option>Eastern Time (ET)</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                            <input
+                                type="text"
+                                value="123 Medical Plaza, San Francisco, CA 94102"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System Features -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">Feature Toggles</h2>
+                    <div class="space-y-4">
+                        <!-- Feature Toggle -->
+                        <div class="flex items-center justify-between py-3 border-b border-gray-200">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Patient Self-Booking</p>
+                                <p class="text-xs text-gray-500">Allow patients to book appointments online</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer toggle-checkbox">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3 border-b border-gray-200">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">AI Conversational Intake</p>
+                                <p class="text-xs text-gray-500">Enable AI-powered patient intake conversations</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3 border-b border-gray-200">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">AI Document Extraction</p>
+                                <p class="text-xs text-gray-500">Extract data from insurance cards and documents</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3 border-b border-gray-200">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">AI Clinical Coding</p>
+                                <p class="text-xs text-gray-500">Suggest ICD-10 and CPT codes automatically</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3 border-b border-gray-200">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Preferred Slot Swapping</p>
+                                <p class="text-xs text-gray-500">Allow patients to take canceled preferred slots</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between py-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">SMS Notifications</p>
+                                <p class="text-xs text-gray-500">Send text message reminders to patients</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Session Settings -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">Session & Security</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Session Timeout (minutes)</label>
+                            <input
+                                type="number"
+                                value="15"
+                                min="5"
+                                max="60"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Auto-logout after inactivity (5-60 minutes)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Password Expiry (days)</label>
+                            <input
+                                type="number"
+                                value="90"
+                                min="30"
+                                max="365"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Force password change every X days</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Max Login Attempts</label>
+                            <input
+                                type="number"
+                                value="5"
+                                min="3"
+                                max="10"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Lock account after X failed attempts</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Two-Factor Authentication</label>
+                            <select class="w-full px-4 py-2 border border-gray-300 rounded-lg text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option>Optional</option>
+                                <option>Required for Admins</option>
+                                <option>Required for All</option>
+                                <option>Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Save Actions -->
+                <div class="bg-white rounded-lg shadow-sm p-6 flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Settings Status</p>
+                        <p class="text-xs text-gray-500 mt-1">Last saved: March 20, 2026 at 2:30 PM</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="text-gray-600 hover:text-gray-800 px-6 py-2 rounded-lg font-medium text-base">
+                            Reset to Defaults
+                        </button>
+                        <button
+                            id="save-config-btn"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 rounded-lg font-medium text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Toast Notification (hidden by default) -->
+    <div id="toast" class="hidden fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50">
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+        Configuration saved successfully!
+    </div>
+    
+    <script>
+        document.getElementById('save-config-btn').addEventListener('click', function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+                
+                // Show toast
+                const toast = document.getElementById('toast');
+                toast.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 3000);
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

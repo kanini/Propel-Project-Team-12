@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-004: AI Conversational Intake - PulseCare Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chat-container { height: calc(100vh - 200px); max-height: 600px; }
+        .message { animation: slideIn 200ms ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #back-to-dashboard | click | SCR-001 (Patient Dashboard) |
+    | #switch-to-manual | click | SCR-005 (Manual Form Intake - FR-012) |
+    | #submit-intake-btn | click | Submit → Success → SCR-001 (Intake badge removed) |
+    -->
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="wireframe-SCR-001-patient-dashboard.html" id="back-to-dashboard" class="flex items-center text-gray-600 hover:text-gray-800 mr-8">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        Back
+                    </a>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg mr-2 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                        </div>
+                        <span class="text-lg font-semibold text-gray-800">PulseCare</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500 hidden sm:block">Jane Smith</span>
+                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">JS</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Health Intake</h1>
+                <p class="text-gray-600">Chat with our AI assistant to complete your intake</p>
+            </div>
+            <button id="switch-to-manual" class="text-sm text-blue-500 hover:text-blue-600 font-medium">Switch to form →</button>
+        </div>
+        
+        <!-- Chat Container -->
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-3">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">PulseCare AI Assistant</p>
+                        <p class="text-xs text-green-500 flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                            Online
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div class="chat-container overflow-y-auto p-6 space-y-4">
+                <!-- AI Message -->
+                <div class="message flex items-start">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mr-3">
+                        <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"></path><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"></path></svg>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg px-4 py-3 max-w-lg">
+                        <p class="text-sm text-gray-800">Hi Jane! I'm here to help complete your health intake for your upcoming appointment. This will take about 5 minutes. Ready to get started?</p>
+                    </div>
+                </div>
+                
+                <!-- User Message -->
+                <div class="message flex items-start justify-end">
+                    <div class="bg-blue-500 rounded-lg px-4 py-3 max-w-lg">
+                        <p class="text-sm text-white">Yes, let's begin!</p>
+                    </div>
+                </div>
+                
+                <!-- AI Message with Quick Replies -->
+                <div class="message flex items-start">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mr-3">
+                        <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="bg-gray-100 rounded-lg px-4 py-3 max-w-lg">
+                            <p class="text-sm text-gray-800">Great! Let's start with your current health. Are you experiencing any of the following symptoms right now?</p>
+                        </div>
+                        <div class="mt-2 space-y-2">
+                            <button class="quick-reply bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-700 hover:border-blue-500 hover:bg-blue-50 transition block">Pain or discomfort</button>
+                            <button class="quick-reply bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-700 hover:border-blue-500 hover:bg-blue-50 transition block">Fever or chills</button>
+                            <button class="quick-reply bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-700 hover:border-blue-500 hover:bg-blue-50 transition block">None of these</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Typing Indicator (hidden by default) -->
+                <div id="typing-indicator" class="hidden flex items-start">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mr-3">
+                        <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"></path></svg>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg px-4 py-3">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="border-t border-gray-200 p-4">
+                <div class="flex items-end space-x-2">
+                    <textarea
+                        id="message-input"
+                        rows="1"
+                        placeholder="Type a message..."
+                        class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    ></textarea>
+                    <button class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg p-2 h-10 w-10 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Press Enter to send, Shift+Enter for new line</p>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="mt-6 bg-white rounded-lg shadow-sm p-4">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-700">Intake Progress</span>
+                <span class="text-sm text-gray-500">35% complete</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-500 h-2 rounded-full" style="width: 35%"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Topics covered: Current symptoms • Medical history pending</p>
+        </div>
+    </main>
+    
+    <script>
+        // Quick reply functionality
+        const quickReplies = document.querySelectorAll('.quick-reply');
+        const messageInput = document.getElementById('message-input');
+        
+        quickReplies.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.textContent;
+                messageInput.value = text;
+                // In production, would send message and show typing indicator
+            });
+        });
+        
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+        
+        // Switch to manual form
+        document.getElementById('switch-to-manual').addEventListener('click', () => {
+            window.location.href = 'wireframe-SCR-005-manual-intake.html';
+        });
+    </script>
+</body>
+</html>

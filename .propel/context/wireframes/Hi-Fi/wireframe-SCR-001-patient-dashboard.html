@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-001: Patient Dashboard - PulseCare Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); transition: all 200ms ease; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #book-appt-btn | click | SCR-002 (Slot Selection) |
+    | #complete-intake-card | click | SCR-004 (AI Intake) or SCR-005 (Manual Intake) |
+    | #upload-docs-link | click | SCR-003 (Document Upload) |
+    | #view-history-link | click | SCR-016 (Appointment History) |
+    | #logout-btn | click | SCR-013 (Login) |
+    -->
+    
+    <!-- Header with Navigation -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mr-3">
+                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold text-gray-800">PulseCare</span>
+                </div>
+                
+                <!-- Desktop Navigation (UXR-102) -->
+                <nav class="hidden md:flex space-x-8" aria-label="Main navigation">
+                    <a href="#" class="text-blue-500 font-medium border-b-2 border-blue-500 py-5 px-1">Dashboard</a>
+                    <a href="wireframe-SCR-002-slot-selection.html" class="text-gray-500 hover:text-gray-700 py-5 px-1">Book</a>
+                    <a href="wireframe-SCR-004-ai-intake.html" class="text-gray-500 hover:text-gray-700 py-5 px-1">Intake</a>
+                    <a href="wireframe-SCR-003-document-upload.html" class="text-gray-500 hover:text-gray-700 py-5 px-1">Documents</a>
+                </nav>
+                
+                <!-- User Menu -->
+                <div class="flex items-center space-x-4">
+                    <!-- Session Timeout Indicator (UXR-603) -->
+                    <span class="hidden lg:block text-sm text-gray-500" id="session-timer">Session: 14:32</span>
+                    
+                    <!-- User Avatar & Dropdown -->
+                    <div class="relative">
+                        <button class="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg p-1">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                                JS
+                            </div>
+                            <span class="hidden md:block text-sm font-medium text-gray-700">Jane Smith</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Bottom Navigation (UXR-102) -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10" aria-label="Mobile navigation">
+            <div class="flex justify-around py-2">
+                <a href="#" class="flex flex-col items-center py-2 px-3 text-blue-500">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                    <span class="text-xs mt-1">Dashboard</span>
+                </a>
+                <a href="wireframe-SCR-002-slot-selection.html" class="flex flex-col items-center py-2 px-3 text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span class="text-xs mt-1">Book</span>
+                </a>
+                <a href="wireframe-SCR-004-ai-intake.html" class="flex flex-col items-center py-2 px-3 text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="text-xs mt-1">Intake</span>
+                </a>
+                <a href="wireframe-SCR-003-document-upload.html" class="flex flex-col items-center py-2 px-3 text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    <span class="text-xs mt-1">Documents</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
+        <!-- Welcome Section -->
+        <div class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Welcome back, Jane</h1>
+            <p class="text-base text-gray-500">Manage your appointments and health information</p>
+        </div>
+        
+        <!-- Dashboard Grid - Responsive (UXR-303) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Quick Action: Book Appointment (UXR-101) -->
+            <div class="card-hover bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white cursor-pointer" onclick="window.location='wireframe-SCR-002-slot-selection.html'">
+                <div class="flex items-center justify-between mb-4">
+                    <svg class="w-12 h-12 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold mb-2">Book Appointment</h2>
+                <p class="text-blue-100 text-sm mb-4">Find and schedule your next visit</p>
+                <button id="book-appt-btn" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 w-full">
+                    View Available Slots
+                </button>
+            </div>
+            
+            <!-- Upcoming Appointments Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Upcoming Appointments</h2>
+                    <a href="wireframe-SCR-016-appointment-history.html" id="view-history-link" class="text-sm text-blue-500 hover:text-blue-600 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1">
+                        View All
+                    </a>
+                </div>
+                
+                <!-- Appointment List -->
+                <div class="space-y-4">
+                    <!-- Appointment Item 1 -->
+                    <div class="flex items-start border-l-4 border-green-500 bg-green-50 rounded-r-lg p-4">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="font-semibold text-gray-800">Dr. Michael Chen</h3>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Confirmed
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-1">General Checkup</p>
+                            <div class="flex items-center text-sm text-gray-500 space-x-4">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    March 25, 2026
+                                </span>
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    10:30 AM
+                                </span>
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    Main Clinic, Room 203
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Empty State (if no appointments) - Hidden when appointments exist -->
+                    <div class="hidden text-center py-8">
+                        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p class="text-gray-500 mb-4">No upcoming appointments</p>
+                        <a href="wireframe-SCR-002-slot-selection.html" class="text-blue-500 hover:text-blue-600 font-medium">Book your first appointment →</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Complete Intake Form Card -->
+            <div id="complete-intake-card" class="card-hover bg-white rounded-lg shadow-md p-6 cursor-pointer" onclick="window.location='wireframe-SCR-004-ai-intake.html'">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Action Required
+                    </span>
+                </div>
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">Complete Intake Form</h2>
+                <p class="text-sm text-gray-600 mb-4">Help us prepare for your visit by completing your medical history</p>
+                <button class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Start Form
+                </button>
+            </div>
+            
+            <!-- Upload Documents Card -->
+            <div class="card-hover bg-white rounded-lg shadow-md p-6 cursor-pointer" onclick="window.location='wireframe-SCR-003-document-upload.html'">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">Upload Documents</h2>
+                <p class="text-sm text-gray-600 mb-4">Share lab results, insurance cards, or medical records</p>
+                <div class="text-sm text-gray-500">
+                    <p class="mb-1">Recent uploads:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Insurance Card (2 days ago)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Recent Documents Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Recent Documents</h2>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-red-100 rounded flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">Lab Results March.pdf</p>
+                                <p class="text-xs text-gray-500">2 days ago • 245 KB</p>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Session Timeout Modal (UXR-603) - Hidden by default -->
+    <div id="session-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                    <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Session Timeout Warning</h3>
+                <p class="text-sm text-gray-500 mb-4">You'll be logged out in <span id="countdown" class="font-semibold text-gray-900">2:00</span> minutes due to inactivity.</p>
+                <button class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Stay Logged In
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

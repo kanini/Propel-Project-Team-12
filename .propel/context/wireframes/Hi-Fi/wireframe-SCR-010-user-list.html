@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-010: User Management List - PulseCare Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #create-user-btn | click | SCR-011 (Create User Form) |
+    | .user-row-edit | click | SCR-011 (Edit User Form with user ID) |
+    | #audit-logs-nav | click | SCR-012 (Audit Logs) |
+    | #system-config-nav | click | SCR-018 (System Config) |
+    -->
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg mr-2 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    </div>
+                    <span class="text-lg font-semibold text-gray-800">PulseCare Admin</span>
+                </div>
+                
+                <!-- Admin Navigation -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="wireframe-SCR-010-user-list.html" class="text-blue-500 font-medium border-b-2 border-blue-500 pb-1">Users</a>
+                    <a href="wireframe-SCR-012-audit-logs.html" id="audit-logs-nav" class="text-gray-600 hover:text-gray-800">Audit Logs</a>
+                    <a href="wireframe-SCR-018-system-config.html" id="system-config-nav" class="text-gray-600 hover:text-gray-800">Configuration</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500 hidden sm:block">Admin User</span>
+                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-medium text-sm">AU</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">User Management</h1>
+                <p class="text-gray-600">Manage system users and access permissions</p>
+            </div>
+            <button
+                id="create-user-btn"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center"
+            >
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                Create User
+            </button>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <p class="text-sm text-gray-500 mb-1">Total Users</p>
+                <p class="text-3xl font-bold text-gray-800">127</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <p class="text-sm text-gray-500 mb-1">Active</p>
+                <p class="text-3xl font-bold text-green-500">108</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <p class="text-sm text-gray-500 mb-1">Inactive</p>
+                <p class="text-3xl font-bold text-gray-400">19</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <p class="text-sm text-gray-500 mb-1">Pending</p>
+                <p class="text-3xl font-bold text-yellow-500">4</p>
+            </div>
+        </div>
+        
+        <!-- Filters and Search -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                    <input
+                        type="text"
+                        id="search-users"
+                        placeholder="Search by name, email, or role..."
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+                <select class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>All Roles</option>
+                    <option>Admin</option>
+                    <option>Provider</option>
+                    <option>Staff</option>
+                    <option>Patient</option>
+                </select>
+                <select class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>All Status</option>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                    <option>Pending</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Users Table -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">MC</div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Dr. Michael Chen</p>
+                                        <p class="text-xs text-gray-500">michael.chen@pulsecare.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">Provider</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center w-20">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                    Active
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2 hours ago</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="user-row-edit text-blue-500 hover:text-blue-600 mr-3">Edit</button>
+                                <button class="text-gray-500 hover:text-gray-600">Deactivate</button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">SJ</div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Dr. Sarah Johnson</p>
+                                        <p class="text-xs text-gray-500">sarah.j@pulsecare.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">Provider</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center w-20">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                    Active
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Just now</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-500 hover:text-blue-600 mr-3">Edit</button>
+                                <button class="text-gray-500 hover:text-gray-600">Deactivate</button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">EP</div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Emily Parker</p>
+                                        <p class="text-xs text-gray-500">emily.p@pulsecare.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">Staff</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center w-20">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                    Active
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1 day ago</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-500 hover:text-blue-600 mr-3">Edit</button>
+                                <button class="text-gray-500 hover:text-gray-600">Deactivate</button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">RD</div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Robert Davis</p>
+                                        <p class="text-xs text-gray-500">robert.d@pulsecare.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">Staff</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded flex items-center w-20">
+                                    <span class="w-2 h-2 bg-gray-500 rounded-full mr-1"></span>
+                                    Inactive
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">30 days ago</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-500 hover:text-blue-600 mr-3">Edit</button>
+                                <button class="text-green-500 hover:text-green-600">Activate</button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">JW</div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Jennifer Wilson</p>
+                                        <p class="text-xs text-gray-500">jennifer.w@pulsecare.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">Provider</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded flex items-center w-20">
+                                    <span class="w-2 h-2 bg-yellow-500 rounded-full mr-1"></span>
+                                    Pending
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Never</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-500 hover:text-blue-600 mr-3">Edit</button>
+                                <button class="text-red-500 hover:text-red-600">Delete</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</button>
+                    <button class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</button>
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">Showing <span class="font-medium">1</span> to <span class="font-medium">5</span> of <span class="font-medium">127</span> results</p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                            <button class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">←</button>
+                            <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-500 text-sm font-medium text-white">1</button>
+                            <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">2</button>
+                            <button class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">3</button>
+                            <button class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">→</button>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.getElementById('create-user-btn').addEventListener('click', () => {
+            window.location.href = 'wireframe-SCR-011-create-edit-user.html';
+        });
+        
+        document.querySelectorAll('.user-row-edit').forEach(btn => {
+            btn.addEventListener('click', () => {
+                window.location.href = 'wireframe-SCR-011-create-edit-user.html?edit=true';
+            });
+        });
+    </script>
+</body>
+</html>

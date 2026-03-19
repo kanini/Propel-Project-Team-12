@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCR-013: Login Screen - PulseCare Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Design Tokens from designsystem.md */
+        :root {
+            /* Primary Colors */
+            --color-primary-500: #3b82f6;
+            --color-primary-600: #2563eb;
+            --color-primary-700: #1d4ed8;
+            --color-primary-100: #dbeafe;
+            
+            /* Neutral Colors */
+            --color-neutral-50: #f9fafb;
+            --color-neutral-100: #f3f4f6;
+            --color-neutral-200: #e5e7eb;
+            --color-neutral-300: #d1d5db;
+            --color-neutral-400: #9ca3af;
+            --color-neutral-500: #6b7280;
+            --color-neutral-700: #374151;
+            --color-neutral-800: #1f2937;
+            
+            /* Semantic Colors */
+            --color-error-500: #ef4444;
+            --color-error-100: #fee2e2;
+            
+            /* Typography */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            
+            /* Spacing (8px base unit) */
+            --spacing-4: 1rem;
+            --spacing-6: 1.5rem;
+            --spacing-8: 2rem;
+            
+            /* Border Radius */
+            --radius-default: 0.5rem;
+            
+            /* Shadows */
+            --shadow-default: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        
+        body {
+            font-family: var(--font-primary);
+        }
+        
+        /* Component States */
+        .btn-primary {
+            background: var(--color-primary-500);
+            transition: all 200ms ease;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: var(--color-primary-600);
+        }
+        
+        .btn-primary:active:not(:disabled) {
+            background: var(--color-primary-700);
+        }
+        
+        .btn-primary:focus {
+            outline: 2px solid var(--color-primary-500);
+            outline-offset: 2px;
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .input-field {
+            border: 1px solid var(--color-neutral-200);
+            transition: all 200ms ease;
+        }
+        
+        .input-field:focus {
+            outline: 2px solid var(--color-primary-500);
+            outline-offset: 0;
+            border-color: var(--color-primary-500);
+        }
+        
+        .input-field.error {
+            border-color: var(--color-error-500);
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen flex items-center justify-center p-4">
+    <!-- Navigation Map
+    | Element | Action | Target Screen |
+    |---------|--------|---------------|
+    | #login-btn | click | SCR-001 (Patient Dashboard) / SCR-006 (Staff Dashboard) / SCR-010 (Admin Dashboard) based on role |
+    | #forgot-pwd-link | click | SCR-014 (Password Reset) |
+    | #create-account-link | click | SCR-015 (Account Activation) - Not in Phase 1, link disabled |
+    -->
+    
+    <!-- Login Card - Responsive: max-w-md (448px) mobile → max-w-md desktop, centered -->
+    <div class="w-full max-w-md">
+        <!-- Card with shadow-lg elevation -->
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <!-- Logo/Brand Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-neutral-700">PulseCare</h1>
+                <p class="text-sm text-neutral-500 mt-2">Unified Patient Access & Clinical Intelligence</p>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-6" novalidate>
+                <!-- Email Field -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-neutral-700 mb-2">
+                        Email address
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        autocomplete="email"
+                        required
+                        class="input-field w-full px-4 py-3 rounded-lg text-base text-neutral-700 focus:outline-none"
+                        placeholder="john.doe@example.com"
+                        aria-required="true"
+                        aria-describedby="email-error"
+                    />
+                    <p id="email-error" class="text-sm text-error-500 mt-1 hidden" role="alert"></p>
+                </div>
+                
+                <!-- Password Field -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-neutral-700 mb-2">
+                        Password
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="current-password"
+                        required
+                        class="input-field w-full px-4 py-3 rounded-lg text-base text-neutral-700 focus:outline-none"
+                        placeholder="••••••••"
+                        aria-required="true"
+                        aria-describedby="password-error"
+                    />
+                    <p id="password-error" class="text-sm text-error-500 mt-1 hidden" role="alert"></p>
+                </div>
+                
+                <!-- Forgot Password Link -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input
+                            id="remember-me"
+                            name="remember-me"
+                            type="checkbox"
+                            class="h-4 w-4 text-primary-500 focus:ring-primary-500 border-neutral-300 rounded"
+                        />
+                        <label for="remember-me" class="ml-2 block text-sm text-neutral-700">
+                            Remember me
+                        </label>
+                    </div>
+                    <a
+                        href="wireframe-SCR-014-password-reset.html"
+                        id="forgot-pwd-link"
+                        class="text-sm font-medium text-primary-500 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded"
+                    >
+                        Forgot password?
+                    </a>
+                </div>
+                
+                <!-- Login Button (Primary CTA) -->
+                <button
+                    type="submit"
+                    id="login-btn"
+                    class="btn-primary w-full py-3 px-4 rounded-lg text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                >
+                    Sign in
+                </button>
+                
+                <!-- Error Message Container (UXR-601, UXR-602) -->
+                <div id="login-error" class="hidden bg-error-100 border border-error-500 rounded-lg p-4" role="alert">
+                    <div class="flex">
+                        <svg class="h-5 w-5 text-error-500 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-error-500" id="login-error-message"></p>
+                            <button type="button" class="text-sm text-error-500 underline mt-1 focus:outline-none focus:ring-2 focus:ring-error-500 rounded">
+                                Try again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Create Account Link (Disabled - Not in Phase 1) -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-neutral-500">
+                    Don't have an account?
+                    <span class="text-neutral-400 cursor-not-allowed" title="Account creation available after activation email">
+                        Create account
+                    </span>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Footer Info -->
+        <div class="mt-8 text-center text-xs text-neutral-400">
+            <p>Protected by 256-bit SSL encryption | HIPAA Compliant</p>
+            <p class="mt-2">
+                <a href="#" class="hover:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">Privacy Policy</a>
+                <span class="mx-2">•</span>
+                <a href="#" class="hover:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+    
+    <!-- JavaScript for Inline Validation (UXR-504) -->
+    <script>
+        // Form validation and state management
+        const form = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const loginError = document.getElementById('login-error');
+        
+        // Email validation on blur
+        emailInput.addEventListener('blur', () => {
+            const emailError = document.getElementById('email-error');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!emailInput.value) {
+                emailInput.classList.add('error');
+                emailError.textContent = 'Email address is required';
+                emailError.classList.remove('hidden');
+            } else if (!emailRegex.test(emailInput.value)) {
+                emailInput.classList.add('error');
+                emailError.textContent = 'Please enter a valid email address';
+                emailError.classList.remove('hidden');
+            } else {
+                emailInput.classList.remove('error');
+                emailError.classList.add('hidden');
+            }
+        });
+        
+        // Password validation on blur
+        passwordInput.addEventListener('blur', () => {
+            const passwordError = document.getElementById('password-error');
+            
+            if (!passwordInput.value) {
+                passwordInput.classList.add('error');
+                passwordError.textContent = 'Password is required';
+                passwordError.classList.remove('hidden');
+            } else {
+                passwordInput.classList.remove('error');
+                passwordError.classList.add('hidden');
+            }
+        });
+        
+        // Form submission (demo - routes to appropriate dashboard based on role)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Show loading state (UXR-501, UXR-502)
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+            
+            // Simulate authentication (in real app, this would call API)
+            setTimeout(() => {
+                // Demo: Route based on email domain
+                if (emailInput.value.includes('@patient')) {
+                    window.location.href = 'wireframe-SCR-001-patient-dashboard.html';
+                } else if (emailInput.value.includes('@staff')) {
+                    window.location.href = 'wireframe-SCR-007-arrival-management.html';
+                } else if (emailInput.value.includes('@admin')) {
+                    window.location.href = 'wireframe-SCR-010-user-management-list.html';
+                } else {
+                    // Show error (UXR-601, UXR-602)
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign in';
+                    loginError.classList.remove('hidden');
+                    document.getElementById('login-error-message').textContent = 'Invalid email or password. Please check your credentials and try again.';
+                }
+            }, 1500);
+        });
+        
+        // Clear error on input change
+        emailInput.addEventListener('input', () => emailInput.classList.remove('error'));
+        passwordInput.addEventListener('input', () => passwordInput.classList.remove('error'));
+    </script>
+</body>
+</html>
