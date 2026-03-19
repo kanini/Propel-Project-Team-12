@@ -52,9 +52,9 @@ Build a **Unified Patient Access & Clinical Intelligence Platform** that bridges
 ### Technical Requirements
 
 **Technology Stack:**
-- UI Layer: React or Angular
-- API Layer: .NET or Java
-- Database: PostgreSQL or SQL Server
+- UI Layer: React with TypeScript and Tailwind
+- API Layer: .NET
+- Database: PostgreSQL
 - Cache: Upstash Redis
 - Hosting: Netlify, Vercel, GitHub Codespaces (free tier only)
 - Deployment: Windows Services/IIS native
