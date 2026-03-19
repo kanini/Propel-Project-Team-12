@@ -56,7 +56,7 @@ jobs:
         with:
           server: site59724.siteasp.net
           username: site59724
-          password: Maddy@15092001
+          password: C+c87T#w%fP5
           local-dir: ./publish/
           server-dir: /wwwroot/
           port: 21
