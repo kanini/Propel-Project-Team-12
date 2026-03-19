@@ -53,7 +53,7 @@ Build a **Unified Patient Access & Clinical Intelligence Platform** that bridges
 
 **Technology Stack:**
 - UI Layer: React with TypeScript and Tailwind
-- API Layer: .NET
+- API Layer: .NET 8 Web API
 - Database: PostgreSQL
 - Cache: Upstash Redis
 - Hosting: Netlify, Vercel, GitHub Codespaces (free tier only)
