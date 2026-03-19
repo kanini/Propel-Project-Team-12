@@ -60,3 +60,7 @@ jobs:
           local-dir: ./publish/
           server-dir: /wwwroot/
           port: 21
+          protocol: ftp
+          security: loose
+          timeout: 120000
+          dangerous-clean-slate: false
