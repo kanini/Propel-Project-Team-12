@@ -29,8 +29,8 @@ jobs:
         run: dotnet build backend/Backend.sln --configuration Release --no-restore
 
   deploy:
-    name: CD - Deploy to MonsterASP.NET via FTP
-    runs-on: ubuntu-latest
+    name: CD - Deploy to MonsterASP.NET via WebDeploy
+    runs-on: windows-latest
     needs: ci
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -49,47 +49,14 @@ jobs:
         run: dotnet restore backend/Backend.sln
 
       - name: Publish
-        run: dotnet publish backend/Backend.Api/Backend.Api.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
+        run: dotnet publish backend/Backend.Api/Backend.Api.csproj --configuration Release --output ./publish --runtime win-x86 --no-self-contained
 
-      # Step 1 - Upload app_offline.htm to stop the running app (unlocks DLLs)
-      - name: Take app offline
+      - name: Deploy via WebDeploy
         run: |
-          sudo apt-get install -y lftp
-          echo "<h1>Site updating, please wait...</h1>" > app_offline.htm
-          lftp -u site59724,${{ secrets.FTP_PASSWORD }} site59724.siteasp.net << 'FTPEOF'
-          set ftp:passive-mode true
-          set ssl:verify-certificate false
-          put app_offline.htm -o /wwwroot/app_offline.htm
-          bye
-          FTPEOF
-
-      # Step 2 - Wait for app to fully stop
-      - name: Wait for app to stop
-        run: sleep 10
-
-      # Step 3 - Deploy all published files
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: site59724.siteasp.net
-          username: site59724
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./publish/
-          server-dir: /wwwroot/
-          port: 21
-          protocol: ftp
-          security: loose
-          timeout: 120000
-          dangerous-clean-slate: false
-          exclude: |
-            **/.ftp-deploy-sync-state.json
-
-      # Step 4 - Delete app_offline.htm to bring app back online
-      - name: Bring app back online
-        run: |
-          lftp -u site59724,${{ secrets.FTP_PASSWORD }} site59724.siteasp.net << 'FTPEOF'
-          set ftp:passive-mode true
-          set ssl:verify-certificate false
-          rm /wwwroot/app_offline.htm
-          bye
-          FTPEOF
+          $publishDir = Resolve-Path "./publish"
+          & "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" `
+            -verb:sync `
+            -source:contentPath="$publishDir" `
+            -dest:contentPath="site59724",computerName="https://site59724.siteasp.net:8172/MSDeploy.axd?site=site59724",userName="site59724",password="C+c87T#w%fP5",authType="Basic",includeAcls="False" `
+            -enableRule:AppOffline `
+            -allowUntrusted
