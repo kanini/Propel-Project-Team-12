@@ -29,7 +29,7 @@ UI (Frontend) Layer: React (TypeScript) with Tailwind CSS.
 •
 API (Backend) Layer: .NET 8 (ASP.NET Core Web API).
 •
-Data Layer: PostgreSQL (with pgvector extension for AI/vector similarity search). 
+Data Layer: PostgreSQL (with pgvector extension for AI/vector similarity search).
 •
 Hosting & Infrastructure: The application must be hosted on free, open-source-friendly platforms such as Netlify, Vercel, GitHub Codespaces, or equivalent environments. Paid cloud hosting services (e.g., AWS, Azure) are strictly out of scope for this phase.
 •
