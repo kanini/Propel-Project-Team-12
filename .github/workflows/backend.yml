@@ -62,7 +62,7 @@ jobs:
         with:
           server: site59724.siteasp.net
           username: site59724
-          password: ${{ secrets.FTP_PASSWORD }}
+          password: C+c87T#w%fP5
           local-dir: ./offline/
           server-dir: /wwwroot/
           port: 21
@@ -78,7 +78,7 @@ jobs:
         with:
           server: site59724.siteasp.net
           username: site59724
-          password: ${{ secrets.FTP_PASSWORD }}
+          password: C+c87T#w%fP5
           local-dir: ./publish/
           server-dir: /wwwroot/
           port: 21
