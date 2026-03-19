@@ -49,14 +49,36 @@ jobs:
         run: dotnet restore backend/Backend.sln
 
       - name: Publish
-        run: dotnet publish backend/Backend.Api/Backend.Api.csproj --configuration Release --output ./publish
+        run: dotnet publish backend/Backend.Api/Backend.Api.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
+
+      - name: Create offline and online folders
+        run: |
+          mkdir -p ./offline
+          echo "<h1>Site updating, please wait...</h1>" > ./offline/app_offline.htm
+          mkdir -p ./online
+
+      - name: Take app offline
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: site59724.siteasp.net
+          username: site59724
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./offline/
+          server-dir: /wwwroot/
+          port: 21
+          protocol: ftp
+          security: loose
+          timeout: 60000
+
+      - name: Wait for app to stop
+        run: sleep 10
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: site59724.siteasp.net
           username: site59724
-          password: C+c87T#w%fP5
+          password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./publish/
           server-dir: /wwwroot/
           port: 21
@@ -64,3 +86,19 @@ jobs:
           security: loose
           timeout: 120000
           dangerous-clean-slate: false
+          exclude: |
+            **/.ftp-deploy-sync-state.json
+            **/app_offline.htm
+
+      - name: Bring app back online
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: site59724.siteasp.net
+          username: site59724
+          password: C+c87T#w%fP5
+          local-dir: ./online/
+          server-dir: /wwwroot/
+          port: 21
+          protocol: ftp
+          security: loose
+          timeout: 60000
