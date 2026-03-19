@@ -51,34 +51,29 @@ jobs:
       - name: Publish
         run: dotnet publish backend/Backend.Api/Backend.Api.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
 
-      - name: Create offline and online folders
-        run: |
-          mkdir -p ./offline
-          echo "<h1>Site updating, please wait...</h1>" > ./offline/app_offline.htm
-          mkdir -p ./online
-
+      # Step 1 - Upload app_offline.htm to stop the running app (unlocks DLLs)
       - name: Take app offline
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: site59724.siteasp.net
-          username: site59724
-          password: C+c87T#w%fP5
-          local-dir: ./offline/
-          server-dir: /wwwroot/
-          port: 21
-          protocol: ftp
-          security: loose
-          timeout: 60000
+        run: |
+          sudo apt-get install -y lftp
+          echo "<h1>Site updating, please wait...</h1>" > app_offline.htm
+          lftp -u site59724,${{ secrets.FTP_PASSWORD }} site59724.siteasp.net << 'FTPEOF'
+          set ftp:passive-mode true
+          set ssl:verify-certificate false
+          put app_offline.htm -o /wwwroot/app_offline.htm
+          bye
+          FTPEOF
 
+      # Step 2 - Wait for app to fully stop
       - name: Wait for app to stop
         run: sleep 10
 
+      # Step 3 - Deploy all published files
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: site59724.siteasp.net
           username: site59724
-          password: C+c87T#w%fP5
+          password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./publish/
           server-dir: /wwwroot/
           port: 21
@@ -88,17 +83,13 @@ jobs:
           dangerous-clean-slate: false
           exclude: |
             **/.ftp-deploy-sync-state.json
-            **/app_offline.htm
 
+      # Step 4 - Delete app_offline.htm to bring app back online
       - name: Bring app back online
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: site59724.siteasp.net
-          username: site59724
-          password: C+c87T#w%fP5
-          local-dir: ./online/
-          server-dir: /wwwroot/
-          port: 21
-          protocol: ftp
-          security: loose
-          timeout: 60000
+        run: |
+          lftp -u site59724,${{ secrets.FTP_PASSWORD }} site59724.siteasp.net << 'FTPEOF'
+          set ftp:passive-mode true
+          set ssl:verify-certificate false
+          rm /wwwroot/app_offline.htm
+          bye
+          FTPEOF
