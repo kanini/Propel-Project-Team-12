@@ -53,7 +53,7 @@ Provider logins or provider-facing actions.
 Payment gateway integration (provisioning for future reservation fees only).
 •
 Family member profile features.
-•
+•adadd
 Patient self-check-in (mobile, web portal, or QR code).fffdsg
 •
 Direct, bi-directional EHR integration or full claims submission.
