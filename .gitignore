@@ -13,7 +13,9 @@ Thumbs.db
 nul
 */settings.local.json
 .propel
+.github
 
 .env
+.github/*
 .propel/templates/*
 .vscode/mcp.json
