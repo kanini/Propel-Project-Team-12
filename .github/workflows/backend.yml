@@ -1,0 +1,62 @@
+name: CI/CD - Deploy Backend to MonsterASP.NET
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: CI - Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0
+
+      - name: Restore dependencies
+        run: dotnet restore backend/Backend.sln
+
+      - name: Build
+        run: dotnet build backend/Backend.sln --configuration Release --no-restore
+
+  deploy:
+    name: CD - Deploy to MonsterASP.NET via FTP
+    runs-on: ubuntu-latest
+    needs: ci
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0
+
+      - name: Restore dependencies
+        run: dotnet restore backend/Backend.sln
+
+      - name: Publish
+        run: dotnet publish backend/Backend.Api/Backend.Api.csproj --configuration Release --output ./publish
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: site59724.siteasp.net
+          username: site59724
+          password: Maddy@15092001
+          local-dir: ./publish/
+          server-dir: /wwwroot/
+          port: 21
