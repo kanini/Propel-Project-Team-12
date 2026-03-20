@@ -30,7 +30,7 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore src/backend/PatientAccess.sln
       - name: Publish
-        run: dotnet publish src/backend/PatientAccess.Api/PatientAccess.Api.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
+        run: dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
