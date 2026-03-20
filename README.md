@@ -56,6 +56,30 @@ This ensures API keys and framework-specific files remain local to your developm
 
 If commands are visible, your setup is complete and PropelIQ-Copilot is ready to use.
 
+## Database Setup
+
+The Patient Access Platform uses PostgreSQL 16 with pgvector extension hosted on Supabase for vector similarity search capabilities. Follow these steps to provision and configure your database:
+
+### Quick Start
+
+1. **Create Supabase Account**: Sign up at [supabase.com](https://supabase.com) and create a new project
+2. **Enable pgvector Extension**: Run `CREATE EXTENSION IF NOT EXISTS vector;` in the SQL Editor
+3. **Configure Connection**: Copy your connection string and add it to `.env` or use .NET User Secrets
+4. **Verify Setup**: Run the test script at `src/backend/scripts/test-db-connection.sql`
+
+### Detailed Instructions
+
+For comprehensive setup instructions, troubleshooting, and security best practices, see:
+- [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md) - Complete database provisioning guide
+
+### Configuration Files
+
+- `.env.example` - Template for environment variables
+- `src/backend/PatientAccess.Web/appsettings.json` - Application configuration with connection string placeholder
+- `src/backend/scripts/test-db-connection.sql` - Database connectivity verification script
+
+**Security Note**: Never commit database credentials to version control. Use .NET User Secrets for development or environment variables for production.
+
 ## Prompts
 
 | Prompt | Description | Input | Output | Usage Example |
