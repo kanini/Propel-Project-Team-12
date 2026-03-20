@@ -30,9 +30,7 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore src/backend/PatientAccess.sln
       - name: Publish
-        run: dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
-      - name: List publish output
-        run: ls -la ./publish/
+        run: dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj --configuration Release --output ./publish --no-self-contained --runtime win-
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -44,7 +42,8 @@ jobs:
           port: 21
           protocol: ftp
           security: loose
-          timeout: 120000
+          timeout: 300000
           dangerous-clean-slate: true
-          retry: 3
-          retryDelay: 15000
+          retry: 5
+          retryDelay: 10000
+          log-level: verbose
