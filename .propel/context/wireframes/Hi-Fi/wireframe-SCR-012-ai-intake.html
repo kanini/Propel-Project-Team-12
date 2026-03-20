@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCR-012 AI Conversational Intake — PatientAccess</title>
+<style>
+:root{--color-primary-50:#EBF5FF;--color-primary-100:#D1E9FF;--color-primary-500:#0F62FE;--color-primary-600:#0C50D4;--color-primary-700:#0A3FAA;--color-success-light:#DCFCE7;--color-success:#16A34A;--color-success-dark:#166534;--color-warning-light:#FEF3C7;--color-warning:#D97706;--color-error-light:#FEE2E2;--color-error:#DC2626;--color-info-light:#DBEAFE;--color-info:#2563EB;--color-neutral-0:#FFF;--color-neutral-50:#F8FAFC;--color-neutral-100:#F1F5F9;--color-neutral-200:#E2E8F0;--color-neutral-300:#CBD5E1;--color-neutral-400:#94A3B8;--color-neutral-500:#64748B;--color-neutral-600:#475569;--color-neutral-700:#334155;--color-neutral-800:#1E293B;--color-neutral-900:#0F172A;--font-family:'Inter',system-ui,sans-serif;--font-h2:600 28px/36px var(--font-family);--font-h4:600 18px/24px var(--font-family);--font-h5:600 16px/22px var(--font-family);--font-body:400 14px/20px var(--font-family);--font-body-sm:400 13px/18px var(--font-family);--font-caption:400 12px/16px var(--font-family);--font-overline:600 11px/16px var(--font-family);--radius-sm:4px;--radius-md:8px;--radius-lg:16px;--radius-full:9999px;--shadow-1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);--transition-fast:100ms ease;--transition-normal:200ms ease}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font:var(--font-body);color:var(--color-neutral-800);background:var(--color-neutral-100)}a{color:var(--color-primary-500);text-decoration:none}a:hover{color:var(--color-primary-700);text-decoration:underline}a:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px;border-radius:var(--radius-sm)}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--color-primary-500);color:#fff;padding:8px 16px;z-index:200}.skip-link:focus{left:0}
+.shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:64px 1fr;min-height:100vh}header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--color-neutral-0);border-bottom:1px solid var(--color-neutral-200);z-index:50}.header-left{display:flex;align-items:center;gap:12px}.logo-icon{width:28px;height:28px;background:var(--color-primary-500);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}.logo-text{font:var(--font-h5);color:var(--color-neutral-900)}.breadcrumb{font:var(--font-body-sm);color:var(--color-neutral-500)}.breadcrumb span{color:var(--color-neutral-800)}.header-right{display:flex;align-items:center;gap:16px}.avatar{width:36px;height:36px;border-radius:var(--radius-full);background:var(--color-primary-100);color:var(--color-primary-700);display:flex;align-items:center;justify-content:center;font:var(--font-body-sm);font-weight:600;cursor:pointer}
+aside{background:var(--color-neutral-50);border-right:1px solid var(--color-neutral-200);padding:16px 0}.nav-section{padding:0 12px;margin-bottom:24px}.nav-section-title{font:var(--font-overline);color:var(--color-neutral-400);text-transform:uppercase;letter-spacing:.05em;padding:0 12px;margin-bottom:8px}.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-md);font:var(--font-body);color:var(--color-neutral-600);text-decoration:none;transition:background var(--transition-fast)}.nav-item:hover{background:var(--color-neutral-100);text-decoration:none}.nav-item.active{background:var(--color-primary-50);color:var(--color-primary-500);font-weight:500;border-left:3px solid var(--color-primary-500)}
+main{padding:0;display:flex;flex-direction:column;height:calc(100vh - 64px);overflow:hidden}
+.chat-header{padding:16px 24px;border-bottom:1px solid var(--color-neutral-200);background:var(--color-neutral-0);display:flex;justify-content:space-between;align-items:center}
+.chat-header h1{font:var(--font-h4);color:var(--color-neutral-900)}.chat-header .mode-toggle{display:flex;align-items:center;gap:8px;font:var(--font-body-sm);color:var(--color-neutral-600)}
+.toggle-switch{width:44px;height:24px;background:var(--color-neutral-300);border-radius:var(--radius-full);position:relative;cursor:pointer;border:none;transition:background var(--transition-normal)}.toggle-switch.on{background:var(--color-primary-500)}.toggle-thumb{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform var(--transition-normal)}.toggle-switch.on .toggle-thumb{transform:translateX(20px)}
+.progress-bar{height:4px;background:var(--color-neutral-200);margin:0}.progress-fill{height:100%;background:var(--color-primary-500);border-radius:var(--radius-full);transition:width var(--transition-normal);width:60%}
+/* CHAT */
+.chat-messages{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+.message{display:flex;gap:12px;max-width:75%}
+.message.ai{align-self:flex-start}.message.user{align-self:flex-end;flex-direction:row-reverse}
+.msg-avatar{width:32px;height:32px;border-radius:var(--radius-full);flex-shrink:0;display:flex;align-items:center;justify-content:center;font:var(--font-caption);font-weight:600}
+.message.ai .msg-avatar{background:var(--color-primary-50);color:var(--color-primary-500)}.message.user .msg-avatar{background:var(--color-neutral-200);color:var(--color-neutral-600)}
+.msg-bubble{padding:12px 16px;border-radius:16px;font:var(--font-body)}.message.ai .msg-bubble{background:var(--color-neutral-100);color:var(--color-neutral-800);border-radius:16px 16px 16px 4px}.message.user .msg-bubble{background:var(--color-primary-500);color:#fff;border-radius:16px 16px 4px 16px}
+.typing-indicator{display:flex;gap:4px;padding:12px 16px;background:var(--color-neutral-100);border-radius:16px 16px 16px 4px;align-self:flex-start;width:fit-content}.typing-dot{width:8px;height:8px;border-radius:50%;background:var(--color-neutral-400);animation:typing 1.4s infinite}.typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,100%{opacity:.4;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+/* INPUT */
+.chat-input{padding:16px 24px;border-top:1px solid var(--color-neutral-200);background:var(--color-neutral-0);display:flex;gap:12px;align-items:flex-end}
+.chat-input textarea{flex:1;min-height:44px;max-height:120px;padding:10px 16px;border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);font:var(--font-body);resize:none;color:var(--color-neutral-800)}.chat-input textarea::placeholder{color:var(--color-neutral-400)}.chat-input textarea:focus{outline:none;border-color:var(--color-primary-500);box-shadow:0 0 0 3px var(--color-primary-100)}
+.send-btn{width:44px;height:44px;border-radius:var(--radius-full);background:var(--color-primary-500);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}.send-btn:hover{background:var(--color-primary-600)}.send-btn:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px}.send-btn:disabled{background:var(--color-neutral-200);color:var(--color-neutral-400);cursor:not-allowed}
+@media(max-width:1023px){.shell{grid-template-columns:1fr}aside{display:none}}
+@media(max-width:767px){.chat-messages{padding:16px}.chat-input{padding:12px 16px}.message{max-width:90%}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div class="shell">
+  <header role="banner"><div class="header-left"><div class="logo-icon" aria-hidden="true">+</div><span class="logo-text">PatientAccess</span><nav class="breadcrumb" aria-label="Breadcrumb"><a href="wireframe-SCR-003-patient-dashboard.html">Home</a> / <span>AI Intake</span></nav></div><div class="header-right"><div class="avatar" role="button" aria-label="User menu" tabindex="0">JD</div></div></header>
+  <aside role="navigation" aria-label="Patient navigation"><nav><div class="nav-section"><div class="nav-section-title">Main</div><a class="nav-item" href="wireframe-SCR-003-patient-dashboard.html"><span aria-hidden="true">&#9776;</span> Dashboard</a><a class="nav-item" href="wireframe-SCR-010-my-appointments.html"><span aria-hidden="true">&#128197;</span> My Appointments</a><a class="nav-item" href="wireframe-SCR-006-provider-browser.html"><span aria-hidden="true">&#128269;</span> Find Providers</a></div><div class="nav-section"><div class="nav-section-title">Health</div><a class="nav-item" href="wireframe-SCR-016-patient-health-dashboard.html"><span aria-hidden="true">&#10084;</span> Health Dashboard</a><a class="nav-item" href="wireframe-SCR-014-document-upload.html"><span aria-hidden="true">&#128196;</span> Documents</a><a class="nav-item active" href="wireframe-SCR-012-ai-intake.html" aria-current="page"><span aria-hidden="true">&#128172;</span> Intake</a></div></nav></aside>
+
+  <main id="main-content" role="main">
+    <div class="chat-header">
+      <h1>Pre-visit intake</h1>
+      <div class="mode-toggle">
+        <span>AI Mode</span>
+        <button class="toggle-switch on" role="switch" aria-checked="true" aria-label="Toggle between AI and manual intake mode"><div class="toggle-thumb"></div></button>
+        <a href="wireframe-SCR-013-manual-intake.html" style="font:var(--font-body-sm);color:var(--color-primary-500)">Switch to manual form</a>
+      </div>
+    </div>
+    <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-label="Intake progress"><div class="progress-fill"></div></div>
+
+    <div class="chat-messages" aria-live="polite" aria-label="Intake conversation">
+      <div class="message ai"><div class="msg-avatar" aria-hidden="true">AI</div><div class="msg-bubble">Hi John! I'm here to help you prepare for your visit with Dr. Sarah Chen. I'll ask you a few questions about your health history. Let's start — could you tell me about any current medications you're taking?</div></div>
+      <div class="message user"><div class="msg-avatar" aria-hidden="true">JD</div><div class="msg-bubble">I take lisinopril 10mg daily for blood pressure and a daily multivitamin.</div></div>
+      <div class="message ai"><div class="msg-avatar" aria-hidden="true">AI</div><div class="msg-bubble">Thank you! I've recorded lisinopril 10mg (daily) and a multivitamin. Do you have any known drug allergies?</div></div>
+      <div class="message user"><div class="msg-avatar" aria-hidden="true">JD</div><div class="msg-bubble">Yes, I'm allergic to penicillin. I get hives.</div></div>
+      <div class="message ai"><div class="msg-avatar" aria-hidden="true">AI</div><div class="msg-bubble">Got it — penicillin allergy with hives noted. Now, do you have any chronic conditions such as diabetes, asthma, or heart disease?</div></div>
+      <div class="typing-indicator" aria-label="AI is typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+    </div>
+
+    <div class="chat-input">
+      <textarea placeholder="Type your response..." aria-label="Your message" rows="1"></textarea>
+      <button class="send-btn" aria-label="Send message">&#10148;</button>
+    </div>
+  </main>
+</div>
+</body>
+</html>

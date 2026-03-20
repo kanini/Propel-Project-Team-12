@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCR-022 User Form — PatientAccess</title>
+<style>
+:root{--color-primary-50:#EBF5FF;--color-primary-100:#D1E9FF;--color-primary-500:#0F62FE;--color-primary-600:#0C50D4;--color-success-light:#DCFCE7;--color-success:#16A34A;--color-success-dark:#166534;--color-warning-light:#FEF3C7;--color-warning:#D97706;--color-error-light:#FEE2E2;--color-error:#DC2626;--color-error-dark:#991B1B;--color-info-light:#DBEAFE;--color-info:#2563EB;--color-neutral-0:#FFF;--color-neutral-50:#F8FAFC;--color-neutral-100:#F1F5F9;--color-neutral-200:#E2E8F0;--color-neutral-300:#CBD5E1;--color-neutral-400:#94A3B8;--color-neutral-500:#64748B;--color-neutral-600:#475569;--color-neutral-700:#334155;--color-neutral-800:#1E293B;--color-neutral-900:#0F172A;--font-family:'Inter',system-ui,sans-serif;--font-h2:600 28px/36px var(--font-family);--font-h4:600 18px/24px var(--font-family);--font-h5:600 16px/22px var(--font-family);--font-h6:600 14px/20px var(--font-family);--font-body:400 14px/20px var(--font-family);--font-body-sm:400 13px/18px var(--font-family);--font-caption:400 12px/16px var(--font-family);--font-overline:600 11px/16px var(--font-family);--radius-sm:4px;--radius-md:8px;--radius-lg:16px;--radius-full:9999px;--shadow-1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);--transition-fast:100ms ease}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font:var(--font-body);color:var(--color-neutral-800);background:var(--color-neutral-100)}a{color:var(--color-primary-500);text-decoration:none}a:hover{text-decoration:underline}a:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px;border-radius:var(--radius-sm)}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--color-primary-500);color:#fff;padding:8px 16px;z-index:200}.skip-link:focus{left:0}
+.shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:64px 1fr;min-height:100vh}header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--color-neutral-0);border-bottom:1px solid var(--color-neutral-200);z-index:50}.header-left{display:flex;align-items:center;gap:12px}.logo-icon{width:28px;height:28px;background:var(--color-primary-500);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}.logo-text{font:var(--font-h5);color:var(--color-neutral-900)}.breadcrumb{font:var(--font-body-sm);color:var(--color-neutral-500)}.breadcrumb a{color:var(--color-primary-500)}.breadcrumb span{color:var(--color-neutral-800)}.header-right{display:flex;align-items:center;gap:16px}.avatar{width:36px;height:36px;border-radius:var(--radius-full);background:var(--color-primary-100);color:var(--color-primary-700);display:flex;align-items:center;justify-content:center;font:var(--font-body-sm);font-weight:600;cursor:pointer}
+aside{background:var(--color-neutral-50);border-right:1px solid var(--color-neutral-200);padding:16px 0}.nav-section{padding:0 12px;margin-bottom:24px}.nav-section-title{font:var(--font-overline);color:var(--color-neutral-400);text-transform:uppercase;letter-spacing:.05em;padding:0 12px;margin-bottom:8px}.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-md);font:var(--font-body);color:var(--color-neutral-600);text-decoration:none;transition:background var(--transition-fast)}.nav-item:hover{background:var(--color-neutral-100);text-decoration:none}.nav-item.active{background:var(--color-primary-50);color:var(--color-primary-500);font-weight:500;border-left:3px solid var(--color-primary-500)}
+main{padding:32px;overflow-y:auto;max-width:720px}.page-header{margin-bottom:24px}.page-header h1{font:var(--font-h2);color:var(--color-neutral-900)}
+.card{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:var(--radius-md);box-shadow:var(--shadow-1);padding:24px;margin-bottom:16px}.card h3{font:var(--font-h4);margin-bottom:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--radius-md);font:var(--font-body);font-weight:500;border:none;cursor:pointer;transition:background var(--transition-fast)}.btn-primary{background:var(--color-primary-500);color:#fff}.btn-primary:hover{background:var(--color-primary-600)}.btn-danger{background:var(--color-error);color:#fff}.btn-danger:hover{background:var(--color-error-dark)}.btn-outline{background:transparent;border:1px solid var(--color-neutral-300);color:var(--color-neutral-700)}.btn-outline:hover{background:var(--color-neutral-50)}.btn:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px}
+.form-group{margin-bottom:20px}.form-group label{display:block;font:var(--font-h6);color:var(--color-neutral-700);margin-bottom:6px}.form-group input,.form-group select{width:100%;padding:10px 14px;border:1px solid var(--color-neutral-300);border-radius:var(--radius-md);font:var(--font-body);outline:none;transition:border-color var(--transition-fast)}.form-group input:focus,.form-group select:focus{border-color:var(--color-primary-500);box-shadow:0 0 0 3px var(--color-primary-50)}.form-hint{font:var(--font-caption);color:var(--color-neutral-500);margin-top:4px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--color-neutral-100)}.toggle-label{font:var(--font-body)}.toggle{position:relative;width:44px;height:24px;background:var(--color-neutral-300);border-radius:var(--radius-full);cursor:pointer;transition:background var(--transition-fast)}.toggle.active{background:var(--color-success)}.toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform var(--transition-fast)}.toggle.active::after{transform:translateX(20px)}
+.alert-warning{padding:12px 16px;background:var(--color-warning-light);border:1px solid var(--color-warning);border-radius:var(--radius-md);font:var(--font-body-sm);color:var(--color-warning-dark);margin-bottom:16px}
+@media(max-width:1023px){.shell{grid-template-columns:1fr}aside{display:none}.form-row{grid-template-columns:1fr}}
+@media(max-width:767px){main{padding:16px}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div class="shell">
+  <header role="banner"><div class="header-left"><div class="logo-icon" aria-hidden="true">+</div><span class="logo-text">PatientAccess</span><nav class="breadcrumb" aria-label="Breadcrumb"><a href="wireframe-SCR-005-admin-dashboard.html">Home</a> / <a href="wireframe-SCR-021-user-management.html">Users</a> / <span>Edit User</span></nav></div><div class="header-right"><div class="avatar" role="button" aria-label="User menu" tabindex="0">AD</div></div></header>
+  <aside role="navigation" aria-label="Admin navigation"><nav><div class="nav-section"><div class="nav-section-title">Admin</div><a class="nav-item" href="wireframe-SCR-005-admin-dashboard.html"><span aria-hidden="true">&#9776;</span> Dashboard</a><a class="nav-item active" href="wireframe-SCR-021-user-management.html" aria-current="page"><span aria-hidden="true">&#128101;</span> Users</a><a class="nav-item" href="wireframe-SCR-025-audit-log.html"><span aria-hidden="true">&#128196;</span> Audit Log</a><a class="nav-item" href="wireframe-SCR-026-system-settings.html"><span aria-hidden="true">&#9881;</span> Settings</a></div></nav></aside>
+
+  <main id="main-content" role="main">
+    <div class="page-header"><h1>Edit User</h1></div>
+
+    <div class="card">
+      <h3>Personal Information</h3>
+      <div class="form-row">
+        <div class="form-group"><label for="first-name">First Name *</label><input id="first-name" type="text" value="Sarah" required></div>
+        <div class="form-group"><label for="last-name">Last Name *</label><input id="last-name" type="text" value="Chen" required></div>
+      </div>
+      <div class="form-group"><label for="email">Email *</label><input id="email" type="email" value="sarah.chen@hospital.org" required><div class="form-hint">Used for login and notifications</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Role &amp; Access</h3>
+      <div class="form-row">
+        <div class="form-group"><label for="role">Role *</label><select id="role"><option>Patient</option><option selected>Staff</option><option>Admin</option></select></div>
+        <div class="form-group"><label for="department">Department</label><select id="department"><option value="">Select department...</option><option selected>Primary Care</option><option>Cardiology</option><option>Internal Medicine</option><option>Radiology</option><option>IT</option></select></div>
+      </div>
+      <div class="alert-warning"><strong>Note:</strong> Changing the role will modify this user's access permissions immediately. The user will need to log in again.</div>
+    </div>
+
+    <div class="card">
+      <h3>Account Status</h3>
+      <div class="toggle-row"><span class="toggle-label"><strong>Account Active</strong><br><span style="font:var(--font-caption);color:var(--color-neutral-500)">User can log in and access the system</span></span><div class="toggle active" role="switch" aria-checked="true" aria-label="Toggle account active" tabindex="0"></div></div>
+      <div class="toggle-row"><span class="toggle-label"><strong>Email Verified</strong><br><span style="font:var(--font-caption);color:var(--color-neutral-500)">Email has been confirmed</span></span><div class="toggle active" role="switch" aria-checked="true" aria-label="Toggle email verified" tabindex="0"></div></div>
+      <div class="toggle-row" style="border-bottom:none"><span class="toggle-label"><strong>Require Password Reset</strong><br><span style="font:var(--font-caption);color:var(--color-neutral-500)">Force password change on next login</span></span><div class="toggle" role="switch" aria-checked="false" aria-label="Toggle require password reset" tabindex="0"></div></div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:space-between;margin-top:8px"><button class="btn btn-danger">Deactivate User</button><div style="display:flex;gap:12px"><a href="wireframe-SCR-021-user-management.html" class="btn btn-outline">Cancel</a><button class="btn btn-primary">Save Changes</button></div></div>
+  </main>
+</div>
+<script>document.querySelectorAll('.toggle').forEach(function(t){t.addEventListener('click',function(){this.classList.toggle('active');this.setAttribute('aria-checked',this.classList.contains('active'))})})</script>
+</body>
+</html>
