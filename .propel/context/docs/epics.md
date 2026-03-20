@@ -485,6 +485,78 @@ post_date: 2026-03-20
 
 ---
 
+## Epic Dependencies Diagram
+
+```mermaid
+graph TD
+    %% ── Foundational Layer ──
+    EP-TECH["EP-TECH<br/>Project Foundation &<br/>Infrastructure Setup"]
+
+    %% ── Data Layer ──
+    EP-DATA-I["EP-DATA-I<br/>Core Data Schema &<br/>Relationships"]
+    EP-DATA-II["EP-DATA-II<br/>Extended Entities &<br/>Reference Data"]
+
+    %% ── Feature Epics ──
+    EP-001["EP-001<br/>User Authentication &<br/>Access Control"]
+    EP-002["EP-002<br/>Patient Appointment<br/>Booking & Scheduling"]
+    EP-003["EP-003<br/>Staff Operations &<br/>Queue Management"]
+    EP-004["EP-004<br/>Patient Intake —<br/>AI & Manual Modes"]
+    EP-005["EP-005<br/>Notifications, Calendar<br/>& No-Show Prevention"]
+    EP-006-I["EP-006-I<br/>Clinical Document Upload<br/>& Processing Pipeline"]
+    EP-006-II["EP-006-II<br/>Clinical Document<br/>AI Extraction"]
+    EP-007["EP-007<br/>Clinical Intelligence —<br/>360° Patient View"]
+    EP-008["EP-008<br/>Medical Coding &<br/>RAG Pipeline"]
+    EP-009["EP-009<br/>Clinical Data Verification<br/>— Trust-First Workflow"]
+    EP-010["EP-010<br/>Audit, Compliance<br/>& Security"]
+
+    %% ── UX Foundation Epics ──
+    EP-011-I["EP-011-I<br/>Accessibility &<br/>Responsive Design"]
+    EP-011-II["EP-011-II<br/>Visual Design, Interactions<br/>& Error Handling"]
+
+    %% ── Foundational Dependencies (EP-TECH → feature epics) ──
+    EP-TECH --> EP-DATA-I
+    EP-TECH --> EP-001
+    EP-TECH --> EP-002
+    EP-TECH --> EP-003
+    EP-TECH --> EP-004
+    EP-TECH --> EP-005
+    EP-TECH --> EP-006-I
+    EP-TECH --> EP-007
+    EP-TECH --> EP-008
+    EP-TECH --> EP-009
+    EP-TECH --> EP-010
+    EP-TECH --> EP-011-I
+
+    %% ── Decomposed Sequential Dependencies ──
+    EP-DATA-I --> EP-DATA-II
+    EP-006-I --> EP-006-II
+    EP-011-I --> EP-011-II
+
+    %% ── Styling ──
+    classDef foundation fill:#1e3a5f,stroke:#0d253f,color:#ffffff,stroke-width:2px
+    classDef data fill:#2d6a4f,stroke:#1b4332,color:#ffffff,stroke-width:2px
+    classDef feature fill:#335c81,stroke:#274060,color:#ffffff,stroke-width:1px
+    classDef ai fill:#7b2d8e,stroke:#5a1d6e,color:#ffffff,stroke-width:1px
+    classDef ux fill:#b5651d,stroke:#8b4513,color:#ffffff,stroke-width:1px
+
+    class EP-TECH foundation
+    class EP-DATA-I,EP-DATA-II data
+    class EP-001,EP-002,EP-003,EP-005,EP-010 feature
+    class EP-004,EP-006-I,EP-006-II,EP-007,EP-008,EP-009 ai
+    class EP-011-I,EP-011-II ux
+```
+
+**Legend**:
+
+- **Dark Blue** — Foundational infrastructure (EP-TECH)
+- **Green** — Data layer epics (EP-DATA-I/II)
+- **Steel Blue** — Core feature epics (EP-001, EP-002, EP-003, EP-005, EP-010)
+- **Purple** — AI-powered feature epics (EP-004, EP-006-I/II, EP-007, EP-008, EP-009)
+- **Brown** — UX foundation epics (EP-011-I/II)
+- **Arrows** — "depends on" (target must complete before source can start)
+
+---
+
 ## Dependency Validation Report
 
 | Source | Target | Result | Notes |
