@@ -31,6 +31,10 @@ jobs:
         run: dotnet restore src/backend/PatientAccess.sln
       - name: Publish
         run: dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
+      - name: Set Development environment in web.config
+        run: |
+          sed -i 's|stdoutLogEnabled="false"|stdoutLogEnabled="true"|g' ./publish/web.config
+          sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
