@@ -117,11 +117,11 @@ curl -H "Origin: http://localhost:5173" \
 - [ ] Production configuration restricts origins to actual frontend domain (Vercel URL)
 
 ## Implementation Checklist
-- [ ] Add `CorsSettings:AllowedOrigins` array to `appsettings.json` (production URL placeholder)
-- [ ] Add `CorsSettings:AllowedOrigins` to `appsettings.Development.json` with http://localhost:5173
-- [ ] Register CORS services in Program.cs with named policy "DefaultCorsPolicy"
-- [ ] Configure `WithOrigins()` reading from appsettings.CorsSettings.AllowedOrigins
-- [ ] Configure `WithHeaders("Authorization", "Content-Type")` for allowed headers
-- [ ] Configure `WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")` for allowed methods
-- [ ] Add `AllowCredentials()` to enable cookies and authorization headers
-- [ ] Add `app.UseCors("DefaultCorsPolicy")` before `app.UseAuthentication()` in middleware pipeline
+- [X] Add `CorsSettings:AllowedOrigins` array to `appsettings.json` (production URL placeholder)
+- [X] Add `CorsSettings:AllowedOrigins` to `appsettings.Development.json` with http://localhost:5173
+- [X] Register CORS services in Program.cs with named policy "DefaultCorsPolicy"
+- [X] Configure `WithOrigins()` reading from appsettings.CorsSettings.AllowedOrigins
+- [X] Configure `WithHeaders("Authorization", "Content-Type")` for allowed headers
+- [X] Configure `WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")` for allowed methods
+- [X] Add `AllowCredentials()` to enable cookies and authorization headers
+- [X] Add `app.UseCors("DefaultCorsPolicy")` before `app.UseAuthentication()` in middleware pipeline

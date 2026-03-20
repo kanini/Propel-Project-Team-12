@@ -134,11 +134,11 @@ echo "security/rsa-keys/*.pem" >> .gitignore
 - [ ] Application fails to start when RS256 keys are missing with descriptive error
 
 ## Implementation Checklist
-- [ ] Generate RS256 key pair using OpenSSL (2048-bit minimum)
-- [ ] Add JwtSettings section to `appsettings.json` with issuer, audience, expiration
-- [ ] Install Microsoft.AspNetCore.Authentication.JwtBearer and System.IdentityModel.Tokens.Jwt
-- [ ] Create `IJwtTokenService` interface with `GenerateToken(userId, email, role)` method
-- [ ] Implement `JwtTokenService` with RS256 signing using private key
-- [ ] Register JWT authentication in `Program.cs` with token validation parameters
-- [ ] Create `JwtValidationMiddleware` to distinguish expired vs invalid token errors
-- [ ] Test authentication with `/api/test/protected` endpoint marked with `[Authorize]`
+- [X] Generate RS256 key pair using OpenSSL (2048-bit minimum)
+- [X] Add JwtSettings section to `appsettings.json` with issuer, audience, expiration
+- [X] Install Microsoft.AspNetCore.Authentication.JwtBearer and System.IdentityModel.Tokens.Jwt
+- [X] Create `IJwtTokenService` interface with `GenerateToken(userId, email, role)` method
+- [X] Implement `JwtTokenService` with RS256 signing using private key
+- [X] Register JWT authentication in `Program.cs` with token validation parameters
+- [X] Create `JwtValidationMiddleware` to distinguish expired vs invalid token errors
+- [X] Test authentication with `/api/test/protected` endpoint marked with `[Authorize]`
