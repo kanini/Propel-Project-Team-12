@@ -13,9 +13,9 @@ jobs:
         with:
           dotnet-version: 8.0
       - name: Restore dependencies
-        run: dotnet restore src/backend/Backend.sln
+        run: dotnet restore src/backend/PatientAccess.sln
       - name: Build
-        run: dotnet build src/backend/Backend.sln --configuration Release --no-restore
+        run: dotnet build src/backend/PatientAccess.sln --configuration Release --no-restore
   deploy:
     name: CD - Deploy to MonsterASP.NET via FTP
     runs-on: ubuntu-latest
@@ -28,9 +28,9 @@ jobs:
         with:
           dotnet-version: 8.0
       - name: Restore dependencies
-        run: dotnet restore src/backend/Backend.sln
+        run: dotnet restore src/backend/PatientAccess.sln
       - name: Publish
-        run: dotnet publish src/backend/Backend.Api/Backend.Api.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
+        run: dotnet publish src/backend/PatientAccess.Api/PatientAccess.Api.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
