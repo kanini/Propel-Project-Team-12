@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCR-010 My Appointments — PatientAccess</title>
+<style>
+:root{--color-primary-50:#EBF5FF;--color-primary-100:#D1E9FF;--color-primary-500:#0F62FE;--color-primary-600:#0C50D4;--color-primary-700:#0A3FAA;--color-success-light:#DCFCE7;--color-success:#16A34A;--color-success-dark:#166534;--color-warning-light:#FEF3C7;--color-warning:#D97706;--color-warning-dark:#92400E;--color-error-light:#FEE2E2;--color-error:#DC2626;--color-error-dark:#991B1B;--color-info-light:#DBEAFE;--color-info:#2563EB;--color-neutral-0:#FFF;--color-neutral-50:#F8FAFC;--color-neutral-100:#F1F5F9;--color-neutral-200:#E2E8F0;--color-neutral-300:#CBD5E1;--color-neutral-400:#94A3B8;--color-neutral-500:#64748B;--color-neutral-600:#475569;--color-neutral-700:#334155;--color-neutral-800:#1E293B;--color-neutral-900:#0F172A;--font-family:'Inter',system-ui,sans-serif;--font-h2:600 28px/36px var(--font-family);--font-h4:600 18px/24px var(--font-family);--font-h5:600 16px/22px var(--font-family);--font-h6:600 14px/20px var(--font-family);--font-body:400 14px/20px var(--font-family);--font-body-sm:400 13px/18px var(--font-family);--font-caption:400 12px/16px var(--font-family);--font-overline:600 11px/16px var(--font-family);--radius-sm:4px;--radius-md:8px;--radius-lg:16px;--radius-full:9999px;--shadow-1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);--shadow-3:0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);--transition-fast:100ms ease;--transition-normal:200ms ease;--transition-moderate:300ms cubic-bezier(.16,1,.3,1)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font:var(--font-body);color:var(--color-neutral-800);background:var(--color-neutral-100)}a{color:var(--color-primary-500);text-decoration:none}a:hover{color:var(--color-primary-700);text-decoration:underline}a:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px;border-radius:var(--radius-sm)}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--color-primary-500);color:#fff;padding:8px 16px;z-index:200}.skip-link:focus{left:0}
+.shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:64px 1fr;min-height:100vh}header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--color-neutral-0);border-bottom:1px solid var(--color-neutral-200);z-index:50}.header-left{display:flex;align-items:center;gap:12px}.logo-icon{width:28px;height:28px;background:var(--color-primary-500);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}.logo-text{font:var(--font-h5);color:var(--color-neutral-900)}.breadcrumb{font:var(--font-body-sm);color:var(--color-neutral-500)}.breadcrumb span{color:var(--color-neutral-800)}.header-right{display:flex;align-items:center;gap:16px}.avatar{width:36px;height:36px;border-radius:var(--radius-full);background:var(--color-primary-100);color:var(--color-primary-700);display:flex;align-items:center;justify-content:center;font:var(--font-body-sm);font-weight:600;cursor:pointer}
+aside{background:var(--color-neutral-50);border-right:1px solid var(--color-neutral-200);padding:16px 0}.nav-section{padding:0 12px;margin-bottom:24px}.nav-section-title{font:var(--font-overline);color:var(--color-neutral-400);text-transform:uppercase;letter-spacing:.05em;padding:0 12px;margin-bottom:8px}.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-md);font:var(--font-body);color:var(--color-neutral-600);text-decoration:none;transition:background var(--transition-fast)}.nav-item:hover{background:var(--color-neutral-100);text-decoration:none}.nav-item.active{background:var(--color-primary-50);color:var(--color-primary-500);font-weight:500;border-left:3px solid var(--color-primary-500)}
+main{padding:32px;overflow-y:auto}.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.page-header h1{font:var(--font-h2);color:var(--color-neutral-900)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 20px;border:none;border-radius:var(--radius-md);font:var(--font-body);font-weight:500;cursor:pointer;transition:all var(--transition-fast);min-width:100px;text-decoration:none}.btn:hover{text-decoration:none}.btn:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px}.btn-primary{background:var(--color-primary-500);color:#fff}.btn-primary:hover{background:var(--color-primary-600);color:#fff}.btn-sm{height:32px;padding:0 12px;min-width:auto;font:var(--font-body-sm);font-weight:500}.btn-ghost{background:none;color:var(--color-primary-500);border:none;padding:0 8px;min-width:auto}.btn-ghost:hover{background:var(--color-primary-50)}.btn-danger-ghost{background:none;color:var(--color-error);border:none;padding:0 8px;min-width:auto}.btn-danger-ghost:hover{background:var(--color-error-light)}
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--color-neutral-200);margin-bottom:24px;gap:0}.tab{padding:12px 20px;font:var(--font-body);font-weight:500;color:var(--color-neutral-600);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all var(--transition-fast)}.tab:hover{color:var(--color-neutral-800);background:var(--color-neutral-50)}.tab.active{color:var(--color-primary-500);border-bottom-color:var(--color-primary-500)}.tab:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:-2px}
+.tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);font:var(--font-caption);font-weight:600;margin-left:6px;background:var(--color-neutral-100);color:var(--color-neutral-600)}.tab.active .tab-count{background:var(--color-primary-50);color:var(--color-primary-500)}
+.card{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:var(--radius-md);box-shadow:var(--shadow-1);overflow:hidden}
+table{width:100%;border-collapse:collapse}th{text-align:left;font:var(--font-h6);color:var(--color-neutral-700);padding:12px 16px;background:var(--color-neutral-50);border-bottom:1px solid var(--color-neutral-200)}td{padding:12px 16px;border-bottom:1px solid var(--color-neutral-100);font:var(--font-body);vertical-align:middle}tr:hover{background:var(--color-neutral-50)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--radius-full);font:var(--font-caption);font-weight:500}.badge-success{background:var(--color-success-light);color:var(--color-success-dark)}.badge-warning{background:var(--color-warning-light);color:var(--color-warning-dark)}.badge-info{background:var(--color-info-light);color:var(--color-info)}.badge-error{background:var(--color-error-light);color:var(--color-error-dark)}.badge-neutral{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+.actions-cell{display:flex;gap:4px}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;align-items:center;justify-content:center}.modal-overlay.open{display:flex}
+.modal{background:var(--color-neutral-0);border-radius:var(--radius-lg);box-shadow:var(--shadow-3);padding:24px;width:400px;max-width:90vw;animation:modalIn .2s ease}.modal h3{font:var(--font-h4);margin-bottom:8px}.modal p{font:var(--font-body);color:var(--color-neutral-600);margin-bottom:20px}.modal-actions{display:flex;gap:12px;justify-content:flex-end}
+@keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@media(max-width:1023px){.shell{grid-template-columns:1fr}aside{display:none}}
+@media(max-width:767px){main{padding:16px}.actions-cell{flex-direction:column}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div class="shell">
+  <header role="banner"><div class="header-left"><div class="logo-icon" aria-hidden="true">+</div><span class="logo-text">PatientAccess</span><nav class="breadcrumb" aria-label="Breadcrumb"><a href="wireframe-SCR-003-patient-dashboard.html">Home</a> / <span>My Appointments</span></nav></div><div class="header-right"><div class="avatar" role="button" aria-label="User menu" tabindex="0">JD</div></div></header>
+  <aside role="navigation" aria-label="Patient navigation"><nav><div class="nav-section"><div class="nav-section-title">Main</div><a class="nav-item" href="wireframe-SCR-003-patient-dashboard.html"><span aria-hidden="true">&#9776;</span> Dashboard</a><a class="nav-item active" href="wireframe-SCR-010-my-appointments.html" aria-current="page"><span aria-hidden="true">&#128197;</span> My Appointments</a><a class="nav-item" href="wireframe-SCR-006-provider-browser.html"><span aria-hidden="true">&#128269;</span> Find Providers</a></div><div class="nav-section"><div class="nav-section-title">Health</div><a class="nav-item" href="wireframe-SCR-016-patient-health-dashboard.html"><span aria-hidden="true">&#10084;</span> Health Dashboard</a><a class="nav-item" href="wireframe-SCR-014-document-upload.html"><span aria-hidden="true">&#128196;</span> Documents</a><a class="nav-item" href="wireframe-SCR-012-ai-intake.html"><span aria-hidden="true">&#128172;</span> Intake</a></div></nav></aside>
+
+  <main id="main-content" role="main">
+    <div class="page-header"><h1>My appointments</h1><a class="btn btn-primary" href="wireframe-SCR-006-provider-browser.html">Book new</a></div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" role="tab" aria-selected="true" id="tab-upcoming">Upcoming<span class="tab-count">2</span></button>
+      <button class="tab" role="tab" aria-selected="false" id="tab-past">Past<span class="tab-count">5</span></button>
+      <button class="tab" role="tab" aria-selected="false" id="tab-waitlist">Waitlist<span class="tab-count">1</span></button>
+    </div>
+
+    <div class="card" role="tabpanel" aria-labelledby="tab-upcoming">
+      <table aria-label="Upcoming appointments">
+        <thead><tr><th>Date &amp; Time</th><th>Provider</th><th>Service</th><th>Status</th><th>Intake</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Mar 21, 2026 · 10:00 AM</td><td>Dr. Sarah Chen</td><td>Annual Checkup</td>
+            <td><span class="badge badge-success">Confirmed</span></td>
+            <td><a href="wireframe-SCR-012-ai-intake.html"><span class="badge badge-warning">Pending</span></a></td>
+            <td class="actions-cell"><a class="btn-ghost btn-sm" href="wireframe-SCR-011-reschedule.html">Reschedule</a><button class="btn-danger-ghost btn-sm" onclick="document.getElementById('cancel-modal').classList.add('open')">Cancel</button></td>
+          </tr>
+          <tr>
+            <td>Mar 28, 2026 · 2:30 PM</td><td>Dr. James Wilson</td><td>Follow-up</td>
+            <td><span class="badge badge-info">Scheduled</span></td>
+            <td><span class="badge badge-success">Complete</span></td>
+            <td class="actions-cell"><a class="btn-ghost btn-sm" href="wireframe-SCR-011-reschedule.html">Reschedule</a><button class="btn-danger-ghost btn-sm" onclick="document.getElementById('cancel-modal').classList.add('open')">Cancel</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+<div class="modal-overlay" id="cancel-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+  <div class="modal">
+    <h3 id="cancel-title">Cancel appointment?</h3>
+    <p>Are you sure you want to cancel your appointment with Dr. Sarah Chen on Mar 21, 2026? Cancellations within 24 hours of the appointment may be subject to a fee.</p>
+    <div class="modal-actions">
+      <button class="btn btn-sm" style="background:var(--color-neutral-0);color:var(--color-neutral-700);border:1px solid var(--color-neutral-300)" onclick="document.getElementById('cancel-modal').classList.remove('open')">Keep appointment</button>
+      <button class="btn btn-sm" style="background:var(--color-error);color:#fff" onclick="document.getElementById('cancel-modal').classList.remove('open')">Cancel appointment</button>
+    </div>
+  </div>
+</div>
+<script>document.getElementById('cancel-modal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')});document.addEventListener('keydown',function(e){if(e.key==='Escape')document.getElementById('cancel-modal').classList.remove('open')})</script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCR-001 Registration — PatientAccess</title>
+<style>
+:root {
+  --color-primary-50:#EBF5FF;--color-primary-100:#D1E9FF;--color-primary-200:#A8D4FF;--color-primary-300:#6FB6FF;--color-primary-400:#3D9BFF;--color-primary-500:#0F62FE;--color-primary-600:#0C50D4;--color-primary-700:#0A3FAA;--color-primary-800:#072F80;
+  --color-secondary-500:#16A34A;--color-secondary-600:#15803D;
+  --color-success-light:#DCFCE7;--color-success:#16A34A;--color-success-dark:#166534;
+  --color-warning-light:#FEF3C7;--color-warning:#D97706;--color-warning-dark:#92400E;
+  --color-error-light:#FEE2E2;--color-error:#DC2626;--color-error-dark:#991B1B;
+  --color-info-light:#DBEAFE;--color-info:#2563EB;--color-info-dark:#1E40AF;
+  --color-neutral-0:#FFFFFF;--color-neutral-50:#F8FAFC;--color-neutral-100:#F1F5F9;--color-neutral-200:#E2E8F0;--color-neutral-300:#CBD5E1;--color-neutral-400:#94A3B8;--color-neutral-500:#64748B;--color-neutral-600:#475569;--color-neutral-700:#334155;--color-neutral-800:#1E293B;--color-neutral-900:#0F172A;
+  --font-family:'Inter',system-ui,-apple-system,sans-serif;
+  --font-h1:700 36px/44px var(--font-family);--font-h2:600 28px/36px var(--font-family);--font-h3:600 22px/28px var(--font-family);--font-h4:600 18px/24px var(--font-family);--font-h5:600 16px/22px var(--font-family);--font-h6:600 14px/20px var(--font-family);
+  --font-body-lg:400 16px/24px var(--font-family);--font-body:400 14px/20px var(--font-family);--font-body-sm:400 13px/18px var(--font-family);--font-caption:400 12px/16px var(--font-family);
+  --radius-sm:4px;--radius-md:8px;--radius-lg:16px;--radius-full:9999px;
+  --shadow-1:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06);--shadow-2:0 4px 6px rgba(0,0,0,0.07),0 2px 4px rgba(0,0,0,0.06);--shadow-3:0 10px 15px rgba(0,0,0,0.1),0 4px 6px rgba(0,0,0,0.05);
+  --transition-fast:100ms ease;--transition-normal:200ms ease;--transition-moderate:300ms cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font:var(--font-body);color:var(--color-neutral-800);background:var(--color-neutral-50);min-height:100vh;display:flex;align-items:center;justify-content:center}
+a{color:var(--color-primary-500);text-decoration:none}a:hover{color:var(--color-primary-700);text-decoration:underline}a:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px;border-radius:var(--radius-sm)}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--color-primary-500);color:#fff;padding:8px 16px;z-index:100;border-radius:0 0 var(--radius-md) 0}.skip-link:focus{left:0}
+.auth-page{display:flex;flex-direction:column;align-items:center;width:100%;max-width:480px;padding:24px 16px}
+.logo{display:flex;align-items:center;gap:8px;margin-bottom:32px}.logo-icon{width:32px;height:32px;background:var(--color-primary-500);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}.logo-text{font:var(--font-h3);color:var(--color-neutral-900)}
+.auth-card{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);padding:32px;width:100%}
+.auth-card h1{font:var(--font-h2);color:var(--color-neutral-900);margin-bottom:4px}
+.auth-card .subtitle{font:var(--font-body);color:var(--color-neutral-500);margin-bottom:24px}
+.alert{padding:12px 16px;border-radius:var(--radius-md);font:var(--font-body-sm);display:flex;align-items:flex-start;gap:8px;margin-bottom:16px}
+.alert-error{background:var(--color-error-light);color:var(--color-error-dark);border:1px solid var(--color-error)}
+.alert-success{background:var(--color-success-light);color:var(--color-success-dark);border:1px solid var(--color-success)}
+.alert-icon{flex-shrink:0;width:16px;height:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font:var(--font-body-sm);font-weight:500;color:var(--color-neutral-700);margin-bottom:4px}
+.form-group .required{color:var(--color-error)}
+.input{width:100%;height:40px;padding:8px 12px;border:1px solid var(--color-neutral-300);border-radius:var(--radius-md);font:var(--font-body);color:var(--color-neutral-800);background:var(--color-neutral-0);transition:border-color var(--transition-fast)}
+.input::placeholder{color:var(--color-neutral-400)}
+.input:hover{border-color:var(--color-neutral-400)}
+.input:focus{outline:none;border-color:var(--color-primary-500);box-shadow:0 0 0 3px var(--color-primary-100)}
+.input.error{border-color:var(--color-error);box-shadow:0 0 0 3px var(--color-error-light)}
+.helper-text{font:var(--font-caption);color:var(--color-neutral-500);margin-top:4px}
+.error-text{font:var(--font-caption);color:var(--color-error);margin-top:4px}
+.password-wrapper{position:relative}.password-wrapper .toggle-pw{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--color-neutral-400);cursor:pointer;padding:4px}.password-wrapper .toggle-pw:hover{color:var(--color-neutral-600)}
+.password-strength{height:4px;border-radius:var(--radius-full);background:var(--color-neutral-200);margin-top:8px;overflow:hidden}.password-strength-fill{height:100%;border-radius:var(--radius-full);transition:width var(--transition-normal)}.strength-weak{width:25%;background:var(--color-error)}.strength-fair{width:50%;background:var(--color-warning)}.strength-good{width:75%;background:var(--color-info)}.strength-strong{width:100%;background:var(--color-success)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 20px;border:none;border-radius:var(--radius-md);font:var(--font-body);font-weight:500;cursor:pointer;transition:all var(--transition-fast);min-width:120px}
+.btn:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px}
+.btn-primary{background:var(--color-primary-500);color:#fff}.btn-primary:hover{background:var(--color-primary-600)}.btn-primary:active{background:var(--color-primary-700)}
+.btn-primary:disabled{background:var(--color-neutral-200);color:var(--color-neutral-400);cursor:not-allowed}
+.btn-secondary{background:var(--color-neutral-0);color:var(--color-primary-500);border:1px solid var(--color-primary-500)}.btn-secondary:hover{background:var(--color-primary-50)}
+.btn-full{width:100%}
+.btn .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-footer{text-align:center;margin-top:16px;font:var(--font-body-sm);color:var(--color-neutral-500)}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--color-neutral-400);font:var(--font-caption)}.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--color-neutral-200)}
+@media(max-width:767px){.form-row{grid-template-columns:1fr}.auth-card{padding:24px 20px}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<main id="main-content" class="auth-page" role="main">
+  <div class="logo">
+    <div class="logo-icon" aria-hidden="true">+</div>
+    <span class="logo-text">PatientAccess</span>
+  </div>
+  <div class="auth-card">
+    <h1>Create your account</h1>
+    <p class="subtitle">Join PatientAccess to manage your healthcare</p>
+
+    <!-- Error Alert (hidden by default) -->
+    <div class="alert alert-error" id="form-alert" role="alert" style="display:none">
+      <span class="alert-icon" aria-hidden="true">&#9888;</span>
+      <span>An account with this email already exists. <a href="wireframe-SCR-002-login.html">Sign in instead</a>.</span>
+    </div>
+
+    <form id="registration-form" aria-labelledby="reg-heading" novalidate>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First name <span class="required" aria-label="required">*</span></label>
+          <input type="text" id="firstName" class="input" placeholder="John" required autocomplete="given-name">
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last name <span class="required" aria-label="required">*</span></label>
+          <input type="text" id="lastName" class="input" placeholder="Doe" required autocomplete="family-name">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="dob">Date of birth <span class="required" aria-label="required">*</span></label>
+        <input type="date" id="dob" class="input" required autocomplete="bday">
+      </div>
+      <div class="form-group">
+        <label for="email">Email address <span class="required" aria-label="required">*</span></label>
+        <input type="email" id="email" class="input" placeholder="john.doe@email.com" required autocomplete="email">
+        <div class="error-text" id="email-error" role="alert" style="display:none">Please enter a valid email address</div>
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone number <span class="required" aria-label="required">*</span></label>
+        <input type="tel" id="phone" class="input" placeholder="(555) 123-4567" required autocomplete="tel">
+      </div>
+      <div class="form-group">
+        <label for="password">Password <span class="required" aria-label="required">*</span></label>
+        <div class="password-wrapper">
+          <input type="password" id="password" class="input" placeholder="Minimum 8 characters" required autocomplete="new-password" aria-describedby="pw-strength-text">
+          <button type="button" class="toggle-pw" aria-label="Show password">&#128065;</button>
+        </div>
+        <div class="password-strength" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" aria-label="Password strength">
+          <div class="password-strength-fill strength-good"></div>
+        </div>
+        <div class="helper-text" id="pw-strength-text">Good — Add a special character for a stronger password</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="submit-btn">Create account</button>
+    </form>
+
+    <div class="form-footer">
+      Already have an account? <a href="wireframe-SCR-002-login.html">Sign in</a>
+    </div>
+  </div>
+</main>
+<script>
+document.getElementById('registration-form').addEventListener('submit',function(e){e.preventDefault();const btn=document.getElementById('submit-btn');btn.innerHTML='<span class="spinner"></span> Creating account...';btn.disabled=true;setTimeout(()=>{btn.innerHTML='Create account';btn.disabled=false},2000)});
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCR-016 Patient Health Dashboard (360°) — PatientAccess</title>
+<style>
+:root{--color-primary-50:#EBF5FF;--color-primary-100:#D1E9FF;--color-primary-500:#0F62FE;--color-primary-600:#0C50D4;--color-success-light:#DCFCE7;--color-success:#16A34A;--color-success-dark:#166534;--color-warning-light:#FEF3C7;--color-warning:#D97706;--color-warning-dark:#92400E;--color-error-light:#FEE2E2;--color-error:#DC2626;--color-error-dark:#991B1B;--color-info-light:#DBEAFE;--color-info:#2563EB;--color-neutral-0:#FFF;--color-neutral-50:#F8FAFC;--color-neutral-100:#F1F5F9;--color-neutral-200:#E2E8F0;--color-neutral-300:#CBD5E1;--color-neutral-400:#94A3B8;--color-neutral-500:#64748B;--color-neutral-600:#475569;--color-neutral-700:#334155;--color-neutral-800:#1E293B;--color-neutral-900:#0F172A;--font-family:'Inter',system-ui,sans-serif;--font-h2:600 28px/36px var(--font-family);--font-h3:600 22px/28px var(--font-family);--font-h4:600 18px/24px var(--font-family);--font-h5:600 16px/22px var(--font-family);--font-h6:600 14px/20px var(--font-family);--font-body:400 14px/20px var(--font-family);--font-body-sm:400 13px/18px var(--font-family);--font-caption:400 12px/16px var(--font-family);--font-overline:600 11px/16px var(--font-family);--radius-sm:4px;--radius-md:8px;--radius-lg:16px;--radius-full:9999px;--shadow-1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);--transition-fast:100ms ease;--transition-moderate:300ms cubic-bezier(.16,1,.3,1)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font:var(--font-body);color:var(--color-neutral-800);background:var(--color-neutral-100)}a{color:var(--color-primary-500);text-decoration:none}a:hover{color:var(--color-primary-700);text-decoration:underline}a:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:2px;border-radius:var(--radius-sm)}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--color-primary-500);color:#fff;padding:8px 16px;z-index:200}.skip-link:focus{left:0}
+.shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:64px 1fr;min-height:100vh}header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--color-neutral-0);border-bottom:1px solid var(--color-neutral-200);z-index:50}.header-left{display:flex;align-items:center;gap:12px}.logo-icon{width:28px;height:28px;background:var(--color-primary-500);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}.logo-text{font:var(--font-h5);color:var(--color-neutral-900)}.breadcrumb{font:var(--font-body-sm);color:var(--color-neutral-500)}.breadcrumb span{color:var(--color-neutral-800)}.header-right{display:flex;align-items:center;gap:16px}.avatar{width:36px;height:36px;border-radius:var(--radius-full);background:var(--color-primary-100);color:var(--color-primary-700);display:flex;align-items:center;justify-content:center;font:var(--font-body-sm);font-weight:600;cursor:pointer}
+aside{background:var(--color-neutral-50);border-right:1px solid var(--color-neutral-200);padding:16px 0}.nav-section{padding:0 12px;margin-bottom:24px}.nav-section-title{font:var(--font-overline);color:var(--color-neutral-400);text-transform:uppercase;letter-spacing:.05em;padding:0 12px;margin-bottom:8px}.nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-md);font:var(--font-body);color:var(--color-neutral-600);text-decoration:none;transition:background var(--transition-fast)}.nav-item:hover{background:var(--color-neutral-100);text-decoration:none}.nav-item.active{background:var(--color-primary-50);color:var(--color-primary-500);font-weight:500;border-left:3px solid var(--color-primary-500)}
+main{padding:32px;overflow-y:auto}.page-header{margin-bottom:24px}.page-header h1{font:var(--font-h2);color:var(--color-neutral-900)}
+.card{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:var(--radius-md);box-shadow:var(--shadow-1);padding:20px;margin-bottom:16px}.card h3{font:var(--font-h4);margin-bottom:16px}
+.patient-header{display:flex;align-items:center;gap:16px;padding:20px;background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:var(--radius-md);margin-bottom:24px;box-shadow:var(--shadow-1)}.patient-avatar{width:56px;height:56px;border-radius:var(--radius-full);background:var(--color-primary-50);color:var(--color-primary-500);display:flex;align-items:center;justify-content:center;font:var(--font-h3);flex-shrink:0}.patient-info h2{font:var(--font-h3);color:var(--color-neutral-900)}.patient-meta{display:flex;gap:16px;margin-top:4px;font:var(--font-body-sm);color:var(--color-neutral-500)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--radius-full);font:var(--font-caption);font-weight:500}.badge-success{background:var(--color-success-light);color:var(--color-success-dark)}.badge-warning{background:var(--color-warning-light);color:var(--color-warning-dark)}.badge-info{background:var(--color-info-light);color:var(--color-info)}.badge-neutral{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+/* ACCORDION */
+.accordion{border:1px solid var(--color-neutral-200);border-radius:var(--radius-md);overflow:hidden;margin-bottom:16px}.accordion-item{border-bottom:1px solid var(--color-neutral-200)}.accordion-item:last-child{border-bottom:none}
+.accordion-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:var(--color-neutral-0);cursor:pointer;font:var(--font-h5);color:var(--color-neutral-800);border:none;width:100%;text-align:left;transition:background var(--transition-fast)}.accordion-header:hover{background:var(--color-neutral-50)}.accordion-header:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:-2px}.accordion-chevron{transition:transform var(--transition-moderate);color:var(--color-neutral-400)}.accordion-item.open .accordion-chevron{transform:rotate(90deg)}
+.accordion-body{padding:0 20px 16px;display:none}.accordion-item.open .accordion-body{display:block}
+table{width:100%;border-collapse:collapse}th{text-align:left;font:var(--font-h6);color:var(--color-neutral-700);padding:10px 12px;background:var(--color-neutral-50);border-bottom:1px solid var(--color-neutral-200)}td{padding:10px 12px;border-bottom:1px solid var(--color-neutral-100);font:var(--font-body);vertical-align:middle}
+/* CHART PLACEHOLDER */
+.chart-placeholder{height:200px;background:var(--color-neutral-50);border:1px solid var(--color-neutral-200);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:var(--color-neutral-400);font:var(--font-body-sm)}
+.tooltip-icon{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:var(--radius-full);background:var(--color-neutral-200);color:var(--color-neutral-600);font-size:10px;font-weight:700;cursor:help;margin-left:4px}
+@media(max-width:1023px){.shell{grid-template-columns:1fr}aside{display:none}.grid-2{grid-template-columns:1fr}}
+@media(max-width:767px){main{padding:16px}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div class="shell">
+  <header role="banner"><div class="header-left"><div class="logo-icon" aria-hidden="true">+</div><span class="logo-text">PatientAccess</span><nav class="breadcrumb" aria-label="Breadcrumb"><a href="wireframe-SCR-003-patient-dashboard.html">Home</a> / <span>Health Dashboard</span></nav></div><div class="header-right"><div class="avatar" role="button" aria-label="User menu" tabindex="0">JD</div></div></header>
+  <aside role="navigation" aria-label="Patient navigation"><nav><div class="nav-section"><div class="nav-section-title">Main</div><a class="nav-item" href="wireframe-SCR-003-patient-dashboard.html"><span aria-hidden="true">&#9776;</span> Dashboard</a><a class="nav-item" href="wireframe-SCR-010-my-appointments.html"><span aria-hidden="true">&#128197;</span> My Appointments</a><a class="nav-item" href="wireframe-SCR-006-provider-browser.html"><span aria-hidden="true">&#128269;</span> Find Providers</a></div><div class="nav-section"><div class="nav-section-title">Health</div><a class="nav-item active" href="wireframe-SCR-016-patient-health-dashboard.html" aria-current="page"><span aria-hidden="true">&#10084;</span> Health Dashboard</a><a class="nav-item" href="wireframe-SCR-014-document-upload.html"><span aria-hidden="true">&#128196;</span> Documents</a><a class="nav-item" href="wireframe-SCR-012-ai-intake.html"><span aria-hidden="true">&#128172;</span> Intake</a></div></nav></aside>
+
+  <main id="main-content" role="main">
+    <div class="page-header"><h1>Health Dashboard</h1></div>
+    <div class="patient-header">
+      <div class="patient-avatar" aria-hidden="true">JD</div>
+      <div class="patient-info"><h2>John Doe</h2><div class="patient-meta"><span>DOB: Jan 15, 1985 (41 yrs)</span><span>MRN: PAT-2026-0001</span><span>Blood Type: A+</span></div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card"><h3>Demographics</h3>
+        <table><tbody><tr><td style="color:var(--color-neutral-500)">Phone</td><td>(555) 123-4567</td></tr><tr><td style="color:var(--color-neutral-500)">Email</td><td>john.doe@email.com</td></tr><tr><td style="color:var(--color-neutral-500)">Address</td><td>123 Main St, Springfield, IL 62704</td></tr><tr><td style="color:var(--color-neutral-500)">Insurance</td><td>BlueCross BlueShield — PPO</td></tr></tbody></table>
+      </div>
+      <div class="card"><h3>Vitals Trend</h3><div class="chart-placeholder" role="img" aria-label="Blood pressure trend chart showing readings over the last 6 months">&#128200; Blood Pressure Trend (6 months)</div></div>
+    </div>
+
+    <div class="accordion">
+      <div class="accordion-item open">
+        <button class="accordion-header" aria-expanded="true">Conditions <span class="badge badge-info" style="margin-left:8px">3</span> <span class="accordion-chevron" aria-hidden="true">&#9656;</span></button>
+        <div class="accordion-body">
+          <table><thead><tr><th>Condition</th><th>Onset</th><th>Status</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>Hypertension</td><td>2020</td><td><span class="badge badge-success">Verified &#10003;</span></td><td>Dr. Chen · Annual visit</td></tr>
+            <tr><td>Seasonal Allergies</td><td>2015</td><td><span class="badge badge-success">Verified &#10003;</span></td><td>Self-reported</td></tr>
+            <tr><td>Vitamin D Deficiency</td><td>2024</td><td><span class="badge badge-warning">AI-suggested<span class="tooltip-icon" title="Extracted from Lab_Results_2026_Q1.pdf by AI — awaiting staff verification">?</span></span></td><td>Lab results</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div class="accordion-item open">
+        <button class="accordion-header" aria-expanded="true">Medications <span class="badge badge-info" style="margin-left:8px">2</span> <span class="accordion-chevron" aria-hidden="true">&#9656;</span></button>
+        <div class="accordion-body">
+          <table><thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>Lisinopril</td><td>10 mg</td><td>Daily</td><td><span class="badge badge-success">Verified &#10003;</span></td></tr>
+            <tr><td>Multivitamin</td><td>—</td><td>Daily</td><td><span class="badge badge-success">Verified &#10003;</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-header" aria-expanded="false">Allergies <span class="badge badge-info" style="margin-left:8px">1</span> <span class="accordion-chevron" aria-hidden="true">&#9656;</span></button>
+        <div class="accordion-body">
+          <table><thead><tr><th>Allergen</th><th>Reaction</th><th>Severity</th><th>Source</th></tr></thead>
+          <tbody><tr><td>Penicillin</td><td>Hives</td><td><span class="badge badge-warning">Moderate</span></td><td><span class="badge badge-success">Verified &#10003;</span></td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-header" aria-expanded="false">Encounters <span class="badge badge-info" style="margin-left:8px">4</span> <span class="accordion-chevron" aria-hidden="true">&#9656;</span></button>
+        <div class="accordion-body">
+          <table><thead><tr><th>Date</th><th>Provider</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Mar 10, 2026</td><td>Dr. Patel</td><td>Cardiology Consult</td><td>Follow-up on BP management</td></tr>
+            <tr><td>Jan 15, 2026</td><td>Dr. Chen</td><td>Annual Checkup</td><td>Routine annual wellness visit</td></tr>
+            <tr><td>Oct 20, 2025</td><td>Dr. Wilson</td><td>Follow-up</td><td>Medication adjustment</td></tr>
+            <tr><td>Jul 05, 2025</td><td>Dr. Chen</td><td>Lab Review</td><td>Blood work results review</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>document.querySelectorAll('.accordion-header').forEach(function(h){h.addEventListener('click',function(){var item=this.parentElement;item.classList.toggle('open');this.setAttribute('aria-expanded',item.classList.contains('open'))})})</script>
+</body>
+</html>
