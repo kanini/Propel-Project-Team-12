@@ -31,8 +31,8 @@ jobs:
         run: dotnet restore src/backend/PatientAccess.sln
       - name: Publish
         run: dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
-      - name: List publish output
-        run: ls -la ./publish/
+      - name: Create app_offline.htm to stop the app
+        run: echo "App is being updated, please wait..." > ./publish/app_offline.htm
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -46,6 +46,19 @@ jobs:
           security: loose
           timeout: 300000
           dangerous-clean-slate: true
-          retry: 5
-          retryDelay: 10000
           log-level: verbose
+      - name: Remove app_offline.htm to restart the app
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: site59724.siteasp.net
+          username: site59724
+          password: "C+c87T#w%fP5"
+          local-dir: ./remove-offline/
+          server-dir: /wwwroot/
+          port: 21
+          protocol: ftp
+          security: loose
+          timeout: 60000
+          exclude: |
+            **
+            !app_offline.htm
