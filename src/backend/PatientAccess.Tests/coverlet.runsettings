@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura,json,lcov,opencover</Format>
+          
+          <!-- Exclude patterns for files not requiring coverage -->
+          <Exclude>
+            <!-- Test assemblies -->
+            [*Tests]*,
+            [*Test]*,
+            
+            <!-- Migration files -->
+            [*Migrations]*,
+            
+            <!-- Program entry point and startup -->
+            [*.Web]Program,
+            [*.Web]Startup,
+            
+            <!-- Auto-generated files -->
+            [*]*.Designer.cs,
+            [*]*.Generated.cs,
+            [*]*AssemblyInfo.cs,
+            
+            <!-- Configuration and DTOs (data transfer objects) -->
+            [*.Data]*.Configurations.*,
+            [*.Business]*.DTOs.*,
+            [*.Web]*.DTOs.*,
+            
+            <!-- Middleware (tested via integration tests) -->
+            [*.Web]*.Middleware.*
+          </Exclude>
+          
+          <!-- Include patterns for business logic requiring coverage -->
+          <Include>
+            <!-- Business Services -->
+            [PatientAccess.Business]*.Services.*,
+            
+            <!-- Data Repositories -->
+            [PatientAccess.Data]*.Repositories.*,
+            
+            <!-- API Controllers (business logic only) -->
+            [PatientAccess.Web]*.Controllers.*,
+            
+            <!-- Validators -->
+            [*.Business]*.Validators.*,
+            [*.Web]*.Validators.*
+          </Include>
+          
+          <!-- Code coverage thresholds - 80% for business logic -->
+          <Threshold>
+            <ThresholdType>Line</ThresholdType>
+            <ThresholdStat>80</ThresholdStat>
+            <ThresholdType>Branch</ThresholdType>
+            <ThresholdStat>80</ThresholdStat>
+            <ThresholdType>Method</ThresholdType>
+            <ThresholdStat>80</ThresholdStat>
+          </Threshold>
+          
+          <!-- Additional settings -->
+          <UseSourceLink>true</UseSourceLink>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <SkipAutoProps>true</SkipAutoProps>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
