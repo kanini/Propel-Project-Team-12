@@ -18,7 +18,7 @@ public static class ServiceCollectionExtensions
     /// <param name="configuration">The application configuration containing connection strings.</param>
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddDataAccessServices(
-        this IServiceCollection services, 
+        this IServiceCollection services,
         IConfiguration configuration)
     {
         // Get connection string from configuration
@@ -59,12 +59,8 @@ public static class ServiceCollectionExtensions
             options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         });
 
-        // Add database health check for startup validation
-        services.AddHealthChecks()
-            .AddDbContextCheck<PatientAccessDbContext>(
-                name: "database",
-                failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
-                tags: new[] { "db", "postgresql" });
+        // Note: Database health check is configured in Program.cs with AddNpgSql (includes timeout)
+        // See: US_005 Task 002 - Health check endpoint with 5-second timeout
 
         return services;
     }

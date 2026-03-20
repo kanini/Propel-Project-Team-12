@@ -119,11 +119,11 @@ dotnet build
 - [ ] Service registered in DI container with Singleton lifetime
 
 ## Implementation Checklist
-- [ ] Add BCrypt.Net-Next NuGet package to PatientAccess.Business project
-- [ ] Create `IPasswordHashingService` interface with HashPassword and VerifyPassword methods
-- [ ] Implement `PasswordHashingService` using `BCrypt.HashPassword` with work factor 12
-- [ ] Implement `VerifyPassword` using `BCrypt.Verify` for password validation
-- [ ] Register `IPasswordHashingService` in DI container as Singleton
+- [X] Add BCrypt.Net-Next NuGet package to PatientAccess.Business project
+- [X] Create `IPasswordHashingService` interface with HashPassword and VerifyPassword methods
+- [X] Implement `PasswordHashingService` using `BCrypt.HashPassword` with work factor 12
+- [X] Implement `VerifyPassword` using `BCrypt.Verify` for password validation
+- [X] Register `IPasswordHashingService` in DI container as Singleton
 - [ ] Create unit tests verifying hash uniqueness and password verification
 - [ ] Document security rationale for BCrypt and work factor 12 in SECURITY.md
-- [ ] Verify hash format starts with `$2a$12$` confirming correct work factor
+- [X] Verify hash format starts with `$2a$12$` confirming correct work factor

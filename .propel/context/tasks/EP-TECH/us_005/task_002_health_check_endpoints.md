@@ -124,11 +124,11 @@ curl https://localhost:5001/health
 - [ ] Load balancer test: unhealthy instances removed from rotation
 
 ## Implementation Checklist
-- [ ] Install AspNetCore.HealthChecks.Npgsql and AspNetCore.HealthChecks.Redis packages
-- [ ] Register health check services in Program.cs with AddHealthChecks()
-- [ ] Add database health check with 5-second timeout configuration
+- [X] Install AspNetCore.HealthChecks.Npgsql and AspNetCore.HealthChecks.Redis packages
+- [X] Register health check services in Program.cs with AddHealthChecks()
+- [X] Add database health check with 5-second timeout configuration
 - [ ] Add Redis health check with 5-second timeout (conditional on US_006 completion)
-- [ ] Map `/health` endpoint with MapHealthChecks()
-- [ ] Create `CustomHealthCheckResponseWriter` formatting results as JSON
-- [ ] Configure response writer to include dependency details and status codes
-- [ ] Test health endpoint with healthy and unhealthy database scenarios
+- [X] Map `/health` endpoint with MapHealthChecks()
+- [X] Create `CustomHealthCheckResponseWriter` formatting results as JSON
+- [X] Configure response writer to include dependency details and status codes
+- [X] Test health endpoint with healthy and unhealthy database scenarios

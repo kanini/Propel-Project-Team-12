@@ -121,11 +121,11 @@ dotnet run --project PatientAccess.Web
 - [ ] Swagger UI disabled in production environment (returns 404)
 
 ## Implementation Checklist
-- [ ] Install Swashbuckle.AspNetCore NuGet package (version 6.x)
-- [ ] Register Swagger generator in Program.cs with OpenAPI 3.0 configuration
-- [ ] Configure API metadata (title, version, description, contact)
-- [ ] Add JWT Bearer security definition to Swagger configuration
-- [ ] Create `SwaggerAuthorizationOperationFilter` to document protected endpoints
-- [ ] Enable Swagger UI middleware conditionally (only if not production)
-- [ ] Customize Swagger UI options (deep linking, try-it-out, display operation ID)
-- [ ] Test Swagger UI functionality and verify all endpoints documented correctly
+- [X] Install Swashbuckle.AspNetCore NuGet package (version 6.x)
+- [X] Register Swagger generator in Program.cs with OpenAPI 3.0 configuration
+- [X] Configure API metadata (title, version, description, contact)
+- [X] Add JWT Bearer security definition to Swagger configuration
+- [X] Create `SwaggerAuthorizationOperationFilter` to document protected endpoints
+- [X] Enable Swagger UI middleware conditionally (only if not production)
+- [X] Customize Swagger UI options (deep linking, try-it-out, display operation ID)
+- [X] Test Swagger UI functionality and verify all endpoints documented correctly

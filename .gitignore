@@ -15,3 +15,6 @@ nul
 
 .env
 .vscode/mcp.json
+# RSA Keys (Security)
+security/rsa-keys/*.xml
+security/rsa-keys/*.pem
