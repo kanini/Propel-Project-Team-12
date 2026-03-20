@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Security.Cryptography;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,7 +39,7 @@ builder.Services.AddSwaggerGen(options =>
     // Add JWT Bearer authentication to Swagger (TR-012)
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.\n\nExample: 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...'",
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.\n\nExample: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -67,20 +67,19 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure JWT Authentication (TR-012)
+// Configure JWT Authentication (TR-012) - HS256 with symmetric secret key
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var publicKeyPath = jwtSettings["PublicKeyPath"] ?? throw new InvalidOperationException("JWT PublicKeyPath not configured.");
+var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured. See docs/AUTHENTICATION.md for setup instructions.");
 
-if (!File.Exists(publicKeyPath))
+// Validate secret key length (minimum 256 bits / 32 characters for HS256)
+if (secretKey.Length < 32)
 {
-    throw new FileNotFoundException(
-        $"RSA public key file not found at {publicKeyPath}. " +
-        "Please generate RS256 key pair. See docs/AUTHENTICATION.md for instructions.",
-        publicKeyPath);
+    throw new InvalidOperationException(
+        $"JWT SecretKey must be at least 32 characters (256 bits) for HS256 algorithm. " +
+        $"Current length: {secretKey.Length} characters. See docs/AUTHENTICATION.md for key generation.");
 }
 
-var rsaPublic = RSA.Create();
-rsaPublic.FromXmlString(File.ReadAllText(publicKeyPath));
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -97,7 +96,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new RsaSecurityKey(rsaPublic),
+        IssuerSigningKey = signingKey,
         ClockSkew = TimeSpan.FromMinutes(int.Parse(jwtSettings["ClockSkewMinutes"] ?? "5"))
     };
 

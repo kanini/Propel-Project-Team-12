@@ -1,14 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// JWT token generation and validation service using RS256 asymmetric signing algorithm.
-/// Implements TR-012 requirement for JWT Bearer tokens with RS256.
+/// JWT token generation and validation service using HS256 symmetric signing algorithm.
+/// Implements TR-012 requirement for JWT Bearer tokens with HMAC-SHA256.
 /// </summary>
 public class JwtTokenService : IJwtTokenService
 {
@@ -16,8 +16,7 @@ public class JwtTokenService : IJwtTokenService
     private readonly string _audience;
     private readonly int _expirationMinutes;
     private readonly int _clockSkewMinutes;
-    private readonly RSA _rsaPrivate;
-    private readonly RSA _rsaPublic;
+    private readonly SymmetricSecurityKey _signingKey;
 
     public JwtTokenService(IConfiguration configuration)
     {
@@ -28,49 +27,23 @@ public class JwtTokenService : IJwtTokenService
         _expirationMinutes = int.Parse(jwtSettings["ExpirationMinutes"] ?? "15");
         _clockSkewMinutes = int.Parse(jwtSettings["ClockSkewMinutes"] ?? "5");
 
-        // Load RSA keys from configured paths
-        var privateKeyPath = jwtSettings["PrivateKeyPath"] ?? throw new InvalidOperationException("JWT PrivateKeyPath is not configured.");
-        var publicKeyPath = jwtSettings["PublicKeyPath"] ?? throw new InvalidOperationException("JWT PublicKeyPath is not configured.");
+        // Load secret key from configuration
+        var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured.");
 
-        // Validate key files exist
-        if (!File.Exists(privateKeyPath))
-        {
-            throw new FileNotFoundException(
-                "RSA private key file not found. Please ensure RS256 key pair is generated. " +
-                $"Run: openssl genrsa -out {privateKeyPath} 2048",
-                privateKeyPath);
-        }
-
-        if (!File.Exists(publicKeyPath))
-        {
-            throw new FileNotFoundException(
-               $"RSA public key file not found at {publicKeyPath}.",
-                publicKeyPath);
-        }
-
-        // Load RSA keys (XML format for Windows compatibility)
-        _rsaPrivate = RSA.Create();
-        _rsaPublic = RSA.Create();
-
-        try
-        {
-            var privateKeyXml = File.ReadAllText(privateKeyPath);
-            var publicKeyXml = File.ReadAllText(publicKeyPath);
-
-            _rsaPrivate.FromXmlString(privateKeyXml);
-            _rsaPublic.FromXmlString(publicKeyXml);
-        }
-        catch (Exception ex)
+        // Validate key length (minimum 256 bits / 32 characters for HS256)
+        if (secretKey.Length < 32)
         {
             throw new InvalidOperationException(
-                "Failed to load RSA keys. Ensure keys are in valid XML format. " +
-                "Generate using: New RSA key pair via PowerShell or openssl.",
-                ex);
+                "JWT SecretKey must be at least 32 characters (256 bits) for HS256 algorithm. " +
+                "Current length: " + secretKey.Length + " characters.");
         }
+
+        // Create symmetric security key from secret
+        _signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
     }
 
     /// <summary>
-    /// Generates JWT token with user claims (userId, email, role) signed using RS256 private key.
+    /// Generates JWT token with user claims (userId, email, role) signed using HS256 symmetric key.
     /// Token expires after configured timeout (default 15 minutes per NFR-005).
     /// </summary>
     public string GenerateToken(string userId, string email, string role)
@@ -94,8 +67,8 @@ public class JwtTokenService : IJwtTokenService
         };
 
         var signingCredentials = new SigningCredentials(
-            new RsaSecurityKey(_rsaPrivate),
-            SecurityAlgorithms.RsaSha256); // RS256 algorithm
+            _signingKey,
+            SecurityAlgorithms.HmacSha256); // HS256 algorithm
 
         var token = new JwtSecurityToken(
             issuer: _issuer,
@@ -110,7 +83,7 @@ public class JwtTokenService : IJwtTokenService
     }
 
     /// <summary>
-    /// Validates JWT token signature and expiration using RS256 public key.
+    /// Validates JWT token signature and expiration using HS256 symmetric key.
     /// Returns ClaimsPrincipal if valid, null if invalid or expired.
     /// </summary>
     public ClaimsPrincipal? ValidateToken(string token)
@@ -128,7 +101,7 @@ public class JwtTokenService : IJwtTokenService
             ValidateIssuerSigningKey = true,
             ValidIssuer = _issuer,
             ValidAudience = _audience,
-            IssuerSigningKey = new RsaSecurityKey(_rsaPublic),
+            IssuerSigningKey = _signingKey,
             ClockSkew = TimeSpan.FromMinutes(_clockSkewMinutes) // Allow slight time drift
         };
 

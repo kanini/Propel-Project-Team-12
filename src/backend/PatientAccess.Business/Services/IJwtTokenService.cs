@@ -3,7 +3,7 @@ using System.Security.Claims;
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// Service interface for generating and validating JWT tokens using RS256 asymmetric signing.
+/// Service interface for generating and validating JWT tokens using HS256 symmetric signing.
 /// Tokens include user claims (ID, email, role) and expire after configured timeout (default 15 minutes per NFR-005).
 /// </summary>
 public interface IJwtTokenService
