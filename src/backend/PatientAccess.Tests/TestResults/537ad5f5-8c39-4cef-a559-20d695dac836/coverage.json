@@ -1,0 +1,735 @@
+{
+  "PatientAccess.Business.dll": {
+    "https://raw.githubusercontent.com/kanini/Propel-Project-Team-12/c439b142e05172b490f1a815d34e8b04b70d9753/src/backend/PatientAccess.Business/Services/JwtTokenService.cs": {
+      "PatientAccess.Business.Services.JwtTokenService": {
+        "System.String PatientAccess.Business.Services.JwtTokenService::GenerateToken(System.String,System.String,System.String)": {
+          "Lines": {
+            "50": 0,
+            "51": 0,
+            "52": 0,
+            "54": 0,
+            "55": 0,
+            "57": 0,
+            "58": 0,
+            "60": 0,
+            "61": 0,
+            "62": 0,
+            "63": 0,
+            "64": 0,
+            "65": 0,
+            "66": 0,
+            "67": 0,
+            "69": 0,
+            "70": 0,
+            "71": 0,
+            "73": 0,
+            "74": 0,
+            "75": 0,
+            "76": 0,
+            "77": 0,
+            "78": 0,
+            "79": 0,
+            "80": 0,
+            "82": 0,
+            "83": 0
+          },
+          "Branches": [
+            {
+              "Line": 51,
+              "Offset": 9,
+              "EndOffset": 11,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 51,
+              "Offset": 9,
+              "EndOffset": 27,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 54,
+              "Offset": 37,
+              "EndOffset": 39,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 54,
+              "Offset": 37,
+              "EndOffset": 55,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 57,
+              "Offset": 65,
+              "EndOffset": 67,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 57,
+              "Offset": 65,
+              "EndOffset": 83,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Security.Claims.ClaimsPrincipal PatientAccess.Business.Services.JwtTokenService::ValidateToken(System.String)": {
+          "Lines": {
+            "90": 0,
+            "91": 0,
+            "92": 0,
+            "94": 0,
+            "96": 0,
+            "97": 0,
+            "98": 0,
+            "99": 0,
+            "100": 0,
+            "101": 0,
+            "102": 0,
+            "103": 0,
+            "104": 0,
+            "105": 0,
+            "106": 0,
+            "109": 0,
+            "110": 0,
+            "111": 0,
+            "113": 0,
+            "114": 0,
+            "116": 0,
+            "118": 0,
+            "119": 0,
+            "121": 0,
+            "123": 0
+          },
+          "Branches": [
+            {
+              "Line": 91,
+              "Offset": 9,
+              "EndOffset": 11,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 91,
+              "Offset": 9,
+              "EndOffset": 18,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void PatientAccess.Business.Services.JwtTokenService::.ctor(Microsoft.Extensions.Configuration.IConfiguration)": {
+          "Lines": {
+            "22": 0,
+            "23": 0,
+            "25": 0,
+            "26": 0,
+            "27": 0,
+            "28": 0,
+            "31": 0,
+            "34": 0,
+            "35": 0,
+            "36": 0,
+            "37": 0,
+            "38": 0,
+            "42": 0,
+            "43": 0
+          },
+          "Branches": [
+            {
+              "Line": 25,
+              "Offset": 33,
+              "EndOffset": 35,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 25,
+              "Offset": 33,
+              "EndOffset": 47,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 26,
+              "Offset": 65,
+              "EndOffset": 67,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 26,
+              "Offset": 65,
+              "EndOffset": 79,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 27,
+              "Offset": 97,
+              "EndOffset": 99,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 27,
+              "Offset": 97,
+              "EndOffset": 105,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 28,
+              "Offset": 128,
+              "EndOffset": 130,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 28,
+              "Offset": 128,
+              "EndOffset": 136,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 31,
+              "Offset": 158,
+              "EndOffset": 160,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 31,
+              "Offset": 158,
+              "EndOffset": 172,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 34,
+              "Offset": 185,
+              "EndOffset": 187,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 34,
+              "Offset": 185,
+              "EndOffset": 223,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            }
+          ]
+        }
+      }
+    },
+    "https://raw.githubusercontent.com/kanini/Propel-Project-Team-12/c439b142e05172b490f1a815d34e8b04b70d9753/src/backend/PatientAccess.Business/Services/PasswordHashingService.cs": {
+      "PatientAccess.Business.Services.PasswordHashingService": {
+        "System.String PatientAccess.Business.Services.PasswordHashingService::HashPassword(System.String)": {
+          "Lines": {
+            "23": 0,
+            "24": 0,
+            "25": 0,
+            "29": 0,
+            "30": 0
+          },
+          "Branches": [
+            {
+              "Line": 24,
+              "Offset": 9,
+              "EndOffset": 11,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 24,
+              "Offset": 9,
+              "EndOffset": 27,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Boolean PatientAccess.Business.Services.PasswordHashingService::VerifyPassword(System.String,System.String)": {
+          "Lines": {
+            "40": 0,
+            "41": 0,
+            "42": 0,
+            "45": 0,
+            "47": 0,
+            "49": 0,
+            "50": 0,
+            "52": 0,
+            "54": 0
+          },
+          "Branches": [
+            {
+              "Line": 41,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 41,
+              "Offset": 7,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 41,
+              "Offset": 20,
+              "EndOffset": 22,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 41,
+              "Offset": 20,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        }
+      }
+    },
+    "https://raw.githubusercontent.com/kanini/Propel-Project-Team-12/c439b142e05172b490f1a815d34e8b04b70d9753/src/backend/PatientAccess.Business/Services/SessionCacheService.cs": {
+      "PatientAccess.Business.Services.SessionCacheService": {
+        "System.String PatientAccess.Business.Services.SessionCacheService::GetSessionKey(System.String)": {
+          "Lines": {
+            "234": 14
+          },
+          "Branches": []
+        },
+        "System.Threading.Tasks.Task`1<System.Boolean> PatientAccess.Business.Services.SessionCacheService::FallbackToDatabase_SetSessionAsync(System.String,System.String,System.Threading.CancellationToken)": {
+          "Lines": {
+            "248": 5,
+            "249": 5,
+            "255": 5,
+            "256": 5
+          },
+          "Branches": []
+        },
+        "System.Threading.Tasks.Task`1<System.String> PatientAccess.Business.Services.SessionCacheService::FallbackToDatabase_GetSessionAsync(System.String,System.Threading.CancellationToken)": {
+          "Lines": {
+            "263": 2,
+            "264": 2,
+            "271": 2,
+            "272": 2
+          },
+          "Branches": []
+        },
+        "System.Threading.Tasks.Task`1<System.Boolean> PatientAccess.Business.Services.SessionCacheService::FallbackToDatabase_RemoveSessionAsync(System.String,System.Threading.CancellationToken)": {
+          "Lines": {
+            "279": 3,
+            "280": 3,
+            "286": 3,
+            "287": 3
+          },
+          "Branches": []
+        },
+        "System.Threading.Tasks.Task`1<System.Boolean> PatientAccess.Business.Services.SessionCacheService::FallbackToDatabase_RefreshSessionAsync(System.String,System.Threading.CancellationToken)": {
+          "Lines": {
+            "294": 2,
+            "295": 2,
+            "307": 2,
+            "308": 2
+          },
+          "Branches": []
+        },
+        "System.Void PatientAccess.Business.Services.SessionCacheService::.ctor(StackExchange.Redis.IConnectionMultiplexer,Microsoft.Extensions.Logging.ILogger`1<PatientAccess.Business.Services.SessionCacheService>)": {
+          "Lines": {
+            "16": 36,
+            "26": 36,
+            "27": 36,
+            "28": 35,
+            "29": 34
+          },
+          "Branches": [
+            {
+              "Line": 27,
+              "Offset": 31,
+              "EndOffset": 33,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 27,
+              "Offset": 31,
+              "EndOffset": 45,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 35
+            },
+            {
+              "Line": 28,
+              "Offset": 53,
+              "EndOffset": 55,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 28,
+              "Offset": 53,
+              "EndOffset": 67,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 34
+            }
+          ]
+        }
+      },
+      "PatientAccess.Business.Services.SessionCacheService/<GetSessionAsync>d__6": {
+        "System.Void PatientAccess.Business.Services.SessionCacheService/<GetSessionAsync>d__6::MoveNext()": {
+          "Lines": {
+            "79": 6,
+            "80": 6,
+            "81": 3,
+            "84": 3,
+            "85": 3,
+            "86": 3,
+            "89": 3,
+            "91": 2,
+            "92": 1,
+            "93": 1,
+            "94": 1,
+            "98": 1,
+            "100": 1,
+            "101": 1,
+            "103": 1,
+            "104": 1,
+            "105": 1,
+            "106": 1,
+            "108": 0,
+            "109": 0,
+            "110": 0,
+            "111": 0,
+            "113": 3
+          },
+          "Branches": [
+            {
+              "Line": 80,
+              "Offset": 61,
+              "EndOffset": 63,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 80,
+              "Offset": 61,
+              "EndOffset": 74,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            },
+            {
+              "Line": 91,
+              "Offset": 317,
+              "EndOffset": 322,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 91,
+              "Offset": 317,
+              "EndOffset": 494,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 1
+            }
+          ]
+        }
+      },
+      "PatientAccess.Business.Services.SessionCacheService/<IsRedisAvailableAsync>d__9": {
+        "System.Void PatientAccess.Business.Services.SessionCacheService/<IsRedisAvailableAsync>d__9::MoveNext()": {
+          "Lines": {
+            "204": 3,
+            "206": 3,
+            "207": 3,
+            "208": 3,
+            "209": 1,
+            "211": 1,
+            "212": 1,
+            "213": 1,
+            "214": 1,
+            "216": 1,
+            "217": 1,
+            "218": 1,
+            "219": 1,
+            "221": 0,
+            "222": 0,
+            "223": 0,
+            "224": 0,
+            "226": 3
+          },
+          "Branches": []
+        }
+      },
+      "PatientAccess.Business.Services.SessionCacheService/<RefreshSessionAsync>d__8": {
+        "System.Void PatientAccess.Business.Services.SessionCacheService/<RefreshSessionAsync>d__8::MoveNext()": {
+          "Lines": {
+            "158": 6,
+            "159": 6,
+            "160": 3,
+            "163": 3,
+            "164": 3,
+            "165": 3,
+            "168": 3,
+            "170": 2,
+            "171": 1,
+            "172": 1,
+            "173": 1,
+            "177": 1,
+            "179": 1,
+            "180": 1,
+            "181": 1,
+            "182": 1,
+            "185": 0,
+            "187": 1,
+            "188": 1,
+            "189": 1,
+            "190": 1,
+            "192": 0,
+            "193": 0,
+            "194": 0,
+            "195": 0,
+            "197": 3
+          },
+          "Branches": [
+            {
+              "Line": 159,
+              "Offset": 61,
+              "EndOffset": 63,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 159,
+              "Offset": 61,
+              "EndOffset": 74,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            },
+            {
+              "Line": 170,
+              "Offset": 303,
+              "EndOffset": 308,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 170,
+              "Offset": 303,
+              "EndOffset": 480,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 1
+            },
+            {
+              "Line": 179,
+              "Offset": 641,
+              "EndOffset": 643,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 179,
+              "Offset": 641,
+              "EndOffset": 712,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "PatientAccess.Business.Services.SessionCacheService/<RemoveSessionAsync>d__7": {
+        "System.Void PatientAccess.Business.Services.SessionCacheService/<RemoveSessionAsync>d__7::MoveNext()": {
+          "Lines": {
+            "120": 6,
+            "121": 6,
+            "122": 3,
+            "124": 3,
+            "127": 3,
+            "128": 3,
+            "129": 3,
+            "131": 3,
+            "133": 2,
+            "134": 1,
+            "135": 1,
+            "136": 1,
+            "137": 2,
+            "138": 1,
+            "139": 1,
+            "140": 1,
+            "141": 1,
+            "142": 0,
+            "143": 0,
+            "144": 0,
+            "145": 0,
+            "148": 3,
+            "150": 3,
+            "151": 3
+          },
+          "Branches": [
+            {
+              "Line": 121,
+              "Offset": 39,
+              "EndOffset": 41,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 121,
+              "Offset": 39,
+              "EndOffset": 52,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            },
+            {
+              "Line": 133,
+              "Offset": 250,
+              "EndOffset": 252,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 133,
+              "Offset": 250,
+              "EndOffset": 291,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            }
+          ]
+        }
+      },
+      "PatientAccess.Business.Services.SessionCacheService/<SetSessionAsync>d__5": {
+        "System.Void PatientAccess.Business.Services.SessionCacheService/<SetSessionAsync>d__5::MoveNext()": {
+          "Lines": {
+            "37": 11,
+            "38": 11,
+            "39": 3,
+            "41": 8,
+            "42": 3,
+            "45": 5,
+            "46": 5,
+            "47": 5,
+            "51": 5,
+            "53": 5,
+            "54": 0,
+            "55": 0,
+            "56": 0,
+            "59": 5,
+            "60": 5,
+            "62": 0,
+            "63": 0,
+            "64": 0,
+            "65": 0,
+            "67": 0,
+            "68": 0,
+            "69": 0,
+            "70": 0,
+            "72": 5
+          },
+          "Branches": [
+            {
+              "Line": 38,
+              "Offset": 57,
+              "EndOffset": 59,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 38,
+              "Offset": 57,
+              "EndOffset": 70,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 8
+            },
+            {
+              "Line": 41,
+              "Offset": 83,
+              "EndOffset": 85,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 3
+            },
+            {
+              "Line": 41,
+              "Offset": 83,
+              "EndOffset": 96,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 5
+            },
+            {
+              "Line": 53,
+              "Offset": 348,
+              "EndOffset": 350,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 53,
+              "Offset": 348,
+              "EndOffset": 419,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 5
+            }
+          ]
+        }
+      }
+    }
+  },
+  "PatientAccess.Data.dll": {}
+}

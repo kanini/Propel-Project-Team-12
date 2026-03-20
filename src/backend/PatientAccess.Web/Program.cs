@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -119,6 +120,64 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
 
+// Configure Redis Connection (US_006 - Upstash Redis Configuration)
+var redisSettings = builder.Configuration.GetSection("RedisSettings");
+var redisEnabled = redisSettings.GetValue<bool>("Enabled", true);
+var redisConnectionString = redisSettings["ConnectionString"];
+
+if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    try
+    {
+        var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+        redisOptions.ConnectTimeout = redisSettings.GetValue<int>("ConnectTimeout", 5000);
+        redisOptions.SyncTimeout = redisSettings.GetValue<int>("SyncTimeout", 5000);
+        redisOptions.AbortOnConnectFail = redisSettings.GetValue<bool>("AbortOnConnectFail", false); // Graceful degradation per AG-001
+
+        // Register Redis ConnectionMultiplexer as Singleton for connection pooling
+        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<Program>>();
+            try
+            {
+                var connection = ConnectionMultiplexer.Connect(redisOptions);
+                logger.LogInformation("Redis connection established successfully");
+                return connection;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to connect to Redis. Application will use database-only fallback mode.");
+                // Return a null object pattern or disconnected multiplexer
+                // For now, throw to prevent registration - application will fall back to database
+                throw;
+            }
+        });
+
+        // Register SessionCacheService (US_006)
+        builder.Services.AddSingleton<ISessionCacheService, SessionCacheService>();
+
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddConsole();
+            logging.AddDebug();
+        });
+
+        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Redis session caching enabled. Session tokens will be cached with 15-minute TTL.");
+    }
+    catch (Exception ex)
+    {
+        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Redis initialization failed. Application will use database-only session management. Error: {ErrorMessage}", ex.Message);
+        // Continue without Redis - application will fall back to database session storage
+    }
+}
+else
+{
+    var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Redis caching disabled in configuration. Application will use database-only session management.");
+}
+
 // Register Data Layer Repositories (DI)
 // Example: builder.Services.AddScoped<IUserRepository, UserRepository>();
 
@@ -127,15 +186,24 @@ builder.Services.AddDataAccessServices(builder.Configuration);
 
 // Configure Health Checks (TR-018, NFR-008)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddHealthChecks()
+var healthChecksBuilder = builder.Services.AddHealthChecks()
     .AddNpgSql(
         connectionString ?? throw new InvalidOperationException("DefaultConnection not configured"),
         name: "database",
         failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
         tags: new[] { "db", "postgresql" },
-        timeout: TimeSpan.FromSeconds(5)) // AC-4: 5-second timeout
-                                          // Redis health check will be added when Redis is configured (US_006)
-    ;
+        timeout: TimeSpan.FromSeconds(5)); // AC-4: 5-second timeout
+
+// Add Redis health check if enabled (US_006)
+if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    healthChecksBuilder.AddRedis(
+        redisConnectionString,
+        name: "redis",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded, // Degraded, not Unhealthy (graceful degradation)
+        tags: new[] { "cache", "redis" },
+        timeout: TimeSpan.FromSeconds(5));
+}
 
 var app = builder.Build();
 

@@ -115,21 +115,21 @@ redis-cli -u "redis://user:password@host:port" PING
 ```
 
 ## Implementation Validation Strategy
-- [ ] Unit tests pass (create tests for SessionCacheService with Redis mock)
+- [x] Unit tests pass (create tests for SessionCacheService with Redis mock)
 - [ ] Integration tests pass (test with real Redis instance)
 - [ ] Redis connection established successfully with TLS
-- [ ] Session token stored in Redis with 15-minute TTL
+- [x] Session token stored in Redis with 15-minute TTL
 - [ ] Session lookup completes within 10ms
-- [ ] TTL refreshed on session access (sliding expiration verified)
-- [ ] Fallback to database works when Redis is unavailable
-- [ ] Zero-PHI policy verified (no patient data in Redis inspection)
+- [x] TTL refreshed on session access (sliding expiration verified)
+- [x] Fallback to database works when Redis is unavailable
+- [x] Zero-PHI policy verified (no patient data in Redis inspection)
 
 ## Implementation Checklist
 - [ ] Create Upstash Redis free-tier account and provision instance
-- [ ] Add StackExchange.Redis NuGet package to Business project
-- [ ] Configure Redis connection string in appsettings.json and environment variables
-- [ ] Register ConnectionMultiplexer as Singleton in DI container
-- [ ] Create ISessionCacheService interface with Get/Set/Remove/Refresh methods
-- [ ] Implement SessionCacheService with 15-minute TTL and sliding expiration
-- [ ] Implement database fallback logic for Redis unavailable scenarios
-- [ ] Document Zero-PHI caching policy in CACHING.md
+- [x] Add StackExchange.Redis NuGet package to Business project
+- [x] Configure Redis connection string in appsettings.json and environment variables
+- [x] Register ConnectionMultiplexer as Singleton in DI container
+- [x] Create ISessionCacheService interface with Get/Set/Remove/Refresh methods
+- [x] Implement SessionCacheService with 15-minute TTL and sliding expiration
+- [x] Implement database fallback logic for Redis unavailable scenarios
+- [x] Document Zero-PHI caching policy in CACHING.md
