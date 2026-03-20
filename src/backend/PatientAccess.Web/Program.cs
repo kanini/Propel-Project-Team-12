@@ -5,6 +5,7 @@ using PatientAccess.Web.HealthChecks;
 using PatientAccess.Business.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -182,13 +183,14 @@ else
 // Example: builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Configure Database Context with Entity Framework Core
-builder.Services.AddDataAccessServices(builder.Configuration);
+builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure Health Checks (TR-018, NFR-008)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var healthChecksBuilder = builder.Services.AddHealthChecks()
     .AddNpgSql(
-        connectionString ?? throw new InvalidOperationException("DefaultConnection not configured"),
+        builder.Configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection not configured"),
         name: "database",
         failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
         tags: new[] { "db", "postgresql" },
