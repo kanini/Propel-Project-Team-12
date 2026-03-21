@@ -84,5 +84,9 @@ public class ExtractedClinicalDataConfiguration : IEntityTypeConfiguration<Extra
 
         builder.HasIndex(e => e.VerificationStatus)
             .HasDatabaseName("IX_ExtractedData_VerificationStatus");
+
+        // Optional pgvector embedding column for semantic similarity search (DR-010)
+        builder.Property(e => e.Embedding)
+            .HasColumnType("vector(1536)");
     }
 }
