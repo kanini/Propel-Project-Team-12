@@ -21,6 +21,12 @@ public class Appointment
 
     public bool ConfirmationReceived { get; set; }
 
+    /// <summary>
+    /// Nullable self-referencing FK for the dynamic preferred slot swap feature.
+    /// Points to another Appointment that the patient would prefer to swap into.
+    /// </summary>
+    public Guid? PreferredSwapReference { get; set; }
+
     public decimal? NoShowRiskScore { get; set; }
 
     public int CancellationNoticeHours { get; set; } = 24;

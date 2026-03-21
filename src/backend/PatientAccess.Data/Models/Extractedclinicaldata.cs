@@ -1,3 +1,5 @@
+using Pgvector;
+
 namespace PatientAccess.Data.Models;
 
 /// <summary>
@@ -35,6 +37,11 @@ public class ExtractedClinicalData
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Optional 1536-dimensional vector embedding for semantic similarity search (DR-010).
+    /// </summary>
+    public Vector? Embedding { get; set; }
 
     // Navigation properties
     public ClinicalDocument Document { get; set; } = null!;

@@ -47,6 +47,10 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
         builder.Property(a => a.Notes)
             .HasColumnType("text");
 
+        // Nullable self-referencing FK for preferred slot swap (DR-002 dynamic swap feature)
+        builder.Property(a => a.PreferredSwapReference)
+            .HasColumnType("uuid");
+
         builder.Property(a => a.CreatedAt)
             .IsRequired()
             .HasColumnType("timestamptz")
@@ -80,5 +84,8 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
 
         builder.HasIndex(a => a.Status)
             .HasDatabaseName("IX_Appointments_Status");
+
+        builder.HasIndex(a => a.PreferredSwapReference)
+            .HasDatabaseName("IX_Appointments_PreferredSwapReference");
     }
 }

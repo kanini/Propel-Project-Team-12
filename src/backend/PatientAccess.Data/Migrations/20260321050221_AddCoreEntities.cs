@@ -5,7 +5,22 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace PatientAccess.Data.Migrations
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Initial migration creating EP-DATA-I core tables: Users, Providers, Appointments,
+    /// TimeSlots, ClinicalDocuments, ExtractedClinicalData, AuditLogs.
+    ///
+    /// ZERO-DOWNTIME MIGRATION PATTERN (DR-009):
+    /// For production schema evolution, follow this non-breaking change pattern:
+    ///   1. Add new columns as NULLABLE first (no NOT NULL constraint).
+    ///   2. Deploy application code that writes to the new column.
+    ///   3. Backfill existing rows with a data migration (separate migration).
+    ///   4. Add the NOT NULL constraint in a subsequent migration once backfill is confirmed.
+    ///   5. Never rename or drop columns in a single step — use a multi-step deprecation cycle.
+    ///
+    /// This initial migration creates all tables from scratch (greenfield deployment).
+    /// Subsequent additive migrations (AddExtendedEntities, AddAuditRetentionPolicy) follow
+    /// the non-breaking pattern by adding nullable columns and new tables only.
+    /// </summary>
     public partial class AddCoreEntities : Migration
     {
         /// <inheritdoc />

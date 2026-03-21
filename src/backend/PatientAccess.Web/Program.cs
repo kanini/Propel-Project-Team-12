@@ -189,6 +189,9 @@ builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsqlOptions =>
         {
+            // Enable pgvector extension for vector similarity search (DR-010)
+            npgsqlOptions.UseVector();
+
             // Enable connection resiliency for transient failures
             npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
