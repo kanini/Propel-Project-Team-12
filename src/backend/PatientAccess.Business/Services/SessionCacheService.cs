@@ -11,7 +11,7 @@ namespace PatientAccess.Business.Services;
 /// </summary>
 public class SessionCacheService : ISessionCacheService
 {
-    private readonly IConnectionMultiplexer _redis;
+    private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<SessionCacheService> _logger;
     private readonly TimeSpan _sessionTtl = TimeSpan.FromMinutes(15); // NFR-005: 15-minute session timeout
     private const string SessionKeyPrefix = "session:";
@@ -20,12 +20,17 @@ public class SessionCacheService : ISessionCacheService
     /// Initializes SessionCacheService with Redis connection.
     /// Redis connection is configured as Singleton in DI container for connection pooling.
     /// </summary>
-    /// <param name="redis">Redis connection multiplexer (injected as singleton)</param>
+    /// <param name="redis">Redis connection multiplexer (injected as singleton, can be null if Redis disabled)</param>
     /// <param name="logger">Logger for diagnostics and fallback notifications</param>
-    public SessionCacheService(IConnectionMultiplexer redis, ILogger<SessionCacheService> logger)
+    public SessionCacheService(IConnectionMultiplexer? redis, ILogger<SessionCacheService> logger)
     {
-        _redis = redis ?? throw new ArgumentNullException(nameof(redis));
+        _redis = redis; // Allow null when Redis is disabled
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        
+        if (_redis == null)
+        {
+            _logger.LogWarning("SessionCacheService initialized without Redis connection. Session storage will use database fallback only.");
+        }
     }
 
     /// <summary>
@@ -40,6 +45,13 @@ public class SessionCacheService : ISessionCacheService
 
         if (string.IsNullOrWhiteSpace(token))
             throw new ArgumentNullException(nameof(token));
+
+        // If Redis is not configured, immediately fall back to database
+        if (_redis == null)
+        {
+            _logger.LogDebug("Redis not available. Using database fallback for SetSession (user: {UserId})", userId);
+            return await FallbackToDatabase_SetSessionAsync(userId, token, cancellationToken);
+        }
 
         try
         {
@@ -79,6 +91,13 @@ public class SessionCacheService : ISessionCacheService
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
+
+        // If Redis is not configured, immediately fall back to database
+        if (_redis == null)
+        {
+            _logger.LogDebug("Redis not available. Using database fallback for GetSession (user: {UserId})", userId);
+            return await FallbackToDatabase_GetSessionAsync(userId, cancellationToken);
+        }
 
         try
         {
@@ -123,25 +142,29 @@ public class SessionCacheService : ISessionCacheService
 
         var redisRemoved = false;
 
-        try
+        // Only try Redis if configured
+        if (_redis != null)
         {
-            var db = _redis.GetDatabase();
-            var key = GetSessionKey(userId);
-
-            redisRemoved = await db.KeyDeleteAsync(key);
-
-            if (redisRemoved)
+            try
             {
-                _logger.LogDebug("Session removed from Redis for user {UserId}", userId);
+                var db = _redis.GetDatabase();
+                var key = GetSessionKey(userId);
+
+                redisRemoved = await db.KeyDeleteAsync(key);
+
+                if (redisRemoved)
+                {
+                    _logger.LogDebug("Session removed from Redis for user {UserId}", userId);
+                }
             }
-        }
-        catch (RedisException ex)
-        {
-            _logger.LogWarning(ex, "Redis unavailable for RemoveSession (user: {UserId}). Attempting database cleanup.", userId);
-        }
-        catch (TimeoutException ex)
-        {
-            _logger.LogWarning(ex, "Redis timeout for RemoveSession (user: {UserId}). Attempting database cleanup.", userId);
+            catch (RedisException ex)
+            {
+                _logger.LogWarning(ex, "Redis unavailable for RemoveSession (user: {UserId}). Attempting database cleanup.", userId);
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning(ex, "Redis timeout for RemoveSession (user: {UserId}). Attempting database cleanup.", userId);
+            }
         }
 
         // Always attempt database cleanup to ensure session is removed
@@ -158,6 +181,13 @@ public class SessionCacheService : ISessionCacheService
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
+
+        // If Redis is not configured, immediately fall back to database
+        if (_redis == null)
+        {
+            _logger.LogDebug("Redis not available. Using database fallback for RefreshSession (user: {UserId})", userId);
+            return await FallbackToDatabase_RefreshSessionAsync(userId, cancellationToken);
+        }
 
         try
         {
@@ -197,11 +227,71 @@ public class SessionCacheService : ISessionCacheService
     }
 
     /// <summary>
+    /// Extends TTL of existing session to 15 minutes (900 seconds).
+    /// Used by POST /api/auth/refresh-session endpoint (UXR-604).
+    /// Falls back to database if Redis unavailable.
+    /// </summary>
+    public async Task<bool> ExtendSessionAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentNullException(nameof(userId));
+
+        // If Redis is not configured, immediately fall back to database
+        if (_redis == null)
+        {
+            _logger.LogDebug("Redis not available. Using database fallback for ExtendSession (user: {UserId})", userId);
+            return await FallbackToDatabase_RefreshSessionAsync(userId, cancellationToken);
+        }
+
+        try
+        {
+            var db = _redis.GetDatabase();
+            var key = GetSessionKey(userId);
+
+            // Check if session exists
+            var exists = await db.KeyExistsAsync(key);
+
+            if (!exists)
+            {
+                _logger.LogWarning("Cannot extend session - session not found for user {UserId}", userId);
+                return false;
+            }
+
+            // Extend TTL to full 15 minutes using Redis EXPIRE command
+            var extended = await db.KeyExpireAsync(key, _sessionTtl);
+
+            if (extended)
+            {
+                _logger.LogInformation("Session extended in Redis for user {UserId} to {TtlMinutes} minutes", userId, _sessionTtl.TotalMinutes);
+                return true;
+            }
+
+            return false;
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogWarning(ex, "Redis unavailable for ExtendSession (user: {UserId}). Falling back to database.", userId);
+            return await FallbackToDatabase_RefreshSessionAsync(userId, cancellationToken);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis timeout for ExtendSession (user: {UserId}). Falling back to database.", userId);
+            return await FallbackToDatabase_RefreshSessionAsync(userId, cancellationToken);
+        }
+    }
+
+    /// <summary>
     /// Health check to verify Redis connectivity.
     /// Returns false if Redis is unavailable (triggers database fallback mode).
     /// </summary>
     public async Task<bool> IsRedisAvailableAsync()
     {
+        // If Redis is not configured, return false
+        if (_redis == null)
+        {
+            return false;
+        }
+
         try
         {
             var db = _redis.GetDatabase();
@@ -222,6 +312,81 @@ public class SessionCacheService : ISessionCacheService
         {
             _logger.LogError(ex, "Unexpected error during Redis health check");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Invalidates all active sessions for a specific user (US_021 AC3).
+    /// Uses Redis SCAN to find all session keys and deletes them.
+    /// Used when deactivating user accounts to immediately terminate access.
+    /// </summary>
+    public async Task<int> InvalidateUserSessionsAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty", nameof(userId));
+
+        var invalidatedCount = 0;
+
+        try
+        {
+            // Handle null Redis connection (when Redis disabled)
+            if (_redis == null)
+            {
+                _logger.LogWarning("Redis connection is null. Cannot invalidate sessions for user {UserId}. Sessions in database fallback not yet implemented.", userId);
+                return  0;
+            }
+
+            var db = _redis.GetDatabase();
+            var server = _redis.GetServer(_redis.GetEndPoints().First());
+
+            // Use Redis SCAN to find all session keys for this user
+            // Pattern: "session:{userId}:*" or "session:{userId}"
+            var pattern = $"{SessionKeyPrefix}{userId}*";
+
+            _logger.LogDebug("Scanning Redis for session keys matching pattern: {Pattern}", pattern);
+
+            var keysToDelete = new List<RedisKey>();
+
+            // SCAN is non-blocking and cursor-based (safer than KEYS for production)
+            await foreach (var key in server.KeysAsync(pattern: pattern))
+            {
+                keysToDelete.Add(key);
+            }
+
+            // Delete all found keys
+            if (keysToDelete.Any())
+            {
+                invalidatedCount = (int)await db.KeyDeleteAsync(keysToDelete.ToArray());
+
+                _logger.LogInformation("Invalidated {Count} active session(s) for user {UserId}", 
+                    invalidatedCount, userId);
+            }
+            else
+            {
+                _logger.LogDebug("No active sessions found in Redis for user {UserId}", userId);
+            }
+
+            // TODO: Also invalidate database sessions when fallback storage is implemented
+            // await FallbackToDatabase_InvalidateUserSessionsAsync(userId, cancellationToken);
+
+            return invalidatedCount;
+        }
+        catch (RedisException ex)
+        {
+            _logger.LogWarning(ex, "Redis unavailable for InvalidateUserSessions (user: {UserId}). Attempting database fallback.", userId);
+            // TODO: Implement database fallback for session invalidation
+            return 0;
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Redis timeout for InvalidateUserSessions (user: {UserId}). Attempting database fallback.", userId);
+            // TODO: Implement database fallback for session invalidation
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error invalidating sessions for user {UserId}", userId);
+            return 0;
         }
     }
 

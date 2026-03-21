@@ -26,6 +26,20 @@ public class User
 
     public DateTime? UpdatedAt { get; set; }
 
+    // Email verification fields (FR-001)
+    public string? VerificationToken { get; set; }
+
+    public DateTime? VerificationTokenExpiry { get; set; }
+
+    public DateTime? VerifiedAt { get; set; }
+
+    // Login tracking fields (FR-002, US_019)
+    public int FailedLoginAttempts { get; set; } = 0;
+
+    public DateTime? LastFailedLogin { get; set; }
+
+    public DateTime? AccountLockedUntil { get; set; }
+
     // Navigation properties
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     public ICollection<ClinicalDocument> ClinicalDocuments { get; set; } = new List<ClinicalDocument>();

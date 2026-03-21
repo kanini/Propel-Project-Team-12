@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PatientAccess.Data;
@@ -11,9 +12,11 @@ using PatientAccess.Data;
 namespace PatientAccess.Data.Migrations
 {
     [DbContext(typeof(PatientAccessDbContext))]
-    partial class PatientAccessDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260321075119_AddUserVerificationFields")]
+    partial class AddUserVerificationFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -690,9 +693,6 @@ namespace PatientAccess.Data.Migrations
                         .HasColumnType("uuid")
                         .HasDefaultValueSql("gen_random_uuid()");
 
-                    b.Property<DateTime?>("AccountLockedUntil")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
@@ -705,12 +705,6 @@ namespace PatientAccess.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
-
-                    b.Property<int>("FailedLoginAttempts")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("LastFailedLogin")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()

@@ -13,20 +13,25 @@ public static class DatabaseSeeder
 {
     public static async Task SeedAsync(PatientAccessDbContext context, ILogger logger)
     {
-        await using var transaction = await context.Database.BeginTransactionAsync();
-        try
+        // Use execution strategy to handle retry logic with transactions
+        var strategy = context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await SeedInsuranceRecordsAsync(context, logger);
-            await SeedProvidersAndTimeSlotsAsync(context, logger);
-            await transaction.CommitAsync();
-            logger.LogInformation("Database seeding completed successfully.");
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            logger.LogError(ex, "Database seeding failed. Transaction rolled back.");
-            throw;
-        }
+            await using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                await SeedInsuranceRecordsAsync(context, logger);
+                await SeedProvidersAndTimeSlotsAsync(context, logger);
+                await transaction.CommitAsync();
+                logger.LogInformation("Database seeding completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                logger.LogError(ex, "Database seeding failed. Transaction rolled back.");
+                throw;
+            }
+        });
     }
 
     private static async Task SeedInsuranceRecordsAsync(PatientAccessDbContext context, ILogger logger)

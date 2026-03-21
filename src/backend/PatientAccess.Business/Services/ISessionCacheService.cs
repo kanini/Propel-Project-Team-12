@@ -45,9 +45,29 @@ public interface ISessionCacheService
     Task<bool> RefreshSessionAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Extends the TTL of an existing session token to 15 minutes (900 seconds).
+    /// Used by POST /api/auth/refresh-session endpoint to reset session timeout.
+    /// Falls back to database update if Redis is unavailable.
+    /// </summary>
+    /// <param name="userId">Unique user identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if extended successfully, false if session not found</returns>
+    Task<bool> ExtendSessionAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Health check to verify Redis connectivity.
     /// Returns false if Redis is unavailable (triggers database fallback mode).
     /// </summary>
     /// <returns>True if Redis is available, false otherwise</returns>
     Task<bool> IsRedisAvailableAsync();
+
+    /// <summary>
+    /// Invalidates all active sessions for a specific user (US_021 AC3).
+    /// Uses Redis SCAN to find all session keys matching pattern "session:{userId}:*"
+    /// and deletes them. Used when deactivating user accounts.
+    /// </summary>
+    /// <param name="userId">User ID whose sessions should be terminated</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of sessions invalidated</returns>
+    Task<int> InvalidateUserSessionsAsync(Guid userId, CancellationToken cancellationToken = default);
 }

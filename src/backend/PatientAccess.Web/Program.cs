@@ -5,10 +5,12 @@ using PatientAccess.Web.HealthChecks;
 using PatientAccess.Business.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Threading.RateLimiting;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -115,11 +117,45 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+// Configure Authorization Policies (NFR-006 RBAC)
+builder.Services.AddAuthorization(options =>
+{
+    // Role-based policies for endpoint protection
+    options.AddPolicy("PatientOnly", policy => policy.RequireRole("Patient"));
+    options.AddPolicy("StaffOnly", policy => policy.RequireRole("Staff"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole("Staff", "Admin"));
+    
+    // Fallback policy: all endpoints require authentication unless [AllowAnonymous]
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // Register Business Layer Services (DI)
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
+
+// Register Audit Services (NFR-007, FR-005, NFR-014)
+builder.Services.AddScoped<PatientAccess.Data.Repositories.IAuditLogRepository, PatientAccess.Data.Repositories.AuditLogRepository>();
+builder.Services.AddScoped<PatientAccess.Business.Services.IAuditService, PatientAccess.Business.Services.AuditService>();
+
+// Register Action Filters (NFR-014 minimum necessary access)
+builder.Services.AddScoped<MinimumNecessaryAccessFilter>();
+
+// Configure Rate Limiting (US_018 - Registration Endpoint Protection)
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("registration", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 3; // 3 requests per window
+        limiterOptions.Window = TimeSpan.FromMinutes(5); // 5-minute window
+        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0; // No queueing - immediate rejection
+    });
+    
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 // Configure Redis Connection (US_006 - Upstash Redis Configuration)
 var redisSettings = builder.Configuration.GetSection("RedisSettings");
@@ -147,10 +183,9 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to connect to Redis. Application will use database-only fallback mode.");
-                // Return a null object pattern or disconnected multiplexer
-                // For now, throw to prevent registration - application will fall back to database
-                throw;
+                logger.LogWarning(ex, "Failed to connect to Redis. SessionCacheService will operate in fallback mode.");
+                // Return null - SessionCacheService will handle null connection gracefully
+                return null!;
             }
         });
 
@@ -169,18 +204,29 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
     catch (Exception ex)
     {
         var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Redis initialization failed. Application will use database-only session management. Error: {ErrorMessage}", ex.Message);
-        // Continue without Redis - application will fall back to database session storage
+        logger.LogWarning(ex, "Redis initialization failed. SessionCacheService will operate without Redis. Error: {ErrorMessage}", ex.Message);
+        
+        // Register null ConnectionMultiplexer for graceful degradation
+        builder.Services.AddSingleton<IConnectionMultiplexer>(sp => null!);
+        builder.Services.AddSingleton<ISessionCacheService, SessionCacheService>();
     }
 }
 else
 {
     var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("Redis caching disabled in configuration. Application will use database-only session management.");
+    logger.LogInformation("Redis caching disabled in configuration. SessionCacheService will operate without caching.");
+    
+    // Register null ConnectionMultiplexer when Redis is disabled
+    builder.Services.AddSingleton<IConnectionMultiplexer>(sp => null!);
+    builder.Services.AddSingleton<ISessionCacheService, SessionCacheService>();
 }
 
 // Register Data Layer Repositories (DI)
-// Example: builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<PatientAccess.Data.Repositories.IUserRepository, PatientAccess.Data.Repositories.UserRepository>();
+
+// Register User Management Services (US_018)
+builder.Services.AddScoped<PatientAccess.Business.Services.IUserService, PatientAccess.Business.Services.UserService>();
+builder.Services.AddScoped<PatientAccess.Business.Services.IEmailService, PatientAccess.Business.Services.EmailService>();
 
 // Configure Database Context with Entity Framework Core
 builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options =>
@@ -311,9 +357,16 @@ app.UseJwtValidation();
 // Use CORS (must be before authentication)
 app.UseCors("DefaultCorsPolicy");
 
+// Use rate limiting (US_018 - must be before authentication)
+app.UseRateLimiter();
+
 // Use authentication & authorization (TR-012)
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Use audit logging middleware (FR-005, NFR-007)
+// MUST be after UseAuthentication to access authenticated user context
+app.UseAuditLogging();
 
 // Map health checks endpoint (TR-018, AC-3, AC-4)
 app.MapHealthChecks("/health", new HealthCheckOptions
