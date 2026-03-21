@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using PatientAccess.Data.Configurations;
+using PatientAccess.Data.Models;
 
 namespace PatientAccess.Data;
 
@@ -8,43 +10,50 @@ namespace PatientAccess.Data;
 /// </summary>
 public class PatientAccessDbContext : DbContext
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PatientAccessDbContext"/> class.
-    /// </summary>
-    /// <param name="options">The options to be used by the DbContext.</param>
     public PatientAccessDbContext(DbContextOptions<PatientAccessDbContext> options) 
         : base(options)
     {
     }
 
-    /// <summary>
-    /// Configures the database model and entity relationships.
-    /// Override this method to configure conventions, entity mappings, and relationships.
-    /// </summary>
-    /// <param name="modelBuilder">The builder being used to construct the model for this context.</param>
+    // EP-DATA-I Core Entity DbSets
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Provider> Providers => Set<Provider>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<TimeSlot> TimeSlots => Set<TimeSlot>();
+    public DbSet<ClinicalDocument> ClinicalDocuments => Set<ClinicalDocument>();
+    public DbSet<ExtractedClinicalData> ExtractedClinicalData => Set<ExtractedClinicalData>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    // EP-DATA-II Extended Entity DbSets
+    public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+    public DbSet<IntakeRecord> IntakeRecords => Set<IntakeRecord>();
+    public DbSet<MedicalCode> MedicalCodes => Set<MedicalCode>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<InsuranceRecord> InsuranceRecords => Set<InsuranceRecord>();
+    public DbSet<NoShowHistory> NoShowHistory => Set<NoShowHistory>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Entity configurations will be added here as entities are created
-        // Example: modelBuilder.ApplyConfiguration(new UserEntityConfiguration());
-        
-        // Configure schema if needed
-        // modelBuilder.HasDefaultSchema("public");
-        
-        // Configure pgvector extension (if needed for vector columns)
-        // modelBuilder.HasPostgresExtension("vector");
-    }
+        // Enable pgvector extension for vector similarity search (DR-010)
+        modelBuilder.HasPostgresExtension("vector");
 
-    /// <summary>
-    /// Configures database context options such as logging and query behavior.
-    /// </summary>
-    /// <param name="optionsBuilder">The builder being used to configure the context options.</param>
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        base.OnConfiguring(optionsBuilder);
+        // EP-DATA-I configurations
+        modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new ProviderConfiguration());
+        modelBuilder.ApplyConfiguration(new AppointmentConfiguration());
+        modelBuilder.ApplyConfiguration(new TimeSlotConfiguration());
+        modelBuilder.ApplyConfiguration(new ClinicalDocumentConfiguration());
+        modelBuilder.ApplyConfiguration(new ExtractedClinicalDataConfiguration());
+        modelBuilder.ApplyConfiguration(new AuditLogConfiguration());
 
-        // Enable detailed errors in development
-        // This will be conditionally enabled based on environment in the DI registration
+        // EP-DATA-II configurations
+        modelBuilder.ApplyConfiguration(new WaitlistEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new IntakeRecordConfiguration());
+        modelBuilder.ApplyConfiguration(new MedicalCodeConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationConfiguration());
+        modelBuilder.ApplyConfiguration(new InsuranceRecordConfiguration());
+        modelBuilder.ApplyConfiguration(new NoShowHistoryConfiguration());
     }
 }

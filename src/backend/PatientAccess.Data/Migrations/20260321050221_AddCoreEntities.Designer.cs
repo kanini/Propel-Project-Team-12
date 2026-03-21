@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PatientAccess.Data;
@@ -11,9 +12,11 @@ using PatientAccess.Data;
 namespace PatientAccess.Data.Migrations
 {
     [DbContext(typeof(PatientAccessDbContext))]
-    partial class PatientAccessDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260321050221_AddCoreEntities")]
+    partial class AddCoreEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,299 +286,6 @@ namespace PatientAccess.Data.Migrations
                     b.ToTable("ExtractedClinicalData", (string)null);
                 });
 
-            modelBuilder.Entity("PatientAccess.Data.Models.InsuranceRecord", b =>
-                {
-                    b.Property<Guid>("InsuranceRecordId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("AcceptedIdPattern")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("CoverageType")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("ProviderName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.HasKey("InsuranceRecordId");
-
-                    b.HasIndex("IsActive")
-                        .HasDatabaseName("IX_InsuranceRecords_IsActive");
-
-                    b.HasIndex("ProviderName", "IsActive")
-                        .HasDatabaseName("IX_InsuranceRecords_ProviderName_IsActive");
-
-                    b.ToTable("InsuranceRecords", (string)null);
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.IntakeRecord", b =>
-                {
-                    b.Property<Guid>("IntakeRecordId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<Guid>("AppointmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ChiefComplaint")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<string>("CurrentMedications")
-                        .HasColumnType("jsonb");
-
-                    b.Property<int?>("InsuranceValidationStatus")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("IntakeMode")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsCompleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("KnownAllergies")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("MedicalHistory")
-                        .HasColumnType("jsonb");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SymptomHistory")
-                        .HasColumnType("jsonb");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<Guid?>("ValidatedInsuranceRecordId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("IntakeRecordId");
-
-                    b.HasIndex("AppointmentId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_IntakeRecords_AppointmentId");
-
-                    b.HasIndex("IsCompleted")
-                        .HasDatabaseName("IX_IntakeRecords_IsCompleted");
-
-                    b.HasIndex("PatientId")
-                        .HasDatabaseName("IX_IntakeRecords_PatientId");
-
-                    b.HasIndex("ValidatedInsuranceRecordId");
-
-                    b.ToTable("IntakeRecords", (string)null);
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.MedicalCode", b =>
-                {
-                    b.Property<Guid>("MedicalCodeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("CodeDescription")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("CodeSystem")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CodeValue")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<decimal>("ConfidenceScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<Guid>("ExtractedDataId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<int>("VerificationStatus")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<Guid?>("VerifiedBy")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("MedicalCodeId");
-
-                    b.HasIndex("CodeSystem")
-                        .HasDatabaseName("IX_MedicalCodes_CodeSystem");
-
-                    b.HasIndex("CodeValue")
-                        .HasDatabaseName("IX_MedicalCodes_CodeValue");
-
-                    b.HasIndex("ExtractedDataId")
-                        .HasDatabaseName("IX_MedicalCodes_ExtractedDataId");
-
-                    b.HasIndex("VerificationStatus")
-                        .HasDatabaseName("IX_MedicalCodes_VerificationStatus");
-
-                    b.HasIndex("VerifiedBy");
-
-                    b.HasIndex("ExtractedDataId", "CodeSystem", "CodeValue")
-                        .IsUnique()
-                        .HasDatabaseName("IX_MedicalCodes_ExtractedData_System_Value");
-
-                    b.ToTable("MedicalCodes", (string)null);
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.NoShowHistory", b =>
-                {
-                    b.Property<Guid>("NoShowHistoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<decimal?>("AverageLeadTimeHours")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("ConfirmationResponseRate")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<DateTime?>("LastCalculatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<decimal?>("LastCalculatedRiskScore")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<int>("NoShowCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("TotalAppointments")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.HasKey("NoShowHistoryId");
-
-                    b.HasIndex("PatientId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_NoShowHistory_PatientId");
-
-                    b.ToTable("NoShowHistory", (string)null);
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.Notification", b =>
-                {
-                    b.Property<Guid>("NotificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<Guid?>("AppointmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("ChannelType")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<DateTime?>("DeliveryConfirmation")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<string>("LastErrorMessage")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("RecipientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("RetryCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime>("ScheduledTime")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<DateTime?>("SentTime")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("TemplateName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.HasKey("NotificationId");
-
-                    b.HasIndex("AppointmentId")
-                        .HasDatabaseName("IX_Notifications_AppointmentId");
-
-                    b.HasIndex("RecipientId")
-                        .HasDatabaseName("IX_Notifications_RecipientId");
-
-                    b.HasIndex("ScheduledTime")
-                        .HasDatabaseName("IX_Notifications_ScheduledTime");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("IX_Notifications_Status");
-
-                    b.ToTable("Notifications", (string)null);
-                });
-
             modelBuilder.Entity("PatientAccess.Data.Models.Provider", b =>
                 {
                     b.Property<Guid>("ProviderId")
@@ -741,72 +451,6 @@ namespace PatientAccess.Data.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("PatientAccess.Data.Models.WaitlistEntry", b =>
-                {
-                    b.Property<Guid>("WaitlistEntryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamptz")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<int>("NotificationPreference")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateOnly>("PreferredDateEnd")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly>("PreferredDateStart")
-                        .HasColumnType("date");
-
-                    b.Property<int?>("PreferredTimeOfDay")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Priority")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
-
-                    b.Property<Guid>("ProviderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.HasKey("WaitlistEntryId");
-
-                    b.HasIndex("PatientId")
-                        .HasDatabaseName("IX_WaitlistEntries_PatientId");
-
-                    b.HasIndex("ProviderId")
-                        .HasDatabaseName("IX_WaitlistEntries_ProviderId");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("IX_WaitlistEntries_Status");
-
-                    b.HasIndex("Priority", "CreatedAt")
-                        .IsDescending(true, false)
-                        .HasDatabaseName("IX_WaitlistEntries_Priority_CreatedAt");
-
-                    b.HasIndex("PatientId", "ProviderId", "PreferredDateStart")
-                        .IsUnique()
-                        .HasDatabaseName("IX_WaitlistEntries_Patient_Provider_Date");
-
-                    b.ToTable("WaitlistEntries", (string)null);
-                });
-
             modelBuilder.Entity("PatientAccess.Data.Models.Appointment", b =>
                 {
                     b.HasOne("PatientAccess.Data.Models.User", "Patient")
@@ -881,87 +525,6 @@ namespace PatientAccess.Data.Migrations
                     b.Navigation("Verifier");
                 });
 
-            modelBuilder.Entity("PatientAccess.Data.Models.IntakeRecord", b =>
-                {
-                    b.HasOne("PatientAccess.Data.Models.Appointment", "Appointment")
-                        .WithMany()
-                        .HasForeignKey("AppointmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_IntakeRecords_Appointments");
-
-                    b.HasOne("PatientAccess.Data.Models.User", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_IntakeRecords_Patients");
-
-                    b.HasOne("PatientAccess.Data.Models.InsuranceRecord", "ValidatedInsuranceRecord")
-                        .WithMany()
-                        .HasForeignKey("ValidatedInsuranceRecordId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("FK_IntakeRecords_InsuranceRecords");
-
-                    b.Navigation("Appointment");
-
-                    b.Navigation("Patient");
-
-                    b.Navigation("ValidatedInsuranceRecord");
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.MedicalCode", b =>
-                {
-                    b.HasOne("PatientAccess.Data.Models.ExtractedClinicalData", "ExtractedData")
-                        .WithMany("MedicalCodes")
-                        .HasForeignKey("ExtractedDataId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_MedicalCodes_ExtractedData");
-
-                    b.HasOne("PatientAccess.Data.Models.User", "Verifier")
-                        .WithMany()
-                        .HasForeignKey("VerifiedBy")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("FK_MedicalCodes_VerifiedBy");
-
-                    b.Navigation("ExtractedData");
-
-                    b.Navigation("Verifier");
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.NoShowHistory", b =>
-                {
-                    b.HasOne("PatientAccess.Data.Models.User", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_NoShowHistory_Patients");
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.Notification", b =>
-                {
-                    b.HasOne("PatientAccess.Data.Models.Appointment", "Appointment")
-                        .WithMany()
-                        .HasForeignKey("AppointmentId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("FK_Notifications_Appointments");
-
-                    b.HasOne("PatientAccess.Data.Models.User", "Recipient")
-                        .WithMany()
-                        .HasForeignKey("RecipientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_Notifications_Recipients");
-
-                    b.Navigation("Appointment");
-
-                    b.Navigation("Recipient");
-                });
-
             modelBuilder.Entity("PatientAccess.Data.Models.TimeSlot", b =>
                 {
                     b.HasOne("PatientAccess.Data.Models.Appointment", "Appointment")
@@ -982,27 +545,6 @@ namespace PatientAccess.Data.Migrations
                     b.Navigation("Provider");
                 });
 
-            modelBuilder.Entity("PatientAccess.Data.Models.WaitlistEntry", b =>
-                {
-                    b.HasOne("PatientAccess.Data.Models.User", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_WaitlistEntries_Patients");
-
-                    b.HasOne("PatientAccess.Data.Models.Provider", "Provider")
-                        .WithMany()
-                        .HasForeignKey("ProviderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_WaitlistEntries_Providers");
-
-                    b.Navigation("Patient");
-
-                    b.Navigation("Provider");
-                });
-
             modelBuilder.Entity("PatientAccess.Data.Models.Appointment", b =>
                 {
                     b.Navigation("TimeSlots");
@@ -1011,11 +553,6 @@ namespace PatientAccess.Data.Migrations
             modelBuilder.Entity("PatientAccess.Data.Models.ClinicalDocument", b =>
                 {
                     b.Navigation("ExtractedData");
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.ExtractedClinicalData", b =>
-                {
-                    b.Navigation("MedicalCodes");
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.Provider", b =>

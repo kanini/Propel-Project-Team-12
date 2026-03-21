@@ -184,7 +184,28 @@ else
 
 // Configure Database Context with Entity Framework Core
 builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions =>
+        {
+            // Enable connection resiliency for transient failures
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorCodesToAdd: null);
+            
+            // Set command timeout to match connection string
+            npgsqlOptions.CommandTimeout(30);
+        });
+    
+    // Enable detailed errors in development
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
 
 // Configure Health Checks (TR-018, NFR-008)
 var healthChecksBuilder = builder.Services.AddHealthChecks()
@@ -234,6 +255,19 @@ try
     else
     {
         app.Logger.LogInformation("Database connection verified successfully.");
+
+        // Seed reference data in Development/Staging only (US_017)
+        if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+        {
+            try
+            {
+                await PatientAccess.Data.DatabaseSeeder.SeedAsync(dbContext, app.Logger);
+            }
+            catch (Exception seedEx)
+            {
+                app.Logger.LogWarning(seedEx, "Database seeding failed. Application will continue. Error: {ErrorMessage}", seedEx.Message);
+            }
+        }
     }
 }
 catch (Exception ex)
