@@ -49,7 +49,3 @@ jobs:
           timeout: 300000
           dangerous-clean-slate: false
           log-level: verbose
-          timeout: 120000
-          dangerous-clean-slate: true
-          retry: 3
-          retryDelay: 15000
