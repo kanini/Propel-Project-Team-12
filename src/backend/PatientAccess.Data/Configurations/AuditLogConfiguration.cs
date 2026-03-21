@@ -42,10 +42,12 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
             .HasDefaultValueSql("NOW()");
 
         // FK: AuditLog -> User — RESTRICT on delete (preserve audit trail)
+        // Nullable to support logging failed login attempts for non-existent users
         builder.HasOne(a => a.User)
             .WithMany(u => u.AuditLogs)
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false)
             .HasConstraintName("FK_AuditLogs_Users");
 
         builder.HasIndex(a => a.UserId)

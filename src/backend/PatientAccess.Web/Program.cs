@@ -2,13 +2,15 @@ using PatientAccess.Web.Extensions;
 using PatientAccess.Web.Middleware;
 using PatientAccess.Web.Filters;
 using PatientAccess.Web.HealthChecks;
+using PatientAccess.Web.Authorization;
 using PatientAccess.Business.Services;
+using PatientAccess.Business.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Text;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -63,25 +65,29 @@ builder.Services.AddCors(options =>
     options.AddPolicy("DefaultCorsPolicy", policy =>
     {
         policy.WithOrigins(allowedOrigins)
-              .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-              .WithHeaders("Authorization", "Content-Type")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
               .AllowCredentials();
     });
 });
 
-// Configure JWT Authentication (TR-012) - HS256 with symmetric secret key
+// Configure JWT Authentication (TR-012) - RS256 with RSA asymmetric keys
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured. See docs/AUTHENTICATION.md for setup instructions.");
+var publicKeyPath = jwtSettings["PublicKeyPath"] ?? "security/rsa-keys/public-key.xml";
 
-// Validate secret key length (minimum 256 bits / 32 characters for HS256)
-if (secretKey.Length < 32)
+// Load public key for token validation
+if (!File.Exists(publicKeyPath))
 {
     throw new InvalidOperationException(
-        $"JWT SecretKey must be at least 32 characters (256 bits) for HS256 algorithm. " +
-        $"Current length: {secretKey.Length} characters. See docs/AUTHENTICATION.md for key generation.");
+        $"JWT public key not found at {publicKeyPath}. " +
+        "Run 'powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1' to generate RSA key pair. " +
+        "See docs/AUTHENTICATION.md for setup instructions.");
 }
 
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+var publicKeyXml = File.ReadAllText(publicKeyPath);
+var rsa = System.Security.Cryptography.RSA.Create();
+rsa.FromXmlString(publicKeyXml);
+var validationKey = new RsaSecurityKey(rsa);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -98,7 +104,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = signingKey,
+        IssuerSigningKey = validationKey, // Use RSA public key for validation
         ClockSkew = TimeSpan.FromMinutes(int.Parse(jwtSettings["ClockSkewMinutes"] ?? "5"))
     };
 
@@ -115,11 +121,47 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+// Configure Role-Based Access Control (RBAC) - US_020
+builder.Services.AddAuthorization(options =>
+{
+    // Admin-only policy - requires Admin role (AC2)
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+
+    // Staff and Admin policy - staff endpoints accessible by both Staff and Admin
+    options.AddPolicy("StaffOnly", policy =>
+        policy.RequireRole("Staff", "Admin"));
+
+    // Patient-only policy - requires Patient role
+    options.AddPolicy("PatientOnly", policy =>
+        policy.RequireRole("Patient"));
+
+    // Same patient data access policy - prevents cross-patient access (AC3)
+    options.AddPolicy("SamePatient", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new SamePatientRequirement());
+    });
+
+    // Authenticated user policy - any authenticated user
+    options.AddPolicy("Authenticated", policy =>
+        policy.RequireAuthenticatedUser());
+});
+
+// Register authorization handlers for RBAC (US_020)
+builder.Services.AddSingleton<IAuthorizationHandler, SamePatientAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuditingAuthorizationHandler>();
 
 // Register Business Layer Services (DI)
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>(); // US_022 - Audit logging for authentication events
+builder.Services.AddScoped<IAdminService, AdminService>(); // US_021 - User management
+
+// Register IHttpContextAccessor for audit logging context extraction
+builder.Services.AddHttpContextAccessor();
 
 // Configure Redis Connection (US_006 - Upstash Redis Configuration)
 var redisSettings = builder.Configuration.GetSection("RedisSettings");
@@ -301,6 +343,12 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None); // Collapse all by default
     });
 }
+
+// Use audit logging middleware early to capture IP and User Agent for all requests (US_022)
+app.UseMiddleware<AuditLoggingMiddleware>();
+
+// Use rate limiting middleware for registration endpoint (FR-001)
+app.UseMiddleware<RegistrationRateLimitingMiddleware>();
 
 // Use global exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();

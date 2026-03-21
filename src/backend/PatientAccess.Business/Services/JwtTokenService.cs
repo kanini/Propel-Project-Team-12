@@ -1,14 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// JWT token generation and validation service using HS256 symmetric signing algorithm.
-/// Implements TR-012 requirement for JWT Bearer tokens with HMAC-SHA256.
+/// JWT token generation and validation service using RS256 asymmetric signing algorithm (TR-012).
+/// Uses RSA key pair from security/rsa-keys directory for enhanced security.
+/// Private key signs tokens, public key validates them.
 /// </summary>
 public class JwtTokenService : IJwtTokenService
 {
@@ -16,7 +17,8 @@ public class JwtTokenService : IJwtTokenService
     private readonly string _audience;
     private readonly int _expirationMinutes;
     private readonly int _clockSkewMinutes;
-    private readonly SymmetricSecurityKey _signingKey;
+    private readonly RsaSecurityKey _signingKey;
+    private readonly RsaSecurityKey _validationKey;
 
     public JwtTokenService(IConfiguration configuration)
     {
@@ -27,24 +29,26 @@ public class JwtTokenService : IJwtTokenService
         _expirationMinutes = int.Parse(jwtSettings["ExpirationMinutes"] ?? "15");
         _clockSkewMinutes = int.Parse(jwtSettings["ClockSkewMinutes"] ?? "5");
 
-        // Load secret key from configuration
-        var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured.");
+        // Load RSA keys from security/rsa-keys directory
+        var privateKeyPath = jwtSettings["PrivateKeyPath"] ?? "security/rsa-keys/private-key.xml";
+        var publicKeyPath = jwtSettings["PublicKeyPath"] ?? "security/rsa-keys/public-key.xml";
 
-        // Validate key length (minimum 256 bits / 32 characters for HS256)
-        if (secretKey.Length < 32)
-        {
-            throw new InvalidOperationException(
-                "JWT SecretKey must be at least 32 characters (256 bits) for HS256 algorithm. " +
-                "Current length: " + secretKey.Length + " characters.");
-        }
+        // Load private key for signing
+        var privateKeyXml = File.ReadAllText(privateKeyPath);
+        var privateRsa = RSA.Create();
+        privateRsa.FromXmlString(privateKeyXml);
+        _signingKey = new RsaSecurityKey(privateRsa);
 
-        // Create symmetric security key from secret
-        _signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        // Load public key for validation
+        var publicKeyXml = File.ReadAllText(publicKeyPath);
+        var publicRsa = RSA.Create();
+        publicRsa.FromXmlString(publicKeyXml);
+        _validationKey = new RsaSecurityKey(publicRsa);
     }
 
     /// <summary>
-    /// Generates JWT token with user claims (userId, email, role) signed using HS256 symmetric key.
-    /// Token expires after configured timeout (default 15 minutes per NFR-005).
+    /// Generates JWT token with user claims (userId, email, role) signed using RS256 asymmetric algorithm (TR-012).
+    /// Token expires after 15 minutes (NFR-005).
     /// </summary>
     public string GenerateToken(string userId, string email, string role)
     {
@@ -68,7 +72,7 @@ public class JwtTokenService : IJwtTokenService
 
         var signingCredentials = new SigningCredentials(
             _signingKey,
-            SecurityAlgorithms.HmacSha256); // HS256 algorithm
+            SecurityAlgorithms.RsaSha256); // RS256 algorithm
 
         var token = new JwtSecurityToken(
             issuer: _issuer,
@@ -83,8 +87,8 @@ public class JwtTokenService : IJwtTokenService
     }
 
     /// <summary>
-    /// Validates JWT token signature and expiration using HS256 symmetric key.
-    /// Returns ClaimsPrincipal if valid, null if invalid or expired.
+    /// Validates JWT token signature and expiration using RS256 asymmetric algorithm.
+    /// Uses public key for validation. Returns ClaimsPrincipal if valid, null if invalid or expired.
     /// </summary>
     public ClaimsPrincipal? ValidateToken(string token)
     {
@@ -101,7 +105,7 @@ public class JwtTokenService : IJwtTokenService
             ValidateIssuerSigningKey = true,
             ValidIssuer = _issuer,
             ValidAudience = _audience,
-            IssuerSigningKey = _signingKey,
+            IssuerSigningKey = _validationKey, // Use public key for validation
             ClockSkew = TimeSpan.FromMinutes(_clockSkewMinutes) // Allow slight time drift
         };
 

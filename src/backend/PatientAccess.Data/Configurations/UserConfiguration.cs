@@ -44,6 +44,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasConversion<int>();
 
+        builder.Property(u => u.VerificationToken)
+            .HasMaxLength(255);
+
+        builder.Property(u => u.VerificationTokenExpiry)
+            .HasColumnType("timestamptz");
+
         builder.Property(u => u.CreatedAt)
             .IsRequired()
             .HasColumnType("timestamptz")

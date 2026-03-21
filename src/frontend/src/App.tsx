@@ -1,44 +1,234 @@
-import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import RegisterPage from './features/auth/pages/RegisterPage';
+import LoginPage from './features/auth/pages/LoginPage';
+import UserManagementPage from './features/admin/pages/UserManagementPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { MainLayout } from './components/layout/MainLayout';
+import { SessionTimeoutModal } from './components/modals/SessionTimeoutModal';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
+import { logout, refreshSession } from './features/auth/authSlice';
+import type { AppDispatch } from './store';
 
 function App() {
-  const [count, setCount] = useState(0);
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Session timeout hook (US_022, AC4, AC5)
+  const { showWarning, secondsRemaining, extendSession } = useSessionTimeout();
+
+  // Handle extend session (US_022, AC5)
+  const handleExtendSession = () => {
+    dispatch(refreshSession());
+    extendSession();
+  };
+
+  // Handle logout (US_022, AC5)
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-4xl font-bold text-primary-600 mb-4">
-          Patient Access Platform
-        </h1>
-        <p className="text-secondary-600 mb-6">
-          Welcome to the Clinical Intelligence & Appointment Booking System
-        </p>
+    <>
+      <Router>
+        <Routes>
+          {/* Public Authentication Routes */}
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
         
-        <div className="bg-primary-50 border border-primary-200 rounded-md p-4 mb-6">
-          <h2 className="text-lg font-semibold text-primary-700 mb-2">
-            Frontend Setup Complete ✓
-          </h2>
-          <ul className="text-sm text-secondary-700 space-y-1">
-            <li>✓ React 18 with TypeScript</li>
-            <li>✓ Vite Build Tool</li>
-            <li>✓ Tailwind CSS (with custom design tokens)</li>
-            <li>✓ Redux Toolkit</li>
-            <li>✓ React Router</li>
-          </ul>
-        </div>
+        {/* Forgot Password Route - To be implemented */}
+        <Route 
+          path="/forgot-password" 
+          element={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold mb-2">Forgot Password</h1>
+                <p className="text-neutral-500">Password recovery - Coming soon</p>
+              </div>
+            </div>
+          } 
+        />
+        
+        {/* Patient Dashboard Routes - US_020, AC1, AC4 */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['Patient']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Patient Dashboard</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/appointments" 
+          element={
+            <ProtectedRoute allowedRoles={['Patient']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Appointments</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/intake" 
+          element={
+            <ProtectedRoute allowedRoles={['Patient']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Intake Forms</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/documents" 
+          element={
+            <ProtectedRoute allowedRoles={['Patient']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Documents</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Staff Dashboard Routes - US_020, AC1, AC2 */}
+        <Route 
+          path="/staff/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['Staff', 'Admin']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Staff Dashboard</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/staff/queue" 
+          element={
+            <ProtectedRoute allowedRoles={['Staff', 'Admin']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Patient Queue</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/staff/walk-in" 
+          element={
+            <ProtectedRoute allowedRoles={['Staff', 'Admin']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Walk-in Registration</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/staff/verification" 
+          element={
+            <ProtectedRoute allowedRoles={['Staff', 'Admin']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Verification</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Admin Dashboard Routes - US_020, AC2 (Admin-only) */}
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Admin Dashboard</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/admin/users" 
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <MainLayout>
+                <UserManagementPage />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/admin/audit" 
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Audit Logs</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/admin/settings" 
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <MainLayout>
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold mb-2">Settings</h1>
+                  <p className="text-neutral-500">Coming soon</p>
+                </div>
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Default redirect to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
 
-        <div className="flex gap-4 items-center">
-          <button
-            onClick={() => setCount((count) => count + 1)}
-            className="px-6 py-3 bg-primary-600 text-white font-medium rounded-md hover:bg-primary-700 transition-colors shadow-sm"
-          >
-            Count is {count}
-          </button>
-          <p className="text-secondary-500 text-sm">
-            Edit <code className="bg-secondary-100 px-2 py-1 rounded text-xs">src/App.tsx</code> to test HMR
-          </p>
-        </div>
-      </div>
-    </div>
+    {/* Session Timeout Warning Modal (US_022, UXR-604) */}
+    <SessionTimeoutModal
+      isOpen={showWarning}
+      secondsRemaining={secondsRemaining}
+      onExtendSession={handleExtendSession}
+      onLogout={handleLogout}
+    />
+  </>
   );
 }
 

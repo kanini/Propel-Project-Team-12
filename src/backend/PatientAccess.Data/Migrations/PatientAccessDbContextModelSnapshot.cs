@@ -129,7 +129,7 @@ namespace PatientAccess.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("AuditLogId");
@@ -726,6 +726,13 @@ namespace PatientAccess.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz");
 
+                    b.Property<string>("VerificationToken")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("VerificationTokenExpiry")
+                        .HasColumnType("timestamptz");
+
                     b.HasKey("UserId");
 
                     b.HasIndex("Email")
@@ -834,7 +841,6 @@ namespace PatientAccess.Data.Migrations
                         .WithMany("AuditLogs")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("FK_AuditLogs_Users");
 
                     b.Navigation("User");
