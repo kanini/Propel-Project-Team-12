@@ -12,6 +12,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -159,6 +161,13 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>(); // US_022 - Audit logging for authentication events
 builder.Services.AddScoped<IAdminService, AdminService>(); // US_021 - User management
+builder.Services.AddScoped<IProviderService, ProviderService>(); // US_023 - Provider browser
+builder.Services.AddScoped<IAppointmentService, AppointmentService>(); // US_024 - Appointment booking
+builder.Services.AddScoped<IWaitlistService, WaitlistService>(); // US_025 - Waitlist enrollment
+builder.Services.AddScoped<ISlotSwapService, SlotSwapService>(); // US_026 - Dynamic preferred slot swap
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.SlotAvailabilityMonitor>(); // US_026 - Slot swap monitoring
+builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>(); // US_028 - PDF generation
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ConfirmationEmailJob>(); // US_028 - Confirmation email job
 
 // Register IHttpContextAccessor for audit logging context extraction
 builder.Services.AddHttpContextAccessor();
@@ -236,11 +245,11 @@ builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(5),
                 errorCodesToAdd: null);
-            
+
             // Set command timeout to match connection string
             npgsqlOptions.CommandTimeout(30);
         });
-    
+
     // Enable detailed errors in development
     if (builder.Environment.IsDevelopment())
     {
@@ -248,6 +257,19 @@ builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options
         options.EnableDetailedErrors();
     }
 });
+
+// Configure Hangfire for background job processing (US_028 - FR-012)
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options =>
+    {
+        options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }));
+
+// Add Hangfire server
+builder.Services.AddHangfireServer();
 
 // Configure Health Checks (TR-018, NFR-008)
 var healthChecksBuilder = builder.Services.AddHealthChecks()
@@ -342,6 +364,9 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         options.DisplayOperationId(); // Display operation IDs
         options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None); // Collapse all by default
     });
+
+    // Hangfire Dashboard (US_028 - Development only for monitoring background jobs)
+    app.UseHangfireDashboard("/hangfire");
 }
 
 // Use audit logging middleware early to capture IP and User Agent for all requests (US_022)

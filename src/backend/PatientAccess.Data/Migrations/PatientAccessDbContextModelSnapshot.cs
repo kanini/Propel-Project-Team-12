@@ -35,6 +35,11 @@ namespace PatientAccess.Data.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(24);
 
+                    b.Property<string>("ConfirmationNumber")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)");
+
                     b.Property<bool>("ConfirmationReceived")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -59,6 +64,12 @@ namespace PatientAccess.Data.Migrations
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("PdfFilePath")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PreferredSlotId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ProviderId")
                         .HasColumnType("uuid");
 
@@ -68,17 +79,27 @@ namespace PatientAccess.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("TimeSlotId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz");
 
                     b.Property<string>("VisitReason")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.HasKey("AppointmentId");
 
+                    b.HasIndex("ConfirmationNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Appointments_ConfirmationNumber");
+
                     b.HasIndex("PatientId")
                         .HasDatabaseName("IX_Appointments_PatientId");
+
+                    b.HasIndex("PreferredSlotId");
 
                     b.HasIndex("ProviderId")
                         .HasDatabaseName("IX_Appointments_ProviderId");
@@ -88,6 +109,9 @@ namespace PatientAccess.Data.Migrations
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_Appointments_Status");
+
+                    b.HasIndex("TimeSlotId")
+                        .HasDatabaseName("IX_Appointments_TimeSlotId");
 
                     b.ToTable("Appointments", (string)null);
                 });
@@ -636,9 +660,6 @@ namespace PatientAccess.Data.Migrations
                         .HasColumnType("uuid")
                         .HasDefaultValueSql("gen_random_uuid()");
 
-                    b.Property<Guid?>("AppointmentId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
@@ -668,8 +689,6 @@ namespace PatientAccess.Data.Migrations
                         .HasColumnType("timestamptz");
 
                     b.HasKey("TimeSlotId");
-
-                    b.HasIndex("AppointmentId");
 
                     b.HasIndex("IsBooked")
                         .HasDatabaseName("IX_TimeSlots_IsBooked");
@@ -823,6 +842,12 @@ namespace PatientAccess.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_Appointments_Patients");
 
+                    b.HasOne("PatientAccess.Data.Models.TimeSlot", "PreferredSlot")
+                        .WithMany()
+                        .HasForeignKey("PreferredSlotId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_Appointments_PreferredSlot");
+
                     b.HasOne("PatientAccess.Data.Models.Provider", "Provider")
                         .WithMany("Appointments")
                         .HasForeignKey("ProviderId")
@@ -830,9 +855,20 @@ namespace PatientAccess.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_Appointments_Providers");
 
+                    b.HasOne("PatientAccess.Data.Models.TimeSlot", "TimeSlot")
+                        .WithMany()
+                        .HasForeignKey("TimeSlotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_Appointments_TimeSlot");
+
                     b.Navigation("Patient");
 
+                    b.Navigation("PreferredSlot");
+
                     b.Navigation("Provider");
+
+                    b.Navigation("TimeSlot");
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.AuditLog", b =>
@@ -970,20 +1006,12 @@ namespace PatientAccess.Data.Migrations
 
             modelBuilder.Entity("PatientAccess.Data.Models.TimeSlot", b =>
                 {
-                    b.HasOne("PatientAccess.Data.Models.Appointment", "Appointment")
-                        .WithMany("TimeSlots")
-                        .HasForeignKey("AppointmentId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("FK_TimeSlots_Appointments");
-
                     b.HasOne("PatientAccess.Data.Models.Provider", "Provider")
                         .WithMany("TimeSlots")
                         .HasForeignKey("ProviderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_TimeSlots_Providers");
-
-                    b.Navigation("Appointment");
 
                     b.Navigation("Provider");
                 });
@@ -1007,11 +1035,6 @@ namespace PatientAccess.Data.Migrations
                     b.Navigation("Patient");
 
                     b.Navigation("Provider");
-                });
-
-            modelBuilder.Entity("PatientAccess.Data.Models.Appointment", b =>
-                {
-                    b.Navigation("TimeSlots");
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.ClinicalDocument", b =>

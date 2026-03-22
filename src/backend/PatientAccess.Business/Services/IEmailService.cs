@@ -23,4 +23,24 @@ public interface IEmailService
     /// <param name="verificationToken">New verification token</param>
     /// <returns>True if email sent successfully, false otherwise</returns>
     Task<bool> ResendVerificationEmailAsync(string toEmail, string toName, string verificationToken);
+
+    /// <summary>
+    /// Sends appointment confirmation email with PDF attachment (US_028 - FR-012, AC-2).
+    /// </summary>
+    /// <param name="toEmail">Patient email address</param>
+    /// <param name="toName">Patient name</param>
+    /// <param name="providerName">Provider name</param>
+    /// <param name="scheduledDateTime">Appointment date and time</param>
+    /// <param name="confirmationNumber">Unique confirmation number</param>
+    /// <param name="pdfBytes">PDF attachment content</param>
+    /// <param name="pdfFileName">PDF file name</param>
+    /// <returns>True if email sent successfully, false otherwise</returns>
+    Task<bool> SendAppointmentConfirmationAsync(
+        string toEmail,
+        string toName,
+        string providerName,
+        DateTime scheduledDateTime,
+        string confirmationNumber,
+        byte[] pdfBytes,
+        string pdfFileName);
 }

@@ -7,6 +7,7 @@ namespace PatientAccess.Data.Configurations;
 /// <summary>
 /// EF Core Fluent API configuration for the Appointment entity (DR-002).
 /// Defines FK relationships with RESTRICT on Provider delete, CASCADE on Patient delete.
+/// Includes TimeSlot and PreferredSlot relationships for appointment booking (FR-008, FR-010).
 /// </summary>
 public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
 {
@@ -18,6 +19,9 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
         builder.Property(a => a.AppointmentId)
             .HasDefaultValueSql("gen_random_uuid()");
 
+        builder.Property(a => a.TimeSlotId)
+            .IsRequired();
+
         builder.Property(a => a.ScheduledDateTime)
             .IsRequired()
             .HasColumnType("timestamptz");
@@ -28,7 +32,8 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
 
         builder.Property(a => a.VisitReason)
             .IsRequired()
-            .HasColumnType("text");
+            .HasMaxLength(500)
+            .HasColumnType("varchar(500)");
 
         builder.Property(a => a.IsWalkIn)
             .IsRequired()
@@ -46,6 +51,14 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
 
         builder.Property(a => a.Notes)
             .HasColumnType("text");
+
+        builder.Property(a => a.PreferredSlotId)
+            .IsRequired(false);
+
+        builder.Property(a => a.ConfirmationNumber)
+            .IsRequired()
+            .HasMaxLength(8)
+            .HasColumnType("varchar(8)");
 
         builder.Property(a => a.CreatedAt)
             .IsRequired()
@@ -69,16 +82,37 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("FK_Appointments_Providers");
 
+        // FK: Appointment -> TimeSlot (primary slot) — RESTRICT on delete
+        builder.HasOne(a => a.TimeSlot)
+            .WithMany()
+            .HasForeignKey(a => a.TimeSlotId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_Appointments_TimeSlot");
+
+        // FK: Appointment -> TimeSlot (preferred slot for swap) — SET NULL on delete
+        builder.HasOne(a => a.PreferredSlot)
+            .WithMany()
+            .HasForeignKey(a => a.PreferredSlotId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .HasConstraintName("FK_Appointments_PreferredSlot");
+
         builder.HasIndex(a => a.PatientId)
             .HasDatabaseName("IX_Appointments_PatientId");
 
         builder.HasIndex(a => a.ProviderId)
             .HasDatabaseName("IX_Appointments_ProviderId");
 
+        builder.HasIndex(a => a.TimeSlotId)
+            .HasDatabaseName("IX_Appointments_TimeSlotId");
+
         builder.HasIndex(a => a.ScheduledDateTime)
             .HasDatabaseName("IX_Appointments_ScheduledDateTime");
 
         builder.HasIndex(a => a.Status)
             .HasDatabaseName("IX_Appointments_Status");
+
+        builder.HasIndex(a => a.ConfirmationNumber)
+            .IsUnique()
+            .HasDatabaseName("IX_Appointments_ConfirmationNumber");
     }
 }

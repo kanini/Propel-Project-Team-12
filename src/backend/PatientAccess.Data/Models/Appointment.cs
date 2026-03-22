@@ -2,6 +2,7 @@ namespace PatientAccess.Data.Models;
 
 /// <summary>
 /// Patient appointment scheduling entity with status lifecycle (DR-002).
+/// Includes primary TimeSlot reference and optional PreferredSlot for dynamic slot swap (FR-010).
 /// </summary>
 public class Appointment
 {
@@ -10,6 +11,8 @@ public class Appointment
     public Guid PatientId { get; set; }
 
     public Guid ProviderId { get; set; }
+
+    public Guid TimeSlotId { get; set; }
 
     public DateTime ScheduledDateTime { get; set; }
 
@@ -27,6 +30,12 @@ public class Appointment
 
     public string? Notes { get; set; }
 
+    public Guid? PreferredSlotId { get; set; }
+
+    public string ConfirmationNumber { get; set; } = string.Empty;
+
+    public string? PdfFilePath { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
@@ -34,5 +43,6 @@ public class Appointment
     // Navigation properties
     public User Patient { get; set; } = null!;
     public Provider Provider { get; set; } = null!;
-    public ICollection<TimeSlot> TimeSlots { get; set; } = new List<TimeSlot>();
+    public TimeSlot TimeSlot { get; set; } = null!;
+    public TimeSlot? PreferredSlot { get; set; }
 }

@@ -15,8 +15,8 @@ interface NavigationItem {
 const mobileNavigationConfig: NavigationItem[] = [
   // Patient mobile navigation (4 items max for mobile)
   { name: 'Home', path: '/dashboard', icon: '🏠', roles: ['Patient'] },
+  { name: 'Providers', path: '/providers', icon: '🔍', roles: ['Patient'] },
   { name: 'Appointments', path: '/appointments', icon: '📅', roles: ['Patient'] },
-  { name: 'Intake', path: '/intake', icon: '📋', roles: ['Patient'] },
   { name: 'Profile', path: '/profile', icon: '👤', roles: ['Patient'] },
 
   // Staff mobile navigation
@@ -62,10 +62,9 @@ export const BottomNav = () => {
             to={item.path}
             className={`
               flex flex-col items-center justify-center flex-1 h-full transition-colors
-              ${
-                isActive(item.path)
-                  ? 'text-blue-600'
-                  : 'text-gray-500 hover:text-gray-900'
+              ${isActive(item.path)
+                ? 'text-blue-600'
+                : 'text-gray-500 hover:text-gray-900'
               }
             `}
           >

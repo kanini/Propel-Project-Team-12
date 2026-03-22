@@ -61,4 +61,55 @@ public class EmailService : IEmailService
         // Same implementation as SendVerificationEmailAsync
         return await SendVerificationEmailAsync(toEmail, toName, verificationToken);
     }
+
+    /// <summary>
+    /// Sends appointment confirmation email with PDF attachment (US_028 - FR-012, AC-2, AC-3).
+    /// In development, logs email content instead of sending.
+    /// </summary>
+    public async Task<bool> SendAppointmentConfirmationAsync(
+        string toEmail,
+        string toName,
+        string providerName,
+        DateTime scheduledDateTime,
+        string confirmationNumber,
+        byte[] pdfBytes,
+        string pdfFileName)
+    {
+        try
+        {
+            // TODO: Replace with actual email sending logic with attachment support (MailKit/SendGrid)
+            // For now, log the email details (development mode)
+            _logger.LogInformation(
+                "APPOINTMENT CONFIRMATION EMAIL (Development Mode)\n" +
+                "To: {Email}\n" +
+                "Name: {Name}\n" +
+                "Provider: {Provider}\n" +
+                "Scheduled: {DateTime}\n" +
+                "Confirmation Number: {ConfirmationNumber}\n" +
+                "PDF Attachment: {FileName} ({Size} bytes)\n" +
+                "Email Body:\n" +
+                "Dear {Name}, your appointment with {Provider} is confirmed for {DateTime}.\n" +
+                "Confirmation Number: {ConfirmationNumber}\n" +
+                "Please find your confirmation PDF attached.\n" +
+                "\n" +
+                "Important Notes:\n" +
+                "- Please arrive 15 minutes early\n" +
+                "- Bring valid photo ID and insurance card\n" +
+                "- To cancel or reschedule, please provide 24 hours notice\n" +
+                "\n" +
+                "Contact: (555) 123-4567 or support@patientaccess.com",
+                toEmail, toName, providerName, scheduledDateTime.ToString("MMMM dd, yyyy 'at' h:mm tt"),
+                confirmationNumber, pdfFileName, pdfBytes.Length);
+
+            // Simulate async email sending
+            await Task.Delay(100);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send appointment confirmation email to {Email}", toEmail);
+            return false;
+        }
+    }
 }

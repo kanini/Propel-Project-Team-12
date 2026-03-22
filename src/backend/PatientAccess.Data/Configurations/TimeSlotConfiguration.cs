@@ -7,6 +7,7 @@ namespace PatientAccess.Data.Configurations;
 /// <summary>
 /// EF Core Fluent API configuration for the TimeSlot entity (DR-002).
 /// Includes optimistic concurrency token for concurrent booking protection.
+/// Updated for US_024 - relationship with Appointment handled in AppointmentConfiguration.
 /// </summary>
 public class TimeSlotConfiguration : IEntityTypeConfiguration<TimeSlot>
 {
@@ -49,12 +50,8 @@ public class TimeSlotConfiguration : IEntityTypeConfiguration<TimeSlot>
             .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("FK_TimeSlots_Providers");
 
-        // FK: TimeSlot -> Appointment (SET NULL on delete)
-        builder.HasOne(t => t.Appointment)
-            .WithMany(a => a.TimeSlots)
-            .HasForeignKey(t => t.AppointmentId)
-            .OnDelete(DeleteBehavior.SetNull)
-            .HasConstraintName("FK_TimeSlots_Appointments");
+        // Note: TimeSlot -> Appointment relationship is now defined in AppointmentConfiguration
+        // AppointmentId column still exists for legacy compatibility but relationship is inverse
 
         builder.HasIndex(t => t.ProviderId)
             .HasDatabaseName("IX_TimeSlots_ProviderId");

@@ -87,7 +87,7 @@ export const registerUser = createAsyncThunk<
   async (registerData, { rejectWithValue }) => {
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      
+
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
@@ -126,7 +126,7 @@ export const loginUser = createAsyncThunk<
   async (loginData, { rejectWithValue }) => {
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      
+
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -142,9 +142,12 @@ export const loginUser = createAsyncThunk<
         return rejectWithValue(errorMessage);
       }
 
-      // Store token in localStorage for persistence (AC1)
+      // Store token and user data in localStorage for persistence (AC1)
       localStorage.setItem('token', data.token);
       localStorage.setItem('userId', data.userId);
+      localStorage.setItem('userEmail', data.email);
+      localStorage.setItem('userName', data.name);
+      localStorage.setItem('userRole', data.role);
 
       return data as LoginResponse;
     } catch (error) {
@@ -179,7 +182,7 @@ export const refreshSession = createAsyncThunk<
       // });
       // const data = await response.json();
       // localStorage.setItem('token', data.token);
-      
+
       // For now, session extension is handled client-side via activity timestamp
       return;
     } catch (error) {
@@ -210,8 +213,12 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      // Clear all user data from localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userRole');
     },
     // Restore session from localStorage (on app startup)
     restoreSession: (state, action: PayloadAction<{ token: string; user: User }>) => {
@@ -278,8 +285,12 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.error = action.payload || 'Session refresh failed.';
+        // Clear all user data from localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userRole');
       });
   },
 });

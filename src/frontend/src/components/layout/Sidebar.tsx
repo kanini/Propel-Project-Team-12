@@ -10,14 +10,15 @@ interface NavigationItem {
 
 /**
  * Navigation configuration mapping routes to allowed roles (US_020, AC1, AC4).
- * Patient → Dashboard, Appointments, Intake, Documents
+ * Patient → Dashboard, Providers, Appointments, Intake, Documents
  * Staff → Dashboard, Queue, Walk-in, Verification
  * Admin → Dashboard, Users, Audit, Settings
  */
 const navigationConfig: NavigationItem[] = [
   // Patient navigation
   { name: 'Dashboard', path: '/dashboard', icon: '🏠', roles: ['Patient'] },
-  { name: 'Appointments', path: '/appointments', icon: '📅', roles: ['Patient'] },
+  { name: 'Find Provider', path: '/providers', icon: '🔍', roles: ['Patient'] },
+  { name: 'My Appointments', path: '/appointments', icon: '📅', roles: ['Patient'] },
   { name: 'Intake Forms', path: '/intake', icon: '📋', roles: ['Patient'] },
   { name: 'Documents', path: '/documents', icon: '📄', roles: ['Patient'] },
 
@@ -74,10 +75,9 @@ export const Sidebar = () => {
             to={item.path}
             className={`
               flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
-              ${
-                isActive(item.path)
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              ${isActive(item.path)
+                ? 'bg-blue-50 text-blue-600'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
               }
             `}
           >
