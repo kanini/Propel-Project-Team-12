@@ -744,4 +744,192 @@ public class AppointmentService : IAppointmentService
             throw;
         }
     }
+
+    /// <summary>
+    /// Creates a walk-in appointment with IsWalkin flag and Arrived status (US_029, AC-3).
+    /// Staff-only operation for immediate appointment booking.
+    /// Uses pessimistic locking to prevent double-booking.
+    /// </summary>
+    public async Task<AppointmentResponseDto> CreateWalkinAppointmentAsync(CreateWalkinAppointmentDto request)
+    {
+        var retryCount = 0;
+        var retryDelay = InitialRetryDelayMs;
+
+        while (retryCount < MaxRetries)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Creating walk-in appointment for Patient {PatientId}, Provider {ProviderId}, TimeSlot {TimeSlotId} (Attempt {Attempt})",
+                    request.PatientId, request.ProviderId, request.TimeSlotId, retryCount + 1);
+
+                // Validate request
+                await ValidateWalkinAppointmentRequestAsync(request);
+
+                // Start transaction for atomic operations
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
+                {
+                    // SELECT FOR UPDATE to lock the time slot row (pessimistic locking)
+                    var timeSlot = await LockAndFetchTimeSlotAsync(request.TimeSlotId);
+
+                    // Check if slot is already booked (AC4 - conflict detection)
+                    if (timeSlot.IsBooked)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogWarning(
+                            "Time slot {TimeSlotId} is already booked. Conflict detected.",
+                            request.TimeSlotId);
+                        throw new ConflictException($"Time slot {request.TimeSlotId} is no longer available");
+                    }
+
+                    // Mark time slot as booked
+                    timeSlot.IsBooked = true;
+                    timeSlot.UpdatedAt = DateTime.UtcNow;
+
+                    // Create walk-in appointment record
+                    var appointment = new Appointment
+                    {
+                        AppointmentId = Guid.NewGuid(),
+                        PatientId = request.PatientId,
+                        ProviderId = request.ProviderId,
+                        TimeSlotId = request.TimeSlotId,
+                        ScheduledDateTime = timeSlot.StartTime,
+                        Status = AppointmentStatus.Arrived, // Walk-ins default to Arrived status
+                        VisitReason = request.VisitReason,
+                        IsWalkIn = true, // Flag for walk-in appointments
+                        ConfirmationReceived = true, // Walk-ins are considered confirmed (staff-initiated)
+                        NoShowRiskScore = 0, // Zero risk for walk-ins (already arrived)
+                        ConfirmationNumber = GenerateConfirmationNumber(),
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Appointments.Add(appointment);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation(
+                        "Walk-in appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
+                        appointment.AppointmentId, appointment.ConfirmationNumber);
+
+                    // Load provider name for response
+                    var provider = await _context.Providers
+                        .AsNoTracking()
+                        .Where(p => p.ProviderId == request.ProviderId)
+                        .Select(p => p.Name)
+                        .FirstOrDefaultAsync();
+
+                    return new AppointmentResponseDto
+                    {
+                        Id = appointment.AppointmentId,
+                        ProviderId = appointment.ProviderId,
+                        ProviderName = provider ?? "Unknown",
+                        ScheduledDateTime = appointment.ScheduledDateTime,
+                        VisitReason = appointment.VisitReason,
+                        Status = appointment.Status.ToString(),
+                        ConfirmationNumber = appointment.ConfirmationNumber,
+                        PreferredSlotId = null,
+                        PreferredSlotStartTime = null
+                    };
+                }
+                catch (ConflictException)
+                {
+                    await transaction.RollbackAsync();
+                    throw; // Rethrow conflict exceptions immediately (no retry)
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+
+                    // Check if it's a deadlock (PostgreSQL deadlock_detected error code: 40P01)
+                    if (IsDeadlockException(ex))
+                    {
+                        retryCount++;
+                        if (retryCount >= MaxRetries)
+                        {
+                            _logger.LogError(ex,
+                                "Deadlock detected after {RetryCount} retries for Patient {PatientId}, TimeSlot {TimeSlotId}",
+                                retryCount, request.PatientId, request.TimeSlotId);
+                            throw new InvalidOperationException(
+                                $"Unable to complete walk-in appointment booking after {MaxRetries} attempts due to high concurrency. Please try again.",
+                                ex);
+                        }
+
+                        _logger.LogWarning(
+                            "Deadlock detected on attempt {Attempt} for Patient {PatientId}, TimeSlot {TimeSlotId}. Retrying in {Delay}ms...",
+                            retryCount, request.PatientId, request.TimeSlotId, retryDelay);
+
+                        await Task.Delay(retryDelay);
+                        retryDelay *= 2; // Exponential backoff
+                        continue; // Retry
+                    }
+
+                    throw; // Rethrow non-deadlock exceptions
+                }
+            }
+            catch (ConflictException)
+            {
+                throw; // Don't retry conflicts
+            }
+            catch (ArgumentException)
+            {
+                throw; // Don't retry validation errors
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error creating walk-in appointment for Patient {PatientId}, TimeSlot {TimeSlotId}",
+                    request.PatientId, request.TimeSlotId);
+                throw;
+            }
+        }
+
+        throw new InvalidOperationException("Unexpected retry loop exit");
+    }
+
+    /// <summary>
+    /// Validates walk-in appointment request data (US_029, AC-3).
+    /// </summary>
+    private async Task ValidateWalkinAppointmentRequestAsync(CreateWalkinAppointmentDto request)
+    {
+        // Validate patient exists and is active
+        var patientExists = await _context.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.UserId == request.PatientId &&
+                          u.Role == UserRole.Patient &&
+                          u.Status == UserStatus.Active);
+
+        if (!patientExists)
+        {
+            throw new ArgumentException($"Patient {request.PatientId} does not exist or is inactive", nameof(request.PatientId));
+        }
+
+        // Validate provider exists
+        var providerExists = await _context.Providers
+            .AsNoTracking()
+            .AnyAsync(p => p.ProviderId == request.ProviderId && p.IsActive);
+
+        if (!providerExists)
+        {
+            throw new ArgumentException($"Provider {request.ProviderId} does not exist or is inactive", nameof(request.ProviderId));
+        }
+
+        // Validate time slot exists for provider
+        var timeSlotExists = await _context.TimeSlots
+            .AsNoTracking()
+            .AnyAsync(ts => ts.TimeSlotId == request.TimeSlotId && ts.ProviderId == request.ProviderId);
+
+        if (!timeSlotExists)
+        {
+            throw new ArgumentException($"Time slot {request.TimeSlotId} does not exist for provider {request.ProviderId}", nameof(request.TimeSlotId));
+        }
+
+        // Visit reason length validation (already handled by data annotations, but double-check)
+        if (string.IsNullOrWhiteSpace(request.VisitReason) || request.VisitReason.Length > 500)
+        {
+            throw new ArgumentException("VisitReason must be between 1 and 500 characters", nameof(request.VisitReason));
+        }
+    }
 }
+

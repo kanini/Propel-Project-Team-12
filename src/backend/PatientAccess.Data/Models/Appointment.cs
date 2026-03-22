@@ -36,6 +36,10 @@ public class Appointment
 
     public string? PdfFilePath { get; set; }
 
+    public bool IsPriority { get; set; } = false;
+
+    public DateTime? ArrivalTime { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

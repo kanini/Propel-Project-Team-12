@@ -82,4 +82,15 @@ public interface IAppointmentService
     /// <param name="appointmentId">Appointment unique identifier</param>
     /// <returns>Appointment entity with navigation properties, or null if not found</returns>
     Task<PatientAccess.Data.Models.Appointment?> GetAppointmentByIdInternalAsync(Guid appointmentId);
+
+    /// <summary>
+    /// Creates a walk-in appointment with IsWalkin flag and Arrived status (US_029, AC-3).
+    /// Staff-only operation for immediate appointment booking.
+    /// Uses pessimistic locking to prevent double-booking.
+    /// </summary>
+    /// <param name="request">Walk-in appointment creation request</param>
+    /// <returns>Appointment response with confirmation details</returns>
+    /// <exception cref="ConflictException">Thrown when time slot is already booked</exception>
+    /// <exception cref="ArgumentException">Thrown when validation fails (invalid patient/provider/slot IDs)</exception>
+    Task<AppointmentResponseDto> CreateWalkinAppointmentAsync(CreateWalkinAppointmentDto request);
 }

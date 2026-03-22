@@ -558,6 +558,74 @@ public class AppointmentsController : ControllerBase
             return StatusCode(500, new { message = "An error occurred while rescheduling the appointment" });
         }
     }
+
+    /// <summary>
+    /// Creates a walk-in appointment (US_029, AC-3).
+    /// Staff-only endpoint for immediate appointment booking.
+    /// Walk-in appointments default to Arrived status with IsWalkin flag.
+    /// </summary>
+    /// <param name="request">Walk-in appointment creation request</param>
+    /// <returns>201 Created with appointment details</returns>
+    /// <response code="201">Walk-in appointment created successfully</response>
+    /// <response code="400">Validation error</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="403">Insufficient permissions - Staff or Admin role required</response>
+    /// <response code="404">Patient, provider, or time slot not found</response>
+    /// <response code="409">Time slot is no longer available (concurrent booking conflict)</response>
+    /// <response code="500">Internal server error</response>
+    [HttpPost("walkin")]
+    [Authorize(Policy = "StaffOnly")] // Only Staff and Admin can create walk-in appointments
+    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CreateWalkinAppointment([FromBody] CreateWalkinAppointmentDto request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            _logger.LogInformation(
+                "Creating walk-in appointment for Patient {PatientId}, Provider {ProviderId}, TimeSlot {TimeSlotId}",
+                request.PatientId, request.ProviderId, request.TimeSlotId);
+
+            var appointment = await _appointmentService.CreateWalkinAppointmentAsync(request);
+
+            _logger.LogInformation(
+                "Walk-in appointment {AppointmentId} created successfully",
+                appointment.Id);
+
+            return CreatedAtAction(
+                nameof(GetAppointmentById),
+                new { id = appointment.Id },
+                appointment);
+        }
+        catch (ConflictException ex)
+        {
+            _logger.LogWarning(ex,
+                "Conflict creating walk-in appointment for Patient {PatientId}, TimeSlot {TimeSlotId}",
+                request.PatientId, request.TimeSlotId);
+            return Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid walk-in appointment request");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error creating walk-in appointment for Patient {PatientId}, TimeSlot {TimeSlotId}",
+                request.PatientId, request.TimeSlotId);
+            return StatusCode(500, new { message = "An error occurred while creating the walk-in appointment" });
+        }
+    }
 }
 
 /// <summary>
