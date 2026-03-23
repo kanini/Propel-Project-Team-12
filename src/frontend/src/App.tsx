@@ -203,7 +203,9 @@ function App() {
             path="/staff/queue"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
-                <QueueManagement />
+                <MainLayout>
+                  <QueueManagement />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -213,7 +215,9 @@ function App() {
             path="/staff/walk-in"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
-                <WalkinBooking />
+                <MainLayout>
+                  <WalkinBooking />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -223,7 +227,9 @@ function App() {
             path="/staff/arrivals"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
-                <ArrivalManagement />
+                <MainLayout>
+                  <ArrivalManagement />
+                </MainLayout>
               </ProtectedRoute>
             }
           />

@@ -1,42 +1,91 @@
 /**
  * ArrivalManagement Page Component for US_031 - Patient Arrival Status Marking (SCR-020).
- * Staff-only page for searching patients and marking them as arrived.
+ * Staff-only page for viewing today's appointments and marking patients as arrived.
  */
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrivalSearchInput } from "../../features/staff/components/ArrivalSearchInput";
-import { AppointmentCard } from "../../features/staff/components/AppointmentCard";
+import { useState, useEffect } from "react";
+import { AppointmentsList } from "../../features/staff/components/AppointmentsList";
 import type { ArrivalAppointment } from "../../types/arrival";
 
 /**
  * Arrival Management page for staff to mark patient arrivals
  */
 export function ArrivalManagement() {
-  const navigate = useNavigate();
-  const [selectedAppointment, setSelectedAppointment] =
-    useState<ArrivalAppointment | null>(null);
+  const [appointments, setAppointments] = useState<ArrivalAppointment[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<
+    ArrivalAppointment[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [showErrorToast, setShowErrorToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   /**
-   * Handle appointment selection from search
+   * Load all today's appointments on mount
    */
-  const handleSelectAppointment = (appointment: ArrivalAppointment) => {
-    setSelectedAppointment(appointment);
+  useEffect(() => {
+    loadTodayAppointments();
+  }, []);
+
+  /**
+   * Filter appointments based on search query
+   */
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredAppointments(appointments);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = appointments.filter(
+      (apt) =>
+        apt.patientName.toLowerCase().includes(query) ||
+        apt.dateOfBirth.includes(query) ||
+        apt.providerName.toLowerCase().includes(query) ||
+        (apt.visitReason && apt.visitReason.toLowerCase().includes(query)),
+    );
+    setFilteredAppointments(filtered);
+  }, [searchQuery, appointments]);
+
+  /**
+   * Fetch all today's appointments from API
+   */
+  const loadTodayAppointments = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/staff/arrivals/search?date=${today}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to load appointments");
+      }
+
+      const data = await response.json();
+      setAppointments(data);
+      setFilteredAppointments(data);
+    } catch (error) {
+      console.error("Error loading appointments:", error);
+      setErrorMessage("Failed to load today's appointments");
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 5000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /**
-   * Handle no appointment found - navigate to walk-in booking
-   */
-  const handleNoAppointmentFound = (query: string) => {
-    navigate(`/staff/walk-in?patientQuery=${encodeURIComponent(query)}`);
-  };
-
-  /**
-   * Mark patient as arrived
+   * Mark patient as arrived and update local state
    */
   const handleMarkArrived = async (appointmentId: string) => {
     try {
@@ -63,12 +112,13 @@ export function ArrivalManagement() {
           setShowSuccessToast(true);
 
           // Update local state to show "Arrived" status
-          if (selectedAppointment) {
-            setSelectedAppointment({
-              ...selectedAppointment,
-              status: "Arrived",
-            });
-          }
+          setAppointments((prev) =>
+            prev.map((apt) =>
+              apt.appointmentId === appointmentId
+                ? { ...apt, status: "Arrived" }
+                : apt,
+            ),
+          );
 
           setTimeout(() => setShowSuccessToast(false), 5000);
           return;
@@ -77,23 +127,27 @@ export function ArrivalManagement() {
         throw new Error(errorData.message || "Failed to mark arrival");
       }
 
-      await response.json();
+      const updatedAppointment = await response.json();
 
       // Show success toast
-      const patientName = selectedAppointment?.patientName || "Patient";
-      setSuccessMessage(`${patientName} marked as arrived and added to queue`);
+      setSuccessMessage(
+        `${updatedAppointment.patientName} marked as arrived and added to queue`,
+      );
       setShowSuccessToast(true);
 
       // Update appointment status locally
-      if (selectedAppointment) {
-        setSelectedAppointment({ ...selectedAppointment, status: "Arrived" });
-      }
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt.appointmentId === appointmentId
+            ? { ...apt, status: "Arrived" }
+            : apt,
+        ),
+      );
 
-      // Clear selected appointment after 2 seconds
+      // Auto-hide toast after 3 seconds
       setTimeout(() => {
-        setSelectedAppointment(null);
         setShowSuccessToast(false);
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error("Error marking arrival:", error);
       setErrorMessage(
@@ -104,56 +158,45 @@ export function ArrivalManagement() {
     }
   };
 
-  /**
-   * Clear selected appointment
-   */
-  const handleClear = () => {
-    setSelectedAppointment(null);
-  };
-
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <>
       {/* Header */}
-      <header className="bg-neutral-0 border-b border-neutral-200 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-neutral-0 border-b border-neutral-200 shadow-sm mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">
               Patient Arrival Management
             </h1>
             <p className="mt-1 text-sm text-neutral-600">
-              Search for patients with appointments today and mark them as
-              arrived
+              View today's appointments and mark patients as arrived
             </p>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Section */}
+      <div className="max-w-7xl mx-auto">
+        {/* Search/Filter Section */}
         <div className="mb-6">
-          <ArrivalSearchInput
-            onSelectAppointment={handleSelectAppointment}
-            onNoAppointmentFound={handleNoAppointmentFound}
-          />
-        </div>
-
-        {/* Selected Appointment Card */}
-        {selectedAppointment && (
-          <div className="animate-fade-in">
-            <AppointmentCard
-              appointment={selectedAppointment}
-              onMarkArrived={handleMarkArrived}
-              onClear={handleClear}
+          <label
+            htmlFor="appointment-search"
+            className="block text-sm font-medium text-neutral-700 mb-2"
+          >
+            Filter Appointments
+          </label>
+          <div className="relative">
+            <input
+              id="appointment-search"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter by patient name, DOB, provider, or reason..."
+              className="w-full px-4 py-2.5 pl-10 border border-neutral-300 rounded-lg focus:ring-2 
+                        focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              aria-label="Filter appointments"
             />
-          </div>
-        )}
-
-        {/* Empty State - Only show when no appointment selected */}
-        {!selectedAppointment && (
-          <div className="bg-neutral-0 border border-neutral-200 rounded-lg shadow-sm p-12 text-center">
             <svg
-              className="w-24 h-24 mx-auto text-neutral-300 mb-4"
+              className="absolute left-3 top-3 h-5 w-5 text-neutral-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -162,19 +205,47 @@ export function ArrivalManagement() {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">
-              Search for a Patient
-            </h3>
-            <p className="text-sm text-neutral-600">
-              Use the search bar above to find patients with appointments today
-            </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-3 text-neutral-400 hover:text-neutral-600"
+                aria-label="Clear search"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
-        )}
-      </main>
+          {searchQuery && (
+            <p className="mt-2 text-sm text-neutral-600">
+              Showing {filteredAppointments.length} of {appointments.length}{" "}
+              appointments
+            </p>
+          )}
+        </div>
+
+        {/* Appointments List */}
+        <AppointmentsList
+          appointments={filteredAppointments}
+          onMarkArrived={handleMarkArrived}
+          isLoading={isLoading}
+        />
+      </div>
 
       {/* Success Toast */}
       {showSuccessToast && (
@@ -227,6 +298,6 @@ export function ArrivalManagement() {
           <p className="font-medium">{errorMessage}</p>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 
 interface NavigationItem {
   name: string;
@@ -16,23 +16,64 @@ interface NavigationItem {
  */
 const navigationConfig: NavigationItem[] = [
   // Patient navigation
-  { name: 'Dashboard', path: '/dashboard', icon: '🏠', roles: ['Patient'] },
-  { name: 'Find Provider', path: '/providers', icon: '🔍', roles: ['Patient'] },
-  { name: 'My Appointments', path: '/appointments', icon: '📅', roles: ['Patient'] },
-  { name: 'Intake Forms', path: '/intake', icon: '📋', roles: ['Patient'] },
-  { name: 'Documents', path: '/documents', icon: '📄', roles: ['Patient'] },
+  { name: "Dashboard", path: "/dashboard", icon: "🏠", roles: ["Patient"] },
+  { name: "Find Provider", path: "/providers", icon: "🔍", roles: ["Patient"] },
+  {
+    name: "My Appointments",
+    path: "/appointments",
+    icon: "📅",
+    roles: ["Patient"],
+  },
+  { name: "Intake Forms", path: "/intake", icon: "📋", roles: ["Patient"] },
+  { name: "Documents", path: "/documents", icon: "📄", roles: ["Patient"] },
 
   // Staff navigation
-  { name: 'Staff Dashboard', path: '/staff/dashboard', icon: '🏥', roles: ['Staff', 'Admin'] },
-  { name: 'Patient Queue', path: '/staff/queue', icon: '👥', roles: ['Staff', 'Admin'] },
-  { name: 'Walk-in Registration', path: '/staff/walk-in', icon: '🚶', roles: ['Staff', 'Admin'] },
-  { name: 'Verification', path: '/staff/verification', icon: '✅', roles: ['Staff', 'Admin'] },
+  {
+    name: "Staff Dashboard",
+    path: "/staff/dashboard",
+    icon: "🏥",
+    roles: ["Staff", "Admin"],
+  },
+  {
+    name: "Patient Queue",
+    path: "/staff/queue",
+    icon: "👥",
+    roles: ["Staff", "Admin"],
+  },
+  {
+    name: "Arrival Management",
+    path: "/staff/arrivals",
+    icon: "✓",
+    roles: ["Staff", "Admin"],
+  },
+  {
+    name: "Walk-in Registration",
+    path: "/staff/walk-in",
+    icon: "🚶",
+    roles: ["Staff", "Admin"],
+  },
+  {
+    name: "Verification",
+    path: "/staff/verification",
+    icon: "✅",
+    roles: ["Staff", "Admin"],
+  },
 
   // Admin navigation
-  { name: 'Admin Dashboard', path: '/admin/dashboard', icon: '⚙️', roles: ['Admin'] },
-  { name: 'User Management', path: '/admin/users', icon: '👤', roles: ['Admin'] },
-  { name: 'Audit Logs', path: '/admin/audit', icon: '📊', roles: ['Admin'] },
-  { name: 'Settings', path: '/admin/settings', icon: '🔧', roles: ['Admin'] },
+  {
+    name: "Admin Dashboard",
+    path: "/admin/dashboard",
+    icon: "⚙️",
+    roles: ["Admin"],
+  },
+  {
+    name: "User Management",
+    path: "/admin/users",
+    icon: "👤",
+    roles: ["Admin"],
+  },
+  { name: "Audit Logs", path: "/admin/audit", icon: "📊", roles: ["Admin"] },
+  { name: "Settings", path: "/admin/settings", icon: "🔧", roles: ["Admin"] },
 ];
 
 /**
@@ -46,7 +87,7 @@ export const Sidebar = () => {
 
   // Filter navigation items based on user role (US_020, AC1)
   const visibleItems = navigationConfig.filter((item) =>
-    role ? item.roles.includes(role) : false
+    role ? item.roles.includes(role) : false,
   );
 
   const isActive = (path: string) => location.pathname === path;
@@ -75,9 +116,10 @@ export const Sidebar = () => {
             to={item.path}
             className={`
               flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
-              ${isActive(item.path)
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              ${
+                isActive(item.path)
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
               }
             `}
           >
