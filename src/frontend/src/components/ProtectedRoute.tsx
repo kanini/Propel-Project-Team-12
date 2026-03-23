@@ -20,11 +20,11 @@ export const ProtectedRoute = ({
   allowedRoles, 
   requireAuth = true 
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, role, isLoading } = useAuth();
+  const { isAuthenticated, role, isLoading, isInitializing } = useAuth();
   const location = useLocation();
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // Show loading state while initializing or checking authentication
+  if (isInitializing || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

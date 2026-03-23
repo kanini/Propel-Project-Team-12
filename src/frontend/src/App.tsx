@@ -22,6 +22,7 @@ import {
   logout,
   refreshSession,
   restoreSession,
+  completeInitialization,
 } from "./features/auth/authSlice";
 import type { AppDispatch } from "./store";
 
@@ -52,7 +53,13 @@ function App() {
             },
           }),
         );
+      } else {
+        // Incomplete data - mark initialization complete without restoring
+        dispatch(completeInitialization());
       }
+    } else {
+      // No session to restore - mark initialization complete
+      dispatch(completeInitialization());
     }
   }, [dispatch]);
 
