@@ -81,3 +81,6 @@ bld/
 
 # Windows
 Thumbs.db
+
+#pdf
+*.pdf
