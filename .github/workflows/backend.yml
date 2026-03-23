@@ -38,79 +38,57 @@ jobs:
           sed -i 's|stdoutLogEnabled="false"|stdoutLogEnabled="true"|g' ./publish/web.config
           sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
 
-      - name: Install WinSCP
+      - name: Deploy via FTP using curl with retry
         shell: powershell
         run: |
-          choco install winscp -y --no-progress
-          Import-Module "$env:ChocolateyInstall\lib\winscp\tools\WinSCPnet.dll"
+          $ftpHost    = "ftp://site59724.siteasp.net"
+          $ftpUser    = "site59724"
+          $ftpPass    = "C+c87T#w%fP5"
+          $localDir   = (Resolve-Path "./publish").Path
+          $remoteBase = "/wwwroot"
+          $maxRetries = 5
+          $retryDelay = 10
 
-      - name: Deploy via WinSCP FTP with retry
-        shell: powershell
-        run: |
-          Add-Type -Path "$env:ChocolateyInstall\lib\winscp\tools\WinSCPnet.dll"
+          $files = Get-ChildItem -Path $localDir -Recurse -File
 
-          $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
-            Protocol   = [WinSCP.Protocol]::Ftp
-            HostName   = "site59724.siteasp.net"
-            UserName   = "site59724"
-            Password   = "C+c87T#w%fP5"
-            FtpMode    = [WinSCP.FtpMode]::Passive
-            FtpSecure  = [WinSCP.FtpSecure]::None
-            PortNumber = 21
-          }
+          foreach ($file in $files) {
+            $relativePath = $file.FullName.Substring($localDir.Length).Replace("\", "/")
+            $remoteUrl    = "$ftpHost$remoteBase$relativePath"
 
-          $session = New-Object WinSCP.Session
+            $attempt  = 0
+            $uploaded = $false
 
-          try {
-            $session.Open($sessionOptions)
-            Write-Host "Connected to FTP server"
+            while (-not $uploaded -and $attempt -lt $maxRetries) {
+              $attempt++
+              Write-Host "Uploading (attempt $attempt): $relativePath"
 
-            $localDir  = (Resolve-Path "./publish").Path
-            $remoteDir = "/wwwroot/"
-            $maxRetries = 5
-            $retryDelay = 10
+              $curlArgs = @(
+                "--ftp-create-dirs",
+                "--silent",
+                "--show-error",
+                "--retry", "0",
+                "--user", "$ftpUser`:$ftpPass",
+                "-T", $file.FullName,
+                $remoteUrl
+              )
 
-            $files = Get-ChildItem -Path $localDir -Recurse -File
+              & curl.exe @curlArgs
+              $exitCode = $LASTEXITCODE
 
-            foreach ($file in $files) {
-              $relativePath = $file.FullName.Substring($localDir.Length).Replace("\", "/").TrimStart("/")
-              $remotePath   = $remoteDir + $relativePath
-              $remoteParent = $remotePath.Substring(0, $remotePath.LastIndexOf("/") + 1)
-
-              if (-not $session.FileExists($remoteParent)) {
-                $session.CreateDirectory($remoteParent)
-                Write-Host "Created directory: $remoteParent"
-              }
-
-              $attempt = 0
-              $uploaded = $false
-
-              while (-not $uploaded -and $attempt -lt $maxRetries) {
-                $attempt++
-                try {
-                  $transferOptions = New-Object WinSCP.TransferOptions
-                  $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
-                  $transferOptions.OverwriteMode = [WinSCP.OverwriteMode]::Overwrite
-
-                  $result = $session.PutFiles($file.FullName, $remotePath, $false, $transferOptions)
-                  $result.Check()
-
-                  Write-Host "Uploaded ($attempt): $relativePath"
-                  $uploaded = $true
-                } catch {
-                  Write-Host "Attempt $attempt failed for $relativePath - $($_.Exception.Message)"
-                  if ($attempt -lt $maxRetries) {
-                    Write-Host "Retrying in $retryDelay seconds..."
-                    Start-Sleep -Seconds $retryDelay
-                  } else {
-                    Write-Host "FAILED after $maxRetries attempts: $relativePath"
-                    throw
-                  }
+              if ($exitCode -eq 0) {
+                Write-Host "OK: $relativePath"
+                $uploaded = $true
+              } else {
+                Write-Host "Failed (exit $exitCode): $relativePath"
+                if ($attempt -lt $maxRetries) {
+                  Write-Host "Retrying in $retryDelay seconds..."
+                  Start-Sleep -Seconds $retryDelay
+                } else {
+                  Write-Host "FAILED after $maxRetries attempts: $relativePath"
+                  exit 1
                 }
               }
             }
-
-            Write-Host "Deployment complete"
-          } finally {
-            $session.Dispose()
           }
+
+          Write-Host "Deployment complete"
