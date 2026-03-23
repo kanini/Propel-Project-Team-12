@@ -173,35 +173,39 @@ public class PatientService : IPatientService
             };
 
             // Save to database using transaction
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Users.AddAsync(newUser);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                using var transaction = await _context.Database.BeginTransactionAsync();
 
-                _logger.LogInformation(
-                    "Successfully created minimal patient: {UserId}, Name: {Name}",
-                    newUser.UserId, newUser.Name);
-
-                return new PatientSearchResultDto
+                try
                 {
-                    Id = newUser.UserId,
-                    FullName = newUser.Name,
-                    DateOfBirth = newUser.DateOfBirth.HasValue
-                        ? newUser.DateOfBirth.Value.ToString("yyyy-MM-dd")
-                        : string.Empty,
-                    Email = newUser.Email,
-                    Phone = newUser.Phone,
-                    LastAppointmentDate = null // New patient has no appointments
-                };
-            }
-            catch (Exception)
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+                    await _context.Users.AddAsync(newUser);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation(
+                        "Successfully created minimal patient: {UserId}, Name: {Name}",
+                        newUser.UserId, newUser.Name);
+
+                    return new PatientSearchResultDto
+                    {
+                        Id = newUser.UserId,
+                        FullName = newUser.Name,
+                        DateOfBirth = newUser.DateOfBirth.HasValue
+                            ? newUser.DateOfBirth.Value.ToString("yyyy-MM-dd")
+                            : string.Empty,
+                        Email = newUser.Email,
+                        Phone = newUser.Phone,
+                        LastAppointmentDate = null // New patient has no appointments
+                    };
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
         catch (Exception ex)
         {

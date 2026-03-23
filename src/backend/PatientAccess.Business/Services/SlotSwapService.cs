@@ -42,6 +42,9 @@ public class SlotSwapService : ISlotSwapService
                     "Executing swap for Appointment {AppointmentId} to PreferredSlot {PreferredSlotId} (Attempt {Attempt})",
                     appointmentId, preferredSlotId, retryCount + 1);
 
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
+                {
                 // Start transaction for atomic operations
                 using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -150,6 +153,7 @@ public class SlotSwapService : ISlotSwapService
                     await transaction.RollbackAsync();
                     throw;
                 }
+                }); // end strategy.ExecuteAsync
             }
             catch (DbUpdateException ex) when (IsDeadlockException(ex))
             {
