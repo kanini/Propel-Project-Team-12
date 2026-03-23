@@ -81,3 +81,6 @@ appsettings.*.json
 
 # Windows
 Thumbs.db
+
+#pdf
+*.pdf
