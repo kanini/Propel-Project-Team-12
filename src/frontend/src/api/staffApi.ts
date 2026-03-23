@@ -146,7 +146,7 @@ export async function fetchProviderSlots(
 
     const data = await response.json();
     const timeSlots = data.timeSlots || [];
-    
+
     // Transform backend data structure to match frontend expectations
     // Backend: { id, startTime, endTime, isBooked }
     // Frontend: { id, providerId, startTime, endTime, status }
