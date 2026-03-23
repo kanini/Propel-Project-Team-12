@@ -25,11 +25,12 @@ jobs:
       - name: Publish
         run: dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
 
-      - name: Copy RSA keys to publish output
+      - name: Copy RSA keys into publish output
+        shell: powershell
         run: |
-          mkdir -p ./publish/security/rsa-keys
-          cp security/rsa-keys/public-key.xml ./publish/security/rsa-keys/public-key.xml
-          cp security/rsa-keys/private-key.xml ./publish/security/rsa-keys/private-key.xml
+          New-Item -ItemType Directory -Force -Path "./publish/security/rsa-keys"
+          Copy-Item "security/rsa-keys/public-key.xml" "./publish/security/rsa-keys/public-key.xml"
+          Copy-Item "security/rsa-keys/private-key.xml" "./publish/security/rsa-keys/private-key.xml"
 
       - name: Set Development environment in web.config
         shell: bash
