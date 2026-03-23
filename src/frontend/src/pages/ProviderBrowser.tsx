@@ -4,7 +4,7 @@
  * Implements all required states: Default, Loading, Empty, Error
  */
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '../store';
 import {
@@ -24,6 +24,7 @@ import {
     selectIsLoading,
     selectError,
 } from '../store/slices/providerSlice';
+import { resetBooking } from '../store/slices/appointmentSlice';
 import { ProviderSearch } from '../components/providers/ProviderSearch';
 import { ProviderFilters } from '../components/providers/ProviderFilters';
 import { ProviderCard } from '../components/providers/ProviderCard';
@@ -46,6 +47,13 @@ export default function ProviderBrowser() {
     const isLoading = useSelector(selectIsLoading);
     const error = useSelector(selectError);
 
+    // Reset booking state and filters when returning to provider browser  
+    // This ensures users get a fresh start for both booking and searching
+    useEffect(() => {
+        dispatch(resetBooking());
+        dispatch(clearAllFilters());
+    }, [dispatch]);
+
     // Fetch providers on mount and when filters/pagination change
     useEffect(() => {
         dispatch(fetchProviders());
@@ -57,9 +65,9 @@ export default function ProviderBrowser() {
     }, [pagination.page]);
 
     // Handler for search filter
-    const handleSearchChange = (value: string) => {
+    const handleSearchChange = useCallback((value: string) => {
         dispatch(setSearchFilter(value));
-    };
+    }, [dispatch]);
 
     // Handler for specialty filter
     const handleSpecialtyChange = (value: string) => {

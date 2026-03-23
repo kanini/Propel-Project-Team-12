@@ -33,15 +33,19 @@ export function ProviderSearch({
     const [localValue, setLocalValue] = useState(value);
     const debouncedValue = useDebounce(localValue, 300);
 
+    // Sync local value when prop changes externally (including when filters are cleared)
+    useEffect(() => {
+        if (value !== localValue) {
+            setLocalValue(value);
+        }
+    }, [value]); // Removed localValue from dependencies to avoid circular updates
+
     // Update parent when debounced value changes
     useEffect(() => {
-        onChange(debouncedValue);
-    }, [debouncedValue, onChange]);
-
-    // Sync local value when prop changes externally
-    useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
+        if (debouncedValue !== value) {
+            onChange(debouncedValue);
+        }
+    }, [debouncedValue, onChange, value]);
 
     const handleClear = () => {
         setLocalValue('');

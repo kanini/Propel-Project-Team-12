@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   PatientSearch,
   PatientSearchContext,
@@ -17,6 +18,7 @@ import { WalkinBookingForm } from "../components/WalkinBookingForm";
  * WalkinBooking page for staff to book immediate appointments (US_029)
  */
 export function WalkinBooking() {
+  const navigate = useNavigate();
   const [selectedPatient, setSelectedPatient] =
     useState<PatientSearchResult | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -66,6 +68,7 @@ export function WalkinBooking() {
     setSelectedPatient(null);
     // Auto-hide toast after 5 seconds
     setTimeout(() => setToast(null), 5000);
+    navigate("/staff/queue");
   };
 
   /**
