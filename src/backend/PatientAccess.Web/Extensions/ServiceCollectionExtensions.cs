@@ -40,8 +40,8 @@ public static class ServiceCollectionExtensions
                     maxRetryDelay: TimeSpan.FromSeconds(5),
                     errorCodesToAdd: null);
 
-                // Set command timeout (30 seconds default)
-                npgsqlOptions.CommandTimeout(30);
+                // Set command timeout (100 seconds default)
+                npgsqlOptions.CommandTimeout(100);
 
                 // Specify migrations assembly (important for multi-project solutions)
                 npgsqlOptions.MigrationsAssembly("PatientAccess.Data");

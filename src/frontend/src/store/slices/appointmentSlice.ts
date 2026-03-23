@@ -88,9 +88,14 @@ export const fetchMonthlyAvailability = createAsyncThunk<
     'appointments/fetchMonthlyAvailability',
     async ({ providerId, month }, { rejectWithValue }) => {
         try {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
             const token = localStorage.getItem('token');
+            
+            // Parse month string (YYYY-MM) to separate year and month integers
+            const [year, monthNum] = month.split('-').map(Number);
+            
             const response = await fetch(
-                `/api/providers/${providerId}/availability?month=${month}`,
+                `${apiBaseUrl}/api/providers/${providerId}/availability?year=${year}&month=${monthNum}`,
                 {
                     headers: {
                         'Content-Type': 'application/json',
@@ -104,7 +109,23 @@ export const fetchMonthlyAvailability = createAsyncThunk<
             }
 
             const data = await response.json();
-            return data;
+            
+            // Transform backend response to frontend format
+            // Backend returns: Array<{ date: DateTime, timeSlots: TimeSlotDto[] }>
+            // Frontend expects: { providerId, month, availableDates: string[] }
+            const availableDates = data
+                .filter((item: any) => item.timeSlots && item.timeSlots.length > 0)
+                .map((item: any) => {
+                    // Convert backend DateTime to YYYY-MM-DD format
+                    const date = new Date(item.date);
+                    return date.toISOString().split('T')[0];
+                });
+            
+            return {
+                providerId,
+                month,
+                availableDates,
+            };
         } catch (error) {
             return rejectWithValue(
                 error instanceof Error ? error.message : 'Failed to fetch availability'
@@ -124,9 +145,10 @@ export const fetchDailyTimeSlots = createAsyncThunk<
     'appointments/fetchDailyTimeSlots',
     async ({ providerId, date }, { rejectWithValue }) => {
         try {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
             const token = localStorage.getItem('token');
             const response = await fetch(
-                `/api/providers/${providerId}/availability?date=${date}`,
+                `${apiBaseUrl}/api/providers/${providerId}/availability?date=${date}`,
                 {
                     headers: {
                         'Content-Type': 'application/json',
@@ -140,7 +162,23 @@ export const fetchDailyTimeSlots = createAsyncThunk<
             }
 
             const data = await response.json();
-            return data;
+            
+            // Transform backend response to frontend format
+            // Backend returns: { date: DateTime, timeSlots: TimeSlotDto[] }
+            // Frontend expects: { date: string, slots: TimeSlot[] }
+            const dateObj = new Date(data.date);
+            const dateString = dateObj.toISOString().substring(0, 10); // YYYY-MM-DD
+            
+            return {
+                date: dateString,
+                slots: data.timeSlots.map((slot: any) => ({
+                    id: slot.id,
+                    providerId: providerId,
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    status: (slot.isBooked ? 'booked' : 'available') as 'available' | 'booked' | 'unavailable',
+                })),
+            };
         } catch (error) {
             return rejectWithValue(
                 error instanceof Error ? error.message : 'Failed to fetch time slots'
@@ -160,8 +198,9 @@ export const submitBooking = createAsyncThunk<
     'appointments/submitBooking',
     async (bookingRequest, { rejectWithValue }) => {
         try {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
             const token = localStorage.getItem('token');
-            const response = await fetch('/api/appointments', {
+            const response = await fetch(`${apiBaseUrl}/api/appointments`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -201,7 +240,24 @@ export const submitBooking = createAsyncThunk<
                 throw new Error('Booking failed');
             }
 
-            return data;
+            // Transform backend AppointmentResponseDto to frontend BookingConfirmation format
+            return {
+                appointment: {
+                    id: data.id,
+                    providerId: data.providerId,
+                    providerName: data.providerName || 'Unknown Provider',
+                    providerSpecialty: data.providerSpecialty || 'General Practice',
+                    timeSlotId: bookingRequest.timeSlotId,
+                    scheduledDateTime: data.scheduledDateTime,
+                    visitReason: data.visitReason,
+                    status: data.status.toLowerCase() as 'scheduled' | 'confirmed' | 'arrived' | 'completed' | 'cancelled' | 'no-show',
+                    preferredSlotId: data.preferredSlotId,
+                    createdAt: new Date().toISOString(),
+                    confirmationNumber: data.confirmationNumber,
+                },
+                confirmationCode: data.confirmationNumber,
+                pdfUrl: undefined,
+            };
         } catch (error) {
             return rejectWithValue({
                 code: 'server',
@@ -222,10 +278,13 @@ export const cancelAppointment = createAsyncThunk<
     'appointments/cancelAppointment',
     async (appointmentId, { rejectWithValue }) => {
         try {
-            const response = await fetch(`/api/appointments/${appointmentId}`, {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${apiBaseUrl}/api/appointments/${appointmentId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
                 },
             });
 
@@ -265,10 +324,13 @@ export const rescheduleAppointment = createAsyncThunk<
     'appointments/rescheduleAppointment',
     async ({ appointmentId, newTimeSlotId }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`/api/appointments/${appointmentId}/reschedule`, {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${apiBaseUrl}/api/appointments/${appointmentId}/reschedule`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
                 },
                 body: JSON.stringify({ newTimeSlotId }),
             });
@@ -314,9 +376,12 @@ export const fetchMyAppointments = createAsyncThunk<
     'appointments/fetchMyAppointments',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch('/api/appointments/my-appointments', {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${apiBaseUrl}/api/appointments/my-appointments`, {
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
                 },
             });
 
@@ -346,10 +411,13 @@ export const downloadConfirmationPDF = createAsyncThunk<
     'appointments/downloadConfirmationPDF',
     async ({ appointmentId, confirmationNumber }, { rejectWithValue }) => {
         try {
-            const response = await fetch(`/api/appointments/${appointmentId}/confirmation-pdf`, {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${apiBaseUrl}/api/appointments/${appointmentId}/confirmation-pdf`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
                 },
             });
 

@@ -223,7 +223,7 @@ Agentic orchestrators automate multi-step workflows by sequentially invoking ind
 │   │           ├── /plan-development-tasks <us_XXX.md>
 │   │           │   │   Output: task_XXX.md (implementation tasks)
 │   │           │   │
-│   │           │   └── 
+│   │           │   └── /implement-tasks <task_XXX.md> 
 │   │           │       │   Output: Source code (added/updated files)
 │   │           │       │
 │   │           │       ├── /analyze-implementation <task_XXX.md>

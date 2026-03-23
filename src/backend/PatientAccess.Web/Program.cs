@@ -18,7 +18,14 @@ using Hangfire.PostgreSql;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure camelCase naming for JSON serialization/deserialization (standard for web APIs)
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        // Enable case-insensitive property matching for deserialization
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 
 // Configure Swagger/OpenAPI (TR-005)
 builder.Services.AddEndpointsApiExplorer();
