@@ -61,6 +61,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitializing: boolean; // Track initial session restoration
   error: string | null;
   registrationSuccess: boolean;
 }
@@ -70,6 +71,7 @@ const initialState: AuthState = {
   token: null,
   isAuthenticated: false,
   isLoading: false,
+  isInitializing: true, // Start as true until we check localStorage
   error: null,
   registrationSuccess: false,
 };
@@ -225,6 +227,11 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.isAuthenticated = true;
+      state.isInitializing = false;
+    },
+    // Complete initialization without restoring session
+    completeInitialization: (state) => {
+      state.isInitializing = false;
     },
   },
   extraReducers: (builder) => {
@@ -295,11 +302,12 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, resetRegistrationSuccess, logout, restoreSession } = authSlice.actions;
+export const { clearError, resetRegistrationSuccess, logout, restoreSession, completeInitialization } = authSlice.actions;
 
 // Selectors
 export const selectAuth = (state: RootState) => state.auth;
 export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
+export const selectIsInitializing = (state: RootState) => state.auth.isInitializing;
 export const selectUser = (state: RootState) => state.auth.user;
 export const selectAuthLoading = (state: RootState) => state.auth.isLoading;
 export const selectAuthError = (state: RootState) => state.auth.error;
