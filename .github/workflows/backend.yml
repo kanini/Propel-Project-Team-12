@@ -38,81 +38,79 @@ jobs:
           sed -i 's|stdoutLogEnabled="false"|stdoutLogEnabled="true"|g' ./publish/web.config
           sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
 
-      - name: Deploy via FTP with retry on locked files
+      - name: Install WinSCP
         shell: powershell
         run: |
-          $ftpServer   = "ftp://site59724.siteasp.net"
-          $ftpUser     = "site59724"
-          $ftpPassword = "C+c87T#w%fP5"
-          $localDir    = "./publish"
-          $remoteDir   = "/wwwroot"
-          $maxRetries  = 5
-          $retryDelay  = 10  # seconds between retries
+          choco install winscp -y --no-progress
+          Import-Module "$env:ChocolateyInstall\lib\winscp\tools\WinSCPnet.dll"
 
-          function Upload-File($localPath, $remotePath) {
-            $uri = "$ftpServer$remotePath"
-            $attempt = 0
-            while ($attempt -lt $maxRetries) {
-              try {
+      - name: Deploy via WinSCP FTP with retry
+        shell: powershell
+        run: |
+          Add-Type -Path "$env:ChocolateyInstall\lib\winscp\tools\WinSCPnet.dll"
+
+          $sessionOptions = New-Object WinSCP.SessionOptions -Property @{
+            Protocol   = [WinSCP.Protocol]::Ftp
+            HostName   = "site59724.siteasp.net"
+            UserName   = "site59724"
+            Password   = "C+c87T#w%fP5"
+            FtpMode    = [WinSCP.FtpMode]::Passive
+            FtpSecure  = [WinSCP.FtpSecure]::None
+            PortNumber = 21
+          }
+
+          $session = New-Object WinSCP.Session
+
+          try {
+            $session.Open($sessionOptions)
+            Write-Host "Connected to FTP server"
+
+            $localDir  = (Resolve-Path "./publish").Path
+            $remoteDir = "/wwwroot/"
+            $maxRetries = 5
+            $retryDelay = 10
+
+            $files = Get-ChildItem -Path $localDir -Recurse -File
+
+            foreach ($file in $files) {
+              $relativePath = $file.FullName.Substring($localDir.Length).Replace("\", "/").TrimStart("/")
+              $remotePath   = $remoteDir + $relativePath
+              $remoteParent = $remotePath.Substring(0, $remotePath.LastIndexOf("/") + 1)
+
+              if (-not $session.FileExists($remoteParent)) {
+                $session.CreateDirectory($remoteParent)
+                Write-Host "Created directory: $remoteParent"
+              }
+
+              $attempt = 0
+              $uploaded = $false
+
+              while (-not $uploaded -and $attempt -lt $maxRetries) {
                 $attempt++
-                $request = [System.Net.FtpWebRequest]::Create($uri)
-                $request.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
-                $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPassword)
-                $request.UseBinary = $true
-                $request.UsePassive = $true
-                $request.EnableSsl = $false
-                $request.KeepAlive = $false
+                try {
+                  $transferOptions = New-Object WinSCP.TransferOptions
+                  $transferOptions.TransferMode = [WinSCP.TransferMode]::Binary
+                  $transferOptions.OverwriteMode = [WinSCP.OverwriteMode]::Overwrite
 
-                $fileContent = [System.IO.File]::ReadAllBytes($localPath)
-                $request.ContentLength = $fileContent.Length
-                $stream = $request.GetRequestStream()
-                $stream.Write($fileContent, 0, $fileContent.Length)
-                $stream.Close()
+                  $result = $session.PutFiles($file.FullName, $remotePath, $false, $transferOptions)
+                  $result.Check()
 
-                $response = $request.GetResponse()
-                $response.Close()
-                Write-Host "✅ Uploaded: $remotePath"
-                return
-              } catch {
-                Write-Host "⚠️  Attempt $attempt failed for $remotePath : $_"
-                if ($attempt -lt $maxRetries) {
-                  Write-Host "   Retrying in $retryDelay seconds..."
-                  Start-Sleep -Seconds $retryDelay
-                } else {
-                  Write-Host "❌ Failed after $maxRetries attempts: $remotePath"
-                  throw
+                  Write-Host "Uploaded ($attempt): $relativePath"
+                  $uploaded = $true
+                } catch {
+                  Write-Host "Attempt $attempt failed for $relativePath - $($_.Exception.Message)"
+                  if ($attempt -lt $maxRetries) {
+                    Write-Host "Retrying in $retryDelay seconds..."
+                    Start-Sleep -Seconds $retryDelay
+                  } else {
+                    Write-Host "FAILED after $maxRetries attempts: $relativePath"
+                    throw
+                  }
                 }
               }
             }
+
+            Write-Host "Deployment complete"
+          } finally {
+            $session.Dispose()
           }
-
-          function Ensure-RemoteDir($remotePath) {
-            try {
-              $uri = "$ftpServer$remotePath"
-              $request = [System.Net.FtpWebRequest]::Create($uri)
-              $request.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
-              $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPassword)
-              $request.UsePassive = $true
-              $request.EnableSsl = $false
-              $response = $request.GetResponse()
-              $response.Close()
-              Write-Host "📁 Created dir: $remotePath"
-            } catch {
-              # Directory likely already exists, ignore
-            }
-          }
-
-          # Walk all files in publish dir and upload
-          $files = Get-ChildItem -Path $localDir -Recurse -File
-          foreach ($file in $files) {
-            $relativePath = $file.FullName.Substring((Resolve-Path $localDir).Path.Length).Replace("\", "/")
-            $remotePath = "$remoteDir$relativePath"
-
-            # Ensure parent directory exists
-            $remoteParent = $remotePath.Substring(0, $remotePath.LastIndexOf("/"))
-            Ensure-RemoteDir $remoteParent
-
-            Upload-File $file.FullName $remotePath
-          }
-
-          Write-Host "🚀 Deployment complete!"
