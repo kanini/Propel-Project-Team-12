@@ -68,10 +68,9 @@ public class QueueManagementService : IQueueManagementService
             var appointmentsQuery = from a in _context.Appointments.AsNoTracking()
                                     join p in _context.Users.AsNoTracking() on a.PatientId equals p.UserId
                                     join pr in _context.Providers.AsNoTracking() on a.ProviderId equals pr.ProviderId
-                                    where a.Status == AppointmentStatus.Arrived
-                                       && a.ScheduledDateTime >= today
+                                    where a.ScheduledDateTime >= today
                                        && a.ScheduledDateTime < tomorrow
-                                    // Fix: Removed ArrivalTime.HasValue — all records are NULL
+                                    // Fix: Removed ArrivalTime.HasValue ï¿½ all records are NULL
                                     select new
                                     {
                                         Appointment = a,
