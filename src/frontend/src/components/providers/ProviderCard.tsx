@@ -141,7 +141,7 @@ export function ProviderCard({ provider }: ProviderCardProps) {
 
     return (
         <Link
-            to={`/providers/${provider.id}/book`}
+            to={`/appointments/book/${provider.id}`}
             className="block bg-neutral-0 border border-neutral-200 rounded-lg p-5 shadow-sm 
                  hover:border-primary-300 hover:shadow-md focus:outline-none focus:ring-2 
                  focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 

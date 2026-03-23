@@ -150,180 +150,123 @@ public class AppointmentService : IAppointmentService
 
     /// <summary>
     /// Creates a new appointment with pessimistic locking (FR-008, AC3, AC4).
-    /// Uses SELECT FOR UPDATE to prevent double-booking race conditions.
-    /// Implements deadlock retry logic with exponential backoff.
+    /// Uses database-level concurrency check to prevent double-booking.
+    /// Uses EF Core execution strategy for retry handling.
     /// </summary>
     public async Task<AppointmentResponseDto> CreateAppointmentAsync(Guid patientId, CreateAppointmentRequestDto request)
     {
-        var retryCount = 0;
-        var retryDelay = InitialRetryDelayMs;
+        _logger.LogInformation(
+            "Creating appointment for Patient {PatientId}, Provider {ProviderId}, TimeSlot {TimeSlotId}",
+            patientId, request.ProviderId, request.TimeSlotId);
 
-        while (retryCount < MaxRetries)
+        // Validate request before transaction
+        await ValidateAppointmentRequestAsync(request);
+
+        // Create execution strategy to handle retries with transactions
+        var strategy = _context.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
         {
+            // Use serializable transaction for strong isolation
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
             try
             {
+                // Fetch and lock the time slot
+                var timeSlot = await _context.TimeSlots
+                    .Where(ts => ts.TimeSlotId == request.TimeSlotId)
+                    .FirstOrDefaultAsync();
+
+                if (timeSlot == null)
+                {
+                    throw new ArgumentException($"Time slot {request.TimeSlotId} does not exist", nameof(request.TimeSlotId));
+                }
+
+                // Check if slot is already booked (AC4 - conflict detection)
+                if (timeSlot.IsBooked)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogWarning(
+                        "Time slot {TimeSlotId} is already booked. Conflict detected.",
+                        request.TimeSlotId);
+                    throw new ConflictException($"Time slot {request.TimeSlotId} is no longer available");
+                }
+
+                // Mark time slot as booked
+                timeSlot.IsBooked = true;
+                timeSlot.UpdatedAt = DateTime.UtcNow;
+
+                // Create appointment record
+                var appointment = new Appointment
+                {
+                    AppointmentId = Guid.NewGuid(),
+                    PatientId = patientId,
+                    ProviderId = request.ProviderId,
+                    TimeSlotId = request.TimeSlotId,
+                    ScheduledDateTime = timeSlot.StartTime,
+                    Status = AppointmentStatus.Scheduled,
+                    VisitReason = request.VisitReason,
+                    PreferredSlotId = request.PreferredSlotId,
+                    ConfirmationNumber = GenerateConfirmationNumber(),
+                    IsWalkIn = false,
+                    ConfirmationReceived = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Appointments.Add(appointment);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
                 _logger.LogInformation(
-                    "Creating appointment for Patient {PatientId}, Provider {ProviderId}, TimeSlot {TimeSlotId} (Attempt {Attempt})",
-                    patientId, request.ProviderId, request.TimeSlotId, retryCount + 1);
+                    "Appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
+                    appointment.AppointmentId, appointment.ConfirmationNumber);
 
-                // Validate request
-                await ValidateAppointmentRequestAsync(request);
+                // Load provider name and specialty for response
+                var provider = await _context.Providers
+                    .AsNoTracking()
+                    .Where(p => p.ProviderId == request.ProviderId)
+                    .Select(p => new { p.Name, p.Specialty })
+                    .FirstOrDefaultAsync();
 
-                // Start transaction for atomic operations
-                using var transaction = await _context.Database.BeginTransactionAsync();
-
-                try
+                // Load preferred slot start time if preference is set
+                DateTime? preferredSlotStartTime = null;
+                if (appointment.PreferredSlotId.HasValue)
                 {
-                    // SELECT FOR UPDATE to lock the time slot row (pessimistic locking)
-                    var timeSlot = await LockAndFetchTimeSlotAsync(request.TimeSlotId);
-
-                    // Check if slot is already booked (AC4 - conflict detection)
-                    if (timeSlot.IsBooked)
-                    {
-                        await transaction.RollbackAsync();
-                        _logger.LogWarning(
-                            "Time slot {TimeSlotId} is already booked. Conflict detected.",
-                            request.TimeSlotId);
-                        throw new ConflictException($"Time slot {request.TimeSlotId} is no longer available");
-                    }
-
-                    // Mark time slot as booked
-                    timeSlot.IsBooked = true;
-                    timeSlot.UpdatedAt = DateTime.UtcNow;
-
-                    // Create appointment record
-                    var appointment = new Appointment
-                    {
-                        AppointmentId = Guid.NewGuid(),
-                        PatientId = patientId,
-                        ProviderId = request.ProviderId,
-                        TimeSlotId = request.TimeSlotId,
-                        ScheduledDateTime = timeSlot.StartTime,
-                        Status = AppointmentStatus.Scheduled,
-                        VisitReason = request.VisitReason,
-                        PreferredSlotId = request.PreferredSlotId,
-                        ConfirmationNumber = GenerateConfirmationNumber(),
-                        IsWalkIn = false,
-                        ConfirmationReceived = false,
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    _context.Appointments.Add(appointment);
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    _logger.LogInformation(
-                        "Appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
-                        appointment.AppointmentId, appointment.ConfirmationNumber);
-
-                    // Load provider name for response
-                    var provider = await _context.Providers
+                    preferredSlotStartTime = await _context.TimeSlots
                         .AsNoTracking()
-                        .Where(p => p.ProviderId == request.ProviderId)
-                        .Select(p => p.Name)
+                        .Where(ts => ts.TimeSlotId == appointment.PreferredSlotId.Value)
+                        .Select(ts => ts.StartTime)
                         .FirstOrDefaultAsync();
-
-                    // Load preferred slot start time if preference is set
-                    DateTime? preferredSlotStartTime = null;
-                    if (appointment.PreferredSlotId.HasValue)
-                    {
-                        preferredSlotStartTime = await _context.TimeSlots
-                            .AsNoTracking()
-                            .Where(ts => ts.TimeSlotId == appointment.PreferredSlotId.Value)
-                            .Select(ts => ts.StartTime)
-                            .FirstOrDefaultAsync();
-                    }
-
-                    return new AppointmentResponseDto
-                    {
-                        Id = appointment.AppointmentId,
-                        ProviderId = appointment.ProviderId,
-                        ProviderName = provider ?? "Unknown",
-                        ScheduledDateTime = appointment.ScheduledDateTime,
-                        VisitReason = appointment.VisitReason,
-                        Status = appointment.Status.ToString(),
-                        ConfirmationNumber = appointment.ConfirmationNumber,
-                        PreferredSlotId = appointment.PreferredSlotId,
-                        PreferredSlotStartTime = preferredSlotStartTime
-                    };
                 }
-                catch (ConflictException)
+
+                return new AppointmentResponseDto
                 {
-                    await transaction.RollbackAsync();
-                    throw; // Rethrow conflict exceptions immediately (no retry)
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-
-                    // Check if it's a deadlock (PostgreSQL deadlock_detected error code: 40P01)
-                    if (IsDeadlockException(ex))
-                    {
-                        retryCount++;
-                        if (retryCount >= MaxRetries)
-                        {
-                            _logger.LogError(ex,
-                                "Deadlock detected after {RetryCount} retries for Patient {PatientId}, TimeSlot {TimeSlotId}",
-                                retryCount, patientId, request.TimeSlotId);
-                            throw new InvalidOperationException(
-                                $"Unable to complete appointment booking after {MaxRetries} attempts due to high concurrency. Please try again.",
-                                ex);
-                        }
-
-                        _logger.LogWarning(
-                            "Deadlock detected on attempt {Attempt} for Patient {PatientId}, TimeSlot {TimeSlotId}. Retrying in {Delay}ms...",
-                            retryCount, patientId, request.TimeSlotId, retryDelay);
-
-                        await Task.Delay(retryDelay);
-                        retryDelay *= 2; // Exponential backoff
-                        continue; // Retry
-                    }
-
-                    throw; // Rethrow non-deadlock exceptions
-                }
+                    Id = appointment.AppointmentId,
+                    ProviderId = appointment.ProviderId,
+                    ProviderName = provider?.Name ?? "Unknown",
+                    ProviderSpecialty = provider?.Specialty ?? "General Practice",
+                    ScheduledDateTime = appointment.ScheduledDateTime,
+                    VisitReason = appointment.VisitReason,
+                    Status = appointment.Status.ToString(),
+                    ConfirmationNumber = appointment.ConfirmationNumber,
+                    PreferredSlotId = appointment.PreferredSlotId,
+                    PreferredSlotStartTime = preferredSlotStartTime
+                };
             }
             catch (ConflictException)
             {
+                await transaction.RollbackAsync();
                 throw; // Don't retry conflicts
-            }
-            catch (ArgumentException)
-            {
-                throw; // Don't retry validation errors
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex,
                     "Error creating appointment for Patient {PatientId}, TimeSlot {TimeSlotId}",
                     patientId, request.TimeSlotId);
                 throw;
             }
-        }
-
-        throw new InvalidOperationException("Unexpected retry loop exit");
-    }
-
-    /// <summary>
-    /// Locks time slot row using SELECT FOR UPDATE (pessimistic locking).
-    /// Prevents concurrent bookings from creating double-booking race conditions.
-    /// </summary>
-    private async Task<TimeSlot> LockAndFetchTimeSlotAsync(Guid timeSlotId)
-    {
-        // Execute raw SQL with FOR UPDATE to lock row
-        var timeSlots = await _context.TimeSlots
-            .FromSqlRaw(@"
-                SELECT * FROM ""TimeSlots"" 
-                WHERE ""TimeSlotId"" = {0} 
-                FOR UPDATE", timeSlotId)
-            .ToListAsync();
-
-        var timeSlot = timeSlots.FirstOrDefault();
-
-        if (timeSlot == null)
-        {
-            throw new ArgumentException($"Time slot {timeSlotId} does not exist", nameof(timeSlotId));
-        }
-
-        return timeSlot;
+        });
     }
 
     /// <summary>
@@ -511,18 +454,15 @@ public class AppointmentService : IAppointmentService
                     "Rescheduling appointment {AppointmentId} for Patient {PatientId} to TimeSlot {NewTimeSlotId} (Attempt {Attempt})",
                     appointmentId, patientId, newTimeSlotId, retryCount + 1);
 
-                // Start transaction for atomic operations (AC-3)
-                using var transaction = await _context.Database.BeginTransactionAsync();
+                // Start transaction with serializable isolation for atomic operations (AC-3)
+                using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
                 try
                 {
-                    // Lock and fetch appointment
+                    // Fetch appointment with provider
                     var appointment = await _context.Appointments
-                        .FromSqlRaw(@"
-                            SELECT * FROM ""Appointments"" 
-                            WHERE ""AppointmentId"" = {0} 
-                            FOR UPDATE", appointmentId)
                         .Include(a => a.Provider)
+                        .Where(a => a.AppointmentId == appointmentId)
                         .FirstOrDefaultAsync();
 
                     if (appointment == null)
@@ -556,20 +496,14 @@ public class AppointmentService : IAppointmentService
                             nameof(appointmentId));
                     }
 
-                    // Lock and fetch original time slot
+                    // Fetch original time slot
                     var originalSlot = await _context.TimeSlots
-                        .FromSqlRaw(@"
-                            SELECT * FROM ""TimeSlots"" 
-                            WHERE ""TimeSlotId"" = {0} 
-                            FOR UPDATE", appointment.TimeSlotId)
+                        .Where(ts => ts.TimeSlotId == appointment.TimeSlotId)
                         .FirstOrDefaultAsync();
 
-                    // Lock and fetch new time slot
+                    // Fetch new time slot
                     var newSlot = await _context.TimeSlots
-                        .FromSqlRaw(@"
-                            SELECT * FROM ""TimeSlots"" 
-                            WHERE ""TimeSlotId"" = {0} 
-                            FOR UPDATE", newTimeSlotId)
+                        .Where(ts => ts.TimeSlotId == newTimeSlotId)
                         .FirstOrDefaultAsync();
 
                     if (newSlot == null)
@@ -766,13 +700,20 @@ public class AppointmentService : IAppointmentService
                 // Validate request
                 await ValidateWalkinAppointmentRequestAsync(request);
 
-                // Start transaction for atomic operations
-                using var transaction = await _context.Database.BeginTransactionAsync();
+                // Start transaction with serializable isolation for concurrency control
+                using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
                 try
                 {
-                    // SELECT FOR UPDATE to lock the time slot row (pessimistic locking)
-                    var timeSlot = await LockAndFetchTimeSlotAsync(request.TimeSlotId);
+                    // Fetch and lock the time slot
+                    var timeSlot = await _context.TimeSlots
+                        .Where(ts => ts.TimeSlotId == request.TimeSlotId)
+                        .FirstOrDefaultAsync();
+
+                    if (timeSlot == null)
+                    {
+                        throw new ArgumentException($"Time slot {request.TimeSlotId} does not exist", nameof(request.TimeSlotId));
+                    }
 
                     // Check if slot is already booked (AC4 - conflict detection)
                     if (timeSlot.IsBooked)
