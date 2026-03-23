@@ -93,23 +93,23 @@ export const Sidebar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r border-gray-200 min-h-screen">
+    <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r border-neutral-200 h-screen sticky top-0">
       {/* Logo and User Info */}
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-blue-600">Patient Access</h1>
+      <div className="flex-shrink-0 p-6 border-b border-neutral-200">
+        <h1 className="text-xl font-bold text-primary-500">Patient Access</h1>
         {user && (
           <div className="mt-4">
-            <p className="text-sm font-medium text-gray-900">{user.name}</p>
-            <p className="text-xs text-gray-500">{user.email}</p>
-            <span className="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+            <p className="text-sm font-medium text-neutral-900">{user.name}</p>
+            <p className="text-xs text-neutral-500">{user.email}</p>
+            <span className="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-700">
               {role}
             </span>
           </div>
         )}
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      {/* Navigation Menu - Scrollable when content overflows */}
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
         {visibleItems.map((item) => (
           <Link
             key={item.path}
@@ -118,8 +118,8 @@ export const Sidebar = () => {
               flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
               ${
                 isActive(item.path)
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-primary-50 text-primary-600"
+                  : "text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
               }
             `}
           >
@@ -129,11 +129,11 @@ export const Sidebar = () => {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
+      {/* Footer - Always visible at bottom */}
+      <div className="flex-shrink-0 p-4 border-t border-neutral-200 bg-white">
         <Link
           to="/logout"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
         >
           <span className="text-xl">🚪</span>
           <span>Logout</span>

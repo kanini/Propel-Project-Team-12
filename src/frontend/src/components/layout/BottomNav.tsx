@@ -54,7 +54,7 @@ export const BottomNav = () => {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50">
       <div className="flex justify-around items-center h-16">
         {visibleItems.map((item) => (
           <Link
@@ -63,8 +63,8 @@ export const BottomNav = () => {
             className={`
               flex flex-col items-center justify-center flex-1 h-full transition-colors
               ${isActive(item.path)
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-900'
+                ? 'text-primary-600'
+                : 'text-neutral-500 hover:text-neutral-900'
               }
             `}
           >

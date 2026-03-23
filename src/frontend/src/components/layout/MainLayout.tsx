@@ -11,7 +11,7 @@ interface MainLayoutProps {
  */
 export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-neutral-50">
       {/* Desktop Sidebar */}
       <Sidebar />
 
