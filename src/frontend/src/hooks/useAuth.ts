@@ -6,7 +6,7 @@ import type { RootState } from '../store';
  * Provides convenient access to user, role, and authentication status.
  */
 export const useAuth = () => {
-  const { user, token, isAuthenticated, isLoading } = useSelector(
+  const { user, token, isAuthenticated, isLoading, isInitializing } = useSelector(
     (state: RootState) => state.auth
   );
 
@@ -15,6 +15,7 @@ export const useAuth = () => {
     token,
     isAuthenticated,
     isLoading,
+    isInitializing,
     role: user?.role || null,
     userId: user?.userId || null,
     /**
