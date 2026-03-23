@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../store';
-import { setSelectedProvider } from '../store/slices/appointmentSlice';
+import { setSelectedProvider, resetBooking } from '../store/slices/appointmentSlice';
 import { ProgressIndicator } from '../components/appointments/ProgressIndicator';
 import { BookingSteps } from '../components/appointments/BookingSteps';
 
@@ -21,18 +21,32 @@ export default function AppointmentBooking() {
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
 
-    const { selectedProviderId, selectedProviderName, selectedProviderSpecialty, currentStep, selectedDate, selectedTimeSlot } = useSelector(
+    const { 
+        selectedProviderId, 
+        selectedProviderName, 
+        selectedProviderSpecialty, 
+        currentStep, 
+        selectedDate, 
+        selectedTimeSlot
+    } = useSelector(
         (state: RootState) => state.appointments
     );
 
     /**
-     * Initialize provider selection on mount
-     * Fetch provider details if not already in state
+     * Handle provider selection and reset when switching providers
+     * Only triggers when providerId or selectedProviderId changes, not on booking completion
      */
     useEffect(() => {
         if (!providerId) {
             navigate('/providers');
             return;
+        }
+
+        // Reset if user is switching to a DIFFERENT provider
+        const isSelectingNewProvider = selectedProviderId && selectedProviderId !== providerId;
+        
+        if (isSelectingNewProvider) {
+            dispatch(resetBooking());
         }
 
         // If provider not set or different provider, fetch and set
@@ -49,6 +63,20 @@ export default function AppointmentBooking() {
             );
         }
     }, [providerId, selectedProviderId, dispatch, navigate]);
+
+    /**
+     * Clean up booking state when component unmounts and user has completed booking
+     * This ensures fresh state when returning to booking flow from other pages
+     */
+    useEffect(() => {
+        return () => {
+            // Only reset on unmount if user completed a booking (step 4)
+            // This prevents resetting during in-progress bookings
+            if (currentStep === 4) {
+                dispatch(resetBooking());
+            }
+        };
+    }, [currentStep, dispatch]);
 
     /**
      * Render booking summary sidebar (matches wireframe)

@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../../store';
-import { downloadConfirmationPDF } from '../../store/slices/appointmentSlice';
+import { downloadConfirmationPDF, resetBooking } from '../../store/slices/appointmentSlice';
 
 /**
  * ConfirmationDialog shows booking success with appointment details (AC-3, FR-012)
@@ -327,7 +327,10 @@ export function ConfirmationDialog() {
             {/* Navigation buttons */}
             <div className="flex gap-3">
                 <button
-                    onClick={() => navigate('/providers')}
+                    onClick={() => {
+                        dispatch(resetBooking());
+                        navigate('/providers');
+                    }}
                     className="flex-1 inline-flex items-center justify-center h-11 px-6 
                              border border-neutral-300 rounded-lg text-sm font-medium 
                              text-neutral-700 bg-neutral-0 hover:bg-neutral-50 
