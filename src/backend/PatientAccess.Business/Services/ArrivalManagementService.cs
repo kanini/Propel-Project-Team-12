@@ -49,8 +49,8 @@ public class ArrivalManagementService : IArrivalManagementService
                 return new List<ArrivalSearchResultDto>();
             }
 
-            // Use provided date or default to today
-            var searchDate = date ?? DateTime.Today;
+            // Use provided date or default to today (UTC)
+            var searchDate = date ?? DateTime.UtcNow.Date;
             var nextDay = searchDate.AddDays(1);
 
             _logger.LogInformation("Searching appointments for date: {Date}, query: {Query}", searchDate, query);

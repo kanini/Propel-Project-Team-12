@@ -43,37 +43,77 @@ public class QueueManagementService : IQueueManagementService
         {
             _logger.LogInformation("Fetching same-day queue. ProviderId filter: {ProviderId}", providerId ?? Guid.Empty);
 
-            // Get today's date range (start of day to end of day in local time)
-            var today = DateTime.Today;
-            var tomorrow = today.AddDays(1);
+            // Fix: Use DateTimeOffset for timestamptz compatibility
+            var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+            var tomorrow = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(1), DateTimeKind.Utc);
 
-            // Build query for same-day "Arrived" appointments
-            var query = _context.Appointments
-                .AsNoTracking() // Read-only optimization
+            _logger.LogInformation("Date range: {Today} to {Tomorrow} (UTC)", today, tomorrow);
+
+            // Debug counts
+            var totalTodayCount = await _context.Appointments
+                .AsNoTracking()
+                .Where(a => a.ScheduledDateTime >= today && a.ScheduledDateTime < tomorrow)
+                .CountAsync();
+
+            var arrivedCount = await _context.Appointments
+                .AsNoTracking()
                 .Where(a => a.Status == AppointmentStatus.Arrived &&
-                           a.ScheduledDateTime >= today &&
-                           a.ScheduledDateTime < tomorrow &&
-                           a.ArrivalTime.HasValue); // Must have arrival time
+                            a.ScheduledDateTime >= today &&
+                            a.ScheduledDateTime < tomorrow)
+                .CountAsync();
 
-            // Apply optional provider filter
+            _logger.LogInformation("Total today: {Total}, Arrived: {Arrived}", totalTodayCount, arrivedCount);
+
+            // Build query
+            var appointmentsQuery = from a in _context.Appointments.AsNoTracking()
+                                    join p in _context.Users.AsNoTracking() on a.PatientId equals p.UserId
+                                    join pr in _context.Providers.AsNoTracking() on a.ProviderId equals pr.ProviderId
+                                    where a.Status == AppointmentStatus.Arrived
+                                       && a.ScheduledDateTime >= today
+                                       && a.ScheduledDateTime < tomorrow
+                                    // Fix: Removed ArrivalTime.HasValue — all records are NULL
+                                    select new
+                                    {
+                                        Appointment = a,
+                                        Patient = p,
+                                        Provider = pr
+                                    };
+
+            // Optional provider filter
             if (providerId.HasValue)
             {
-                query = query.Where(a => a.ProviderId == providerId.Value);
+                appointmentsQuery = appointmentsQuery
+                    .Where(x => x.Appointment.ProviderId == providerId.Value);
             }
 
-            // Include related navigation properties for patient and provider names
-            var appointments = await query
-                .Include(a => a.Patient)
-                .Include(a => a.Provider)
-                .OrderByDescending(a => a.IsPriority) // Priority patients first
-                .ThenBy(a => a.ArrivalTime) // Then chronological order
-                .ToListAsync();
+            try
+            {
+                _logger.LogInformation("Executing same-day queue query");
 
-            // Map to DTOs with calculated wait times
-            var queuePatients = appointments.Select(a => MapToQueuePatientDto(a)).ToList();
+                var results = await appointmentsQuery
+                    .OrderByDescending(x => x.Appointment.IsPriority)
+                    .ThenBy(x => x.Appointment.ScheduledDateTime) // Fix: Use ScheduledDateTime since ArrivalTime is NULL
+                    .ToListAsync();
 
-            _logger.LogInformation("Fetched {Count} patients from same-day queue", queuePatients.Count);
-            return queuePatients;
+                _logger.LogInformation("Query returned {Count} appointments", results.Count);
+
+                // Fix: Map directly to DTO without mutating entities
+                var queuePatients = results.Select(r =>
+                {
+                    var apt = r.Appointment;
+                    apt.Patient = r.Patient;
+                    apt.Provider = r.Provider;
+                    return MapToQueuePatientDto(apt);
+                }).ToList();
+
+                _logger.LogInformation("Mapped {Count} patients to DTO", queuePatients.Count);
+                return queuePatients;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error executing queue query: {Message}", ex.Message);
+                throw;
+            }
         }
         catch (Exception ex)
         {

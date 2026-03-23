@@ -126,7 +126,7 @@ export async function fetchProviderSlots(
   providerId: string,
   date: string,
 ): Promise<unknown[]> {
-  const url = `${API_BASE_URL}/api/providers/${providerId}/slots?date=${date}`;
+  const url = `${API_BASE_URL}/api/providers/${providerId}/availability?date=${date}`;
 
   try {
     const response = await fetch(url, {
@@ -145,7 +145,18 @@ export async function fetchProviderSlots(
     }
 
     const data = await response.json();
-    return data;
+    const timeSlots = data.timeSlots || [];
+
+    // Transform backend data structure to match frontend expectations
+    // Backend: { id, startTime, endTime, isBooked }
+    // Frontend: { id, providerId, startTime, endTime, status }
+    return timeSlots.map((slot: any) => ({
+      id: slot.id,
+      providerId: providerId,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      status: slot.isBooked ? "booked" : "available",
+    }));
   } catch (error) {
     if (error instanceof Error) {
       throw error;
