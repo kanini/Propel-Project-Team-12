@@ -1,8 +1,6 @@
 name: CD - Deploy Backend via FTP
-
 on:
   workflow_dispatch:
-
 jobs:
   deploy:
     name: CD - Deploy to MonsterASP.NET via FTP
@@ -10,34 +8,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0
-
       - name: Restore dependencies
         run: dotnet restore src/backend/PatientAccess.sln
-
       - name: Generate RSA Keys
         run: powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1
-
       - name: Publish
         run: dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj --configuration Release --output ./publish --no-self-contained --runtime win-x86
-
       - name: Copy RSA keys into publish output
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path "./publish/security/rsa-keys"
           Copy-Item "security/rsa-keys/public-key.xml" "./publish/security/rsa-keys/public-key.xml"
           Copy-Item "security/rsa-keys/private-key.xml" "./publish/security/rsa-keys/private-key.xml"
-
       - name: Set Development environment in web.config
         shell: bash
         run: |
           sed -i 's|stdoutLogEnabled="false"|stdoutLogEnabled="true"|g' ./publish/web.config
           sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
-
       - name: Take app offline
         shell: powershell
         run: |
@@ -45,11 +36,9 @@ jobs:
           $content | Out-File -FilePath "./app_offline.htm" -Encoding utf8
           & curl.exe --ftp-create-dirs --silent --show-error --user "site59724:C+c87T#w%fP5" -T "./app_offline.htm" "ftp://site59724.siteasp.net/wwwroot/app_offline.htm"
           Write-Host "App is offline"
-
       - name: Wait for app pool to recycle
         shell: powershell
         run: Start-Sleep -Seconds 15
-
       - name: Deploy all files
         shell: powershell
         run: |
@@ -60,22 +49,17 @@ jobs:
           $remoteBase = "/wwwroot"
           $maxRetries = 5
           $retryDelay = 10
-
           $files = Get-ChildItem -Path $localDir -Recurse -File
-
           foreach ($file in $files) {
             $relativePath = $file.FullName.Substring($localDir.Length).Replace("\", "/")
             $remoteUrl    = "$ftpHost$remoteBase$relativePath"
             $attempt      = 0
             $uploaded     = $false
-
             while (-not $uploaded -and $attempt -lt $maxRetries) {
               $attempt++
               Write-Host "Uploading (attempt $attempt): $relativePath"
-
               & curl.exe --ftp-create-dirs --silent --show-error --retry 0 --user "$ftpUser`:$ftpPass" -T $file.FullName $remoteUrl
               $exitCode = $LASTEXITCODE
-
               if ($exitCode -eq 0) {
                 Write-Host "OK: $relativePath"
                 $uploaded = $true
@@ -91,9 +75,13 @@ jobs:
               }
             }
           }
-
           Write-Host "All files uploaded"
-
+      - name: Upload RSA keys to FTP root level
+        shell: powershell
+        run: |
+          & curl.exe --ftp-create-dirs --silent --show-error --user "site59724:C+c87T#w%fP5" -T "security/rsa-keys/public-key.xml" "ftp://site59724.siteasp.net/security/rsa-keys/public-key.xml"
+          & curl.exe --ftp-create-dirs --silent --show-error --user "site59724:C+c87T#w%fP5" -T "security/rsa-keys/private-key.xml" "ftp://site59724.siteasp.net/security/rsa-keys/private-key.xml"
+          Write-Host "RSA keys uploaded to FTP root"
       - name: Bring app back online
         shell: powershell
         run: |
