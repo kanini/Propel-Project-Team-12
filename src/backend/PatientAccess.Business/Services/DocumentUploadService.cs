@@ -152,6 +152,18 @@ public class DocumentUploadService
             // Trigger completion event (AC3)
             await TriggerUploadCompleteEventAsync(request.UploadSessionId, document);
 
+            // Enqueue background job for document processing (US_043 - AC1)
+            try
+            {
+                Hangfire.BackgroundJob.Enqueue<BackgroundJobs.DocumentProcessingJob>(job => job.Execute(document.DocumentId));
+                _logger.LogInformation("Document processing job enqueued for {DocumentId}", document.DocumentId);
+            }
+            catch (Exception jobEx)
+            {
+                // Graceful degradation: if Hangfire unavailable, log error but don't fail upload
+                _logger.LogError(jobEx, "Failed to enqueue document processing job for {DocumentId}. Document remains in Uploaded status for health check detection.", document.DocumentId);
+            }
+
             var response = new DocumentUploadResponseDto
             {
                 DocumentId = document.DocumentId,
