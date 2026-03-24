@@ -90,7 +90,7 @@ var publicKeyPath = jwtSettings["PublicKeyPath"]
 if (!File.Exists(publicKeyPath))
 {
     throw new InvalidOperationException(
-        $"JWT public key not found at {publicKeyPath}. " +
+        $"JWT public key not found at {publicKeyPath} (absolute: {Path.GetFullPath(publicKeyPath)}). " +
         "Run 'powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1' to generate RSA key pair. " +
         "See docs/AUTHENTICATION.md for setup instructions.");
 }
