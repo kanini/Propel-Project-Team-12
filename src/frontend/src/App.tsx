@@ -11,6 +11,8 @@ import LoginPage from "./features/auth/pages/LoginPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
+import {PatientDashboard} from "./pages/PatientDashboard";
+import MyAppointments from "./pages/MyAppointments";
 import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
 import { QueueManagement } from "./pages/staff/QueueManagement";
 import { ArrivalManagement } from "./pages/staff/ArrivalManagement";
@@ -100,18 +102,13 @@ function App() {
             }
           />
 
-          {/* Patient Dashboard Routes - US_020, AC1, AC4 */}
+          {/* Patient Dashboard Routes - US_067, AC1 */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">
-                      Patient Dashboard
-                    </h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <PatientDashboard />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -122,10 +119,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Appointments</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <MyAppointments />
                 </MainLayout>
               </ProtectedRoute>
             }
