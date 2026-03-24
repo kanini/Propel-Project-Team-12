@@ -560,6 +560,76 @@ public class AppointmentsController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieves upcoming appointments for dashboard display (US_067, AC4).
+    /// Returns next N appointments in chronological order for authenticated patient.
+    /// </summary>
+    /// <param name="limit">Maximum number of appointments to return (default: 5, max: 20)</param>
+    /// <returns>200 OK with upcoming appointments list</returns>
+    /// <response code="200">Upcoming appointments retrieved successfully</response>
+    /// <response code="400">Invalid limit parameter</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("upcoming")]
+    [Authorize(Roles = "Patient")]
+    [ProducesResponseType(typeof(List<UpcomingAppointmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetUpcomingAppointments([FromQuery] int limit = 5)
+    {
+        try
+        {
+            if (limit < 1 || limit > 20)
+            {
+                return BadRequest(new { message = "Limit must be between 1 and 20" });
+            }
+
+            // Extract patient ID from authenticated user claims
+            var patientIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(patientIdClaim) || !Guid.TryParse(patientIdClaim, out var patientId))
+            {
+                _logger.LogWarning("Unable to extract patient ID from claims");
+                return Unauthorized(new { message = "Invalid authentication token" });
+            }
+
+            _logger.LogInformation("Retrieving {Limit} upcoming appointments for Patient {PatientId}", limit, patientId);
+
+            // Fetch all appointments and filter to upcoming
+            var allAppointments = await _appointmentService.GetPatientAppointmentsAsync(patientId);
+            var now = DateTime.UtcNow;
+            
+            var upcomingAppointments = allAppointments
+                .Where(a => a.ScheduledDateTime > now 
+                    && (a.Status == "Scheduled" || a.Status == "Confirmed" || a.Status == "Pending"))
+                .OrderBy(a => a.ScheduledDateTime)
+                .Take(limit)
+                .Select(a => new UpcomingAppointmentDto
+                {
+                    AppointmentId = a.Id,
+                    ProviderName = a.ProviderName,
+                    ProviderSpecialty = a.ProviderSpecialty,
+                    ScheduledDateTime = a.ScheduledDateTime,
+                    Status = a.Status,
+                    ConfirmationNumber = a.ConfirmationNumber,
+                    VisitReason = a.VisitReason
+                })
+                .ToList();
+
+            _logger.LogInformation(
+                "Retrieved {Count} upcoming appointments for Patient {PatientId}",
+                upcomingAppointments.Count, patientId);
+
+            return Ok(upcomingAppointments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving upcoming appointments");
+            return StatusCode(500, new { message = "An error occurred while retrieving upcoming appointments" });
+        }
+    }
+
+    /// <summary>
     /// Creates a walk-in appointment (US_029, AC-3).
     /// Staff-only endpoint for immediate appointment booking.
     /// Walk-in appointments default to Arrived status with IsWalkin flag.

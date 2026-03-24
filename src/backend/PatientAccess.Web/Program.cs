@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -89,7 +90,7 @@ var publicKeyPath = jwtSettings["PublicKeyPath"]
 if (!File.Exists(publicKeyPath))
 {
     throw new InvalidOperationException(
-        $"JWT public key not found at {publicKeyPath}. " +
+        $"JWT public key not found at {publicKeyPath} (absolute: {Path.GetFullPath(publicKeyPath)}). " +
         "Run 'powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1' to generate RSA key pair. " +
         "See docs/AUTHENTICATION.md for setup instructions.");
 }
@@ -180,6 +181,9 @@ builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ConfirmationEma
 builder.Services.AddSingleton<IPusherService, PusherService>(); // US_030 - Real-time event broadcasting via Pusher Channels
 builder.Services.AddScoped<IQueueManagementService, QueueManagementService>(); // US_030 - Queue management and priority flagging
 builder.Services.AddScoped<IArrivalManagementService, ArrivalManagementService>(); // US_031 - Arrival status marking and search
+builder.Services.AddScoped<IDashboardService, DashboardService>(); // US_067 - Patient dashboard statistics
+builder.Services.AddScoped<INotificationService, NotificationService>(); // US_067 - Notification management for dashboard
+builder.Services.AddScoped<IDocumentService, DocumentService>(); // US_067 - Clinical document retrieval for dashboard
 
 // US_042 - Document upload services (chunked upload with real-time progress)
 builder.Services.AddMemoryCache(); // Required for upload session tracking
@@ -227,6 +231,13 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
             }
         });
 
+        // Register IDistributedCache for dashboard and notification services (US_067)
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = redisSettings.GetValue<string>("InstanceName", "PatientAccess:");
+        });
+
         // Register SessionCacheService (US_006)
         builder.Services.AddSingleton<ISessionCacheService, SessionCacheService>();
 
@@ -249,7 +260,10 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
 else
 {
     var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("Redis caching disabled in configuration. Application will use database-only session management.");
+    logger.LogInformation("Redis caching disabled in configuration. Application will use in-memory distributed cache fallback.");
+    
+    // Register in-memory distributed cache as fallback (US_067)
+    builder.Services.AddDistributedMemoryCache();
 }
 
 // Register Data Layer Repositories (DI)
