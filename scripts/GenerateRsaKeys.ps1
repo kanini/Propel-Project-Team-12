@@ -38,9 +38,9 @@ Set-Content -Path $publicKeyPath -Value $publicKeyXml -Encoding UTF8
 Set-Content -Path $webPrivateKeyPath -Value $privateKeyXml -Encoding UTF8
 Set-Content -Path $webPublicKeyPath -Value $publicKeyXml -Encoding UTF8
 
-Write-Host "✓ Private key saved to: $privateKeyPath" -ForegroundColor Green
-Write-Host "✓ Public key saved to: $publicKeyPath" -ForegroundColor Green
-Write-Host "✓ Keys also copied to: $webProjectDir" -ForegroundColor Green
+Write-Host "Private key saved to: $privateKeyPath" -ForegroundColor Green
+Write-Host "Public key saved to: $publicKeyPath" -ForegroundColor Green
+Write-Host "Keys also copied to: $webProjectDir" -ForegroundColor Green
 Write-Host ""
 Write-Host "IMPORTANT SECURITY NOTICE:" -ForegroundColor Yellow
 Write-Host "- Keep private-key.xml secure and NEVER commit to version control" -ForegroundColor Yellow
