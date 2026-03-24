@@ -17,9 +17,9 @@ nul
 .vscode/mcp.json
 
 # RSA Keys (Security) - NEVER commit private keys
-# src/backend/rsa-keys/*.xml
-# src/backend/rsa-keys/*.pem
-# src/backend/PatientAccess.Web/rsa-keys/*.xml
-# src/backend/PatientAccess.Web/rsa-keys/*.pem
-# security/rsa-keys/*.xml
-# security/rsa-keys/*.pem
+src/backend/rsa-keys/*.xml
+src/backend/rsa-keys/*.pem
+src/backend/PatientAccess.Web/rsa-keys/*.xml
+src/backend/PatientAccess.Web/rsa-keys/*.pem
+security/rsa-keys/*.xml
+security/rsa-keys/*.pem
