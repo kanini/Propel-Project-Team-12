@@ -21,9 +21,10 @@ jobs:
       - name: Copy RSA keys into publish output
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Force -Path "./publish/security/rsa-keys"
-          Copy-Item "security/rsa-keys/public-key.xml" "./publish/security/rsa-keys/public-key.xml"
-          Copy-Item "security/rsa-keys/private-key.xml" "./publish/security/rsa-keys/private-key.xml"
+          New-Item -ItemType Directory -Force -Path "./publish/rsa-keys"
+          Copy-Item "src/backend/PatientAccess.Web/rsa-keys/public-key.xml" "./publish/rsa-keys/public-key.xml"
+          Copy-Item "src/backend/PatientAccess.Web/rsa-keys/private-key.xml" "./publish/rsa-keys/private-key.xml"
+          Write-Host "RSA keys copied to publish/rsa-keys/"
       - name: Set Development environment in web.config
         shell: bash
         run: |
@@ -76,12 +77,12 @@ jobs:
             }
           }
           Write-Host "All files uploaded"
-      - name: Upload RSA keys to FTP root level
+      - name: Upload RSA keys to FTP wwwroot/rsa-keys
         shell: powershell
         run: |
-          & curl.exe --ftp-create-dirs --silent --show-error --user "site59724:C+c87T#w%fP5" -T "security/rsa-keys/public-key.xml" "ftp://site59724.siteasp.net/security/rsa-keys/public-key.xml"
-          & curl.exe --ftp-create-dirs --silent --show-error --user "site59724:C+c87T#w%fP5" -T "security/rsa-keys/private-key.xml" "ftp://site59724.siteasp.net/security/rsa-keys/private-key.xml"
-          Write-Host "RSA keys uploaded to FTP root"
+          & curl.exe --ftp-create-dirs --silent --show-error --user "site59724:C+c87T#w%fP5" -T "src/backend/PatientAccess.Web/rsa-keys/public-key.xml" "ftp://site59724.siteasp.net/wwwroot/rsa-keys/public-key.xml"
+          & curl.exe --ftp-create-dirs --silent --show-error --user "site59724:C+c87T#w%fP5" -T "src/backend/PatientAccess.Web/rsa-keys/private-key.xml" "ftp://site59724.siteasp.net/wwwroot/rsa-keys/private-key.xml"
+          Write-Host "RSA keys uploaded to FTP wwwroot/rsa-keys/"
       - name: Bring app back online
         shell: powershell
         run: |
