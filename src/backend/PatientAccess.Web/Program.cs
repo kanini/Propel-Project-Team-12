@@ -185,6 +185,16 @@ builder.Services.AddScoped<IDashboardService, DashboardService>(); // US_067 - P
 builder.Services.AddScoped<INotificationService, NotificationService>(); // US_067 - Notification management for dashboard
 builder.Services.AddScoped<IDocumentService, DocumentService>(); // US_067 - Clinical document retrieval for dashboard
 
+// US_042 - Document upload services (chunked upload with real-time progress)
+builder.Services.AddMemoryCache(); // Required for upload session tracking
+builder.Services.AddSingleton<ChunkedUploadManager>(); // Singleton for session management
+builder.Services.AddScoped<DocumentUploadService>(); // Scoped for DB context access
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob>(); // Background cleanup
+
+// US_043 - Document processing services (Hangfire background jobs)
+builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>(); // Processing orchestration
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
+
 // Register IHttpContextAccessor for audit logging context extraction
 builder.Services.AddHttpContextAccessor();
 
@@ -305,7 +315,17 @@ var healthChecksBuilder = builder.Services.AddHealthChecks()
         name: "database",
         failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
         tags: new[] { "db", "postgresql" },
-        timeout: TimeSpan.FromSeconds(5)); // AC-4: 5-second timeout
+        timeout: TimeSpan.FromSeconds(5)) // AC-4: 5-second timeout
+    .AddCheck<HangfireHealthCheck>(
+        "hangfire",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+        tags: new[] { "hangfire", "backgroundjobs" },
+        timeout: TimeSpan.FromSeconds(5)) // US_043: Hangfire server health
+    .AddCheck<DocumentProcessingHealthCheck>(
+        "document-processing",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "documents", "processing" },
+        timeout: TimeSpan.FromSeconds(5)); // US_043: Document processing backlog health
 
 // Add Redis health check if enabled (US_006)
 if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
@@ -391,8 +411,21 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None); // Collapse all by default
     });
 
-    // Hangfire Dashboard (US_028 - Development only for monitoring background jobs)
-    app.UseHangfireDashboard("/hangfire");
+    // Hangfire Dashboard (US_028, US_043 - Development only for monitoring background jobs)
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new HangfireDashboardAuthorizationFilter(app.Environment) }, // US_043: Dev=open, Prod=Admin-only
+        StatsPollingInterval = 2000, // Poll every 2 seconds
+        DisplayStorageConnectionString = false // Hide connection string for security
+    });
+
+    // Schedule recurring background jobs
+    using (var scope = app.Services.CreateScope())
+    {
+        // Schedule upload session cleanup job (US_042) - runs every 30 minutes
+        PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob.Schedule();
+        app.Logger.LogInformation("Scheduled upload session cleanup job to run every 30 minutes");
+    }
 }
 
 // Use audit logging middleware early to capture IP and User Agent for all requests (US_022)

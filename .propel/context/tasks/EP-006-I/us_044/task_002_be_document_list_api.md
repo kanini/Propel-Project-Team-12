@@ -232,11 +232,11 @@ dotnet run
 - [ ] Error handling returns appropriate status codes (400, 404, 500)
 
 ## Implementation Checklist
-- [ ] Create DocumentStatusDto with all required properties and computed fields
-- [ ] Add GET /api/documents endpoint with authorization and ownership filtering
-- [ ] Implement efficient database query with AsNoTracking and ordering
-- [ ] Calculate IsStuckProcessing flag based on processing time
-- [ ] Add POST /api/documents/{id}/retry endpoint with validation
-- [ ] Implement RetryProcessingAsync in DocumentProcessingService
-- [ ] Add authorization and ownership validation for all endpoints
-- [ ] Implement comprehensive error handling and logging
+- [x] Create DocumentStatusDto with all required properties and computed fields
+- [x] Add GET /api/documents endpoint with authorization and ownership filtering
+- [x] Implement efficient database query with AsNoTracking and ordering
+- [x] Calculate IsStuckProcessing flag based on processing time
+- [x] Add POST /api/documents/{id}/retry endpoint with validation
+- [x] Implement RetryProcessingAsync in DocumentProcessingService
+- [x] Add authorization and ownership validation for all endpoints
+- [x] Implement comprehensive error handling and logging

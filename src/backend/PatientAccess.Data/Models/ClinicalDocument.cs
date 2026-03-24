@@ -9,6 +9,8 @@ public class ClinicalDocument
 
     public Guid PatientId { get; set; }
 
+    public Guid? UploadedBy { get; set; }
+
     public string FileName { get; set; } = string.Empty;
 
     public long FileSize { get; set; }
@@ -31,5 +33,6 @@ public class ClinicalDocument
 
     // Navigation properties
     public User Patient { get; set; } = null!;
+    public User? UploadedByUser { get; set; }
     public ICollection<ExtractedClinicalData> ExtractedData { get; set; } = new List<ExtractedClinicalData>();
 }
