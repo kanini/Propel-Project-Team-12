@@ -84,7 +84,7 @@ builder.Services.AddCors(options =>
 // Configure JWT Authentication (TR-012) - RS256 with RSA asymmetric keys
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var publicKeyPath = jwtSettings["PublicKeyPath"] 
-    ?? Path.Combine(AppContext.BaseDirectory, "security", "rsa-keys", "public-key.xml");
+    ?? Path.Combine(AppContext.BaseDirectory, "rsa-keys", "public-key.xml");
 
 // Load public key for token validation
 if (!File.Exists(publicKeyPath))
