@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
 using PatientAccess.Business.Services;
+using PatientAccess.Data;
+using PatientAccess.Data.Models;
 using System.Security.Claims;
 
 namespace PatientAccess.Web.Controllers;
 
 /// <summary>
-/// Documents controller for clinical document management (US_067).
-/// Provides endpoints for retrieving recent documents and metadata.
+/// Documents controller for clinical document management (US_042, US_044, US_067).
+/// Provides endpoints for document upload, status tracking, and retry functionality.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -18,17 +21,22 @@ public class DocumentsController : ControllerBase
 {
     private readonly DocumentUploadService _uploadService;
     private readonly IDocumentService _documentService;
+    private readonly IDocumentProcessingService _processingService;
+    private readonly PatientAccessDbContext _context;
     private readonly IAuditLogService _auditService;
     private readonly ILogger<DocumentsController> _logger;
 
     public DocumentsController(
         IDocumentService documentService,
+        IDocumentProcessingService processingService,
+        PatientAccessDbContext context,
         IAuditLogService auditService,
-         DocumentUploadService uploadService,
+        DocumentUploadService uploadService,
         ILogger<DocumentsController> logger)
-
     {
         _documentService = documentService ?? throw new ArgumentNullException(nameof(documentService));
+        _processingService = processingService ?? throw new ArgumentNullException(nameof(processingService));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
         _uploadService = uploadService ?? throw new ArgumentNullException(nameof(uploadService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -75,6 +83,66 @@ public class DocumentsController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving recent documents");
             return StatusCode(500, new { error = "Unable to retrieve documents" });
+        }
+    }
+
+    /// <summary>
+    /// Get all clinical documents for authenticated user with status tracking (US_044, AC1).
+    /// Returns documents ordered by upload date descending.
+    /// </summary>
+    /// <returns>List of all user documents with processing status</returns>
+    /// <response code="200">Documents retrieved successfully</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(List<DocumentStatusDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<DocumentStatusDto>>> GetAllDocumentsAsync()
+    {
+        try
+        {
+            // Extract current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("User ID not found or invalid in token");
+                return Unauthorized(new { error = "Invalid authentication token" });
+            }
+
+            _logger.LogInformation("Retrieving all documents for user {UserId}", userId);
+
+            // Query documents for authenticated user with ownership filtering
+            var documents = await _context.ClinicalDocuments
+                .AsNoTracking() // Performance optimization for read-only query
+                .Where(d => d.UploadedBy == userId) // Ownership validation (NFR-008)
+                .OrderByDescending(d => d.UploadedAt) // Newest first (AC1)
+                .Select(d => new DocumentStatusDto
+                {
+                    Id = d.DocumentId,
+                    FileName = d.FileName,
+                    UploadedAt = d.UploadedAt,
+                    FileSize = d.FileSize,
+                    Status = d.ProcessingStatus.ToString(),
+                    ProcessingTimeMs = d.ProcessedAt.HasValue 
+                        ? (long)(d.ProcessedAt.Value - d.UploadedAt).TotalMilliseconds 
+                        : null,
+                    ErrorMessage = d.ErrorMessage,
+                    ProcessedAt = d.ProcessedAt,
+                    // Calculate IsStuckProcessing: Processing status AND >5 minutes elapsed
+                    IsStuckProcessing = d.ProcessingStatus == ProcessingStatus.Processing 
+                        && (DateTime.UtcNow - d.UploadedAt).TotalMinutes > 5
+                })
+                .ToListAsync();
+
+            _logger.LogInformation("Retrieved {Count} documents for user {UserId}", documents.Count, userId);
+
+            return Ok(documents);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving documents for user");
+            return StatusCode(500, new { error = "Unable to retrieve documents. Please try again later." });
         }
     }
 
@@ -214,6 +282,105 @@ public class DocumentsController : ControllerBase
         {
             _logger.LogError(ex, "Error finalizing upload session {SessionId}", request.UploadSessionId);
             return StatusCode(500, new { message = "An error occurred while finalizing upload" });
+        }
+    }
+
+    /// <summary>
+    /// Retry processing for a failed document (US_044, Edge Case).
+    /// Re-enqueues document in Hangfire for processing pipeline.
+    /// </summary>
+    /// <param name="id">Document unique identifier</param>
+    /// <returns>Updated document status</returns>
+    /// <response code="200">Document retry enqueued successfully</response>
+    /// <response code="400">Document is not in Failed status</response>
+    /// <response code="404">Document not found</response>
+    /// <response code="403">User does not have permission to retry this document</response>
+    /// <response code="401">User not authenticated</response>
+    [HttpPost("{id:guid}/retry")]
+    [ProducesResponseType(typeof(DocumentStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<DocumentStatusDto>> RetryProcessingAsync(Guid id)
+    {
+        try
+        {
+            // Extract current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("User ID not found or invalid in token");
+                return Unauthorized(new { error = "Invalid authentication token" });
+            }
+
+            // Load document with ownership validation
+            var document = await _context.ClinicalDocuments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.DocumentId == id);
+
+            if (document == null)
+            {
+                _logger.LogWarning("Document {DocumentId} not found for retry", id);
+                return NotFound(new { error = $"Document {id} not found" });
+            }
+
+            // Ownership validation (NFR-008): prevent users from retrying documents uploaded by others
+            if (document.UploadedBy != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to retry document {DocumentId} uploaded by {UploadedBy}",
+                    userId, id, document.UploadedBy);
+                return Forbid();
+            }
+
+            // Validate document status: only Failed documents can be retried
+            if (document.ProcessingStatus != ProcessingStatus.Failed)
+            {
+                _logger.LogWarning("Attempted to retry document {DocumentId} with status {Status}",
+                    id, document.ProcessingStatus);
+                return BadRequest(new { error = $"Cannot retry document with status '{document.ProcessingStatus}'. Only Failed documents can be retried." });
+            }
+
+            _logger.LogInformation("Retrying document {DocumentId} for user {UserId}", id, userId);
+
+            // Enqueue retry job via processing service
+            await _processingService.RetryProcessingAsync(id);
+
+            // Audit logging for retry action
+            // TODO: Implement comprehensive audit logging when service supports it
+            _logger.LogInformation("Document {DocumentId} retry initiated by user {UserId}", id, userId);
+
+            // Return updated document status
+            var updatedDocument = await _context.ClinicalDocuments
+                .AsNoTracking()
+                .Where(d => d.DocumentId == id)
+                .Select(d => new DocumentStatusDto
+                {
+                    Id = d.DocumentId,
+                    FileName = d.FileName,
+                    UploadedAt = d.UploadedAt,
+                    FileSize = d.FileSize,
+                    Status = d.ProcessingStatus.ToString(),
+                    ProcessingTimeMs = d.ProcessedAt.HasValue
+                        ? (long)(d.ProcessedAt.Value - d.UploadedAt).TotalMilliseconds
+                        : null,
+                    ErrorMessage = d.ErrorMessage,
+                    ProcessedAt = d.ProcessedAt,
+                    IsStuckProcessing = false // Just reset, not stuck yet
+                })
+                .FirstAsync();
+
+            return Ok(updatedDocument);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not in Failed status"))
+        {
+            _logger.LogWarning("Retry validation failed: {Message}", ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrying document {DocumentId}", id);
+            return StatusCode(500, new { error = "Unable to retry document processing. Please try again later." });
         }
     }
 }

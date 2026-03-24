@@ -17,6 +17,7 @@ import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
 import { QueueManagement } from "./pages/staff/QueueManagement";
 import { ArrivalManagement } from "./pages/staff/ArrivalManagement";
 import { DocumentUploadPage } from "./pages/DocumentUploadPage";
+import DocumentStatusPage from "./pages/DocumentStatusPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -146,6 +147,18 @@ function App() {
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
                   <DocumentUploadPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Document Status Route - US_044 */}
+          <Route
+            path="/documents/status"
+            element={
+              <ProtectedRoute allowedRoles={["Patient"]}>
+                <MainLayout>
+                  <DocumentStatusPage />
                 </MainLayout>
               </ProtectedRoute>
             }

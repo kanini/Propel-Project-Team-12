@@ -200,6 +200,98 @@ export function calculateChunkCount(fileSize: number, chunkSize = 1048576): numb
 }
 
 /**
+ * Document status information for tracking processing state (US_044).
+ */
+export interface DocumentStatus {
+  id: string;
+  fileName: string;
+  uploadedAt: string;
+  fileSize: number;
+  fileSizeFormatted: string;
+  status: 'Uploaded' | 'Processing' | 'Completed' | 'Failed';
+  processingTimeMs: number | null;
+  errorMessage: string | null;
+  isStuckProcessing: boolean;
+  processedAt: string | null;
+}
+
+/**
+ * Fetch all documents for the authenticated user (US_044, AC1).
+ * @returns List of documents with processing status
+ */
+export async function fetchDocuments(): Promise<DocumentStatus[]> {
+  const token = localStorage.getItem('token');
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/documents`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized. Please log in again.');
+      }
+      throw new Error(`Failed to fetch documents: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Network error. Please check your connection and try again.');
+  }
+}
+
+/**
+ * Retry processing for a failed document (US_044, Edge Case).
+ * @param documentId - Document identifier
+ * @returns Updated document status
+ */
+export async function retryDocumentProcessing(documentId: string): Promise<DocumentStatus> {
+  const token = localStorage.getItem('token');
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}/retry`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.error || 'Cannot retry document. Only Failed documents can be retried.');
+      }
+      if (response.status === 403) {
+        throw new Error('You do not have permission to retry this document.');
+      }
+      if (response.status === 404) {
+        throw new Error('Document not found.');
+      }
+      if (response.status === 401) {
+        throw new Error('Unauthorized. Please log in again.');
+      }
+      throw new Error(`Failed to retry document: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Network error. Please check your connection and try again.');
+  }
+}
+
+
+/**
  * Slice file into chunk blob.
  * @param file - File object
  * @param chunkIndex - Zero-based chunk index

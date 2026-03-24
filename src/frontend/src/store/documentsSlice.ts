@@ -1,4 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import type { DocumentStatus } from '../api/documentsApi';
+import * as documentsApi from '../api/documentsApi';
 
 /**
  * Upload state for tracking individual file upload
@@ -21,12 +23,54 @@ export interface UploadState {
 interface DocumentsState {
   uploads: Record<string, UploadState>; // Key: file name or session ID
   currentUploadId: string | null;
+  documents: DocumentStatus[]; // All user documents (US_044)
+  documentsLoading: boolean;
+  documentsError: string | null;
+  retryingDocumentId: string | null; // Track retry in progress
 }
 
 const initialState: DocumentsState = {
   uploads: {},
   currentUploadId: null,
+  documents: [],
+  documentsLoading: false,
+  documentsError: null,
+  retryingDocumentId: null,
 };
+
+/**
+ * Async thunk: Fetch all user documents (US_044, AC1)
+ */
+export const fetchUserDocuments = createAsyncThunk(
+  'documents/fetchUserDocuments',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await documentsApi.fetchDocuments();
+    } catch (error) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Failed to fetch documents');
+    }
+  }
+);
+
+/**
+ * Async thunk: Retry failed document processing (US_044, Edge Case)
+ */
+export const retryDocumentProcessing = createAsyncThunk(
+  'documents/retryDocumentProcessing',
+  async (documentId: string, { rejectWithValue }) => {
+    try {
+      return await documentsApi.retryDocumentProcessing(documentId);
+    } catch (error) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Failed to retry document processing');
+    }
+  }
+);
 
 const documentsSlice = createSlice({
   name: 'documents',
@@ -131,6 +175,65 @@ const documentsSlice = createSlice({
       state.uploads = {};
       state.currentUploadId = null;
     },
+
+    // Update document status from Pusher event (US_044, AC2)
+    updateDocumentStatus: (
+      state,
+      action: PayloadAction<{
+        documentId: string;
+        status: 'Uploaded' | 'Processing' | 'Completed' | 'Failed';
+        errorMessage?: string | null;
+        processedAt?: string | null;
+        processingTimeMs?: number | null;
+      }>
+    ) => {
+      const { documentId, status, errorMessage, processedAt, processingTimeMs } = action.payload;
+      const docIndex = state.documents.findIndex((d) => d.id === documentId);
+      
+      if (docIndex !== -1) {
+        const doc = state.documents[docIndex];
+        if (doc) {
+          doc.status = status;
+          doc.errorMessage = errorMessage ?? null;
+          doc.processedAt = processedAt ?? null;
+          doc.processingTimeMs = processingTimeMs ?? null;
+          doc.isStuckProcessing = false; // Reset on update
+        }
+      }
+    },
+  },
+  extraReducers: (builder) => {
+    // Fetch user documents
+    builder
+      .addCase(fetchUserDocuments.pending, (state) => {
+        state.documentsLoading = true;
+        state.documentsError = null;
+      })
+      .addCase(fetchUserDocuments.fulfilled, (state, action) => {
+        state.documentsLoading = false;
+        state.documents = action.payload;
+      })
+      .addCase(fetchUserDocuments.rejected, (state, action) => {
+        state.documentsLoading = false;
+        state.documentsError = action.payload as string;
+      });
+
+    // Retry document processing
+    builder
+      .addCase(retryDocumentProcessing.pending, (state, action) => {
+        state.retryingDocumentId = action.meta.arg;
+      })
+      .addCase(retryDocumentProcessing.fulfilled, (state, action) => {
+        state.retryingDocumentId = null;
+        // Update document in list with new status
+        const docIndex = state.documents.findIndex((d) => d.id === action.payload.id);
+        if (docIndex !== -1) {
+          state.documents[docIndex] = action.payload;
+        }
+      })
+      .addCase(retryDocumentProcessing.rejected, (state) => {
+        state.retryingDocumentId = null;
+      });
   },
 });
 
@@ -144,6 +247,7 @@ export const {
   resumeUpload,
   removeUpload,
   clearUploads,
+  updateDocumentStatus,
 } = documentsSlice.actions;
 
 export default documentsSlice.reducer;

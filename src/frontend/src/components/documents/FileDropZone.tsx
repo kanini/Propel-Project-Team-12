@@ -1,8 +1,9 @@
 /**
- * File drop zone component for drag-and-drop or click-to-upload (US_042, AC1, AC4).
+ * File drop zone component for drag-and-drop or click-to-upload (US_042, SCR-014).
+ * Matches wireframe SCR-014 design.
  */
 
-import {useState, useRef} from 'react';
+import { useState, useRef } from 'react';
 
 interface FileDropZoneProps {
   onFileSelected: (file: File) => void;
@@ -11,7 +12,7 @@ interface FileDropZoneProps {
 
 export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const[validationError, setValidationError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -19,10 +20,10 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
 
   const validateFile = (file: File): string | null => {
     if (file.type !== ALLOWED_MIME_TYPE) {
-      return 'Only PDF files up to 10MB are supported';
+      return 'Only PDF files are supported';
     }
     if (file.size > MAX_FILE_SIZE) {
-      return 'Only PDF files up to 10MB are supported';
+      return 'File size must not exceed 10 MB';
     }
     return null;
   };
@@ -85,31 +86,44 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={`
-          relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+          relative border-2 border-dashed rounded-lg py-12 px-6 text-center cursor-pointer
           transition-all duration-200
-          ${isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'}
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-400 hover:bg-blue-50'}
+          ${isDragOver ? 'border-primary-500 bg-primary-50' : 'border-neutral-300 bg-white'}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary-500 hover:bg-primary-50'}
         `}
         role="button"
         tabIndex={disabled ? -1 : 0}
-        aria-label="Upload file zone"
+        aria-label="Drop files here or click to browse"
       >
         <div className="flex flex-col items-center space-y-3">
-          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          {/* Document icon matching wireframe */}
+          <svg className="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
+          
           <div>
-            <p className="text-lg font-medium text-gray-700">
-              {isDragOver ? 'Drop file here' : 'Drag and drop your PDF here'}
+            <h3 className="text-lg font-semibold text-neutral-700 mb-1">
+              Drag and drop files here
+            </h3>
+            <p className="text-sm text-neutral-500">
+              or{' '}
+              <span className="text-primary-500 font-medium cursor-pointer hover:text-primary-600">
+                browse your computer
+              </span>
             </p>
-            <p className="text-sm text-gray-500 mt-1">or click to browse</p>
           </div>
-          <p className="text-xs text-gray-400">PDF only, max 10MB</p>
+          
+          <p className="text-xs text-neutral-400 mt-2">
+            PDF files only · Max 10 MB
+          </p>
         </div>
       </div>
 
       {validationError && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md" role="alert">
+        <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md" role="alert">
+          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
           <p className="text-sm text-red-600">{validationError}</p>
         </div>
       )}

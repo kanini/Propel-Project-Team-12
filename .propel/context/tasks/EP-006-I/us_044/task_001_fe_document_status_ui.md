@@ -269,13 +269,13 @@ npm run build
 - [ ] "View Extracted Data" link appears for completed documents
 
 ## Implementation Checklist
-- [ ] Enhance documentsSlice with fetchUserDocuments thunk and status update reducers
-- [ ] Add fetchDocuments and retryProcessing API calls to documentsApi
-- [ ] Create usePusherDocumentStatus hook subscribing to status change events
-- [ ] Build StatusBadge component with color-coded status indicators
-- [ ] Build DocumentStatusRow with conditional action buttons and warning messages
-- [ ] Build DocumentStatusList with skeleton loading, empty state, and ARIA live region
-- [ ] Add /documents/status route to App.tsx
-- [ ] Implement retry functionality with error handling
+- [x] Enhance documentsSlice with fetchUserDocuments thunk and status update reducers
+- [x] Add fetchDocuments and retryProcessing API calls to documentsApi
+- [x] Create usePusherDocumentStatus hook subscribing to status change events
+- [x] Build StatusBadge component with color-coded status indicators
+- [x] Build DocumentStatusRow with conditional action buttons and warning messages
+- [x] Build DocumentStatusList with skeleton loading, empty state, and ARIA live region
+- [x] Add /documents/status route to App.tsx
+- [x] Implement retry functionality with error handling
 - **[UI Tasks - MANDATORY]** Reference wireframe from Design References table during implementation
 - **[UI Tasks - MANDATORY]** Validate UI matches wireframe before marking task complete

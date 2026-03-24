@@ -1,6 +1,7 @@
 /**
- * DocumentUpload container component for clinical document upload (US_042, AC1-AC4).
+ * DocumentUpload container component for clinical document upload (US_042, SCR-014).
  * Manages chunked upload lifecycle with real-time progress tracking.
+ * Matches wireframe SCR-014 design.
  */
 
 import { useState } from 'react';
@@ -99,16 +100,11 @@ export function DocumentUpload() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Upload Clinical Document</h2>
-        <p className="mt-2 text-gray-600">Upload your PDF clinical documents for processing</p>
-      </div>
-
+    <div className="bg-white border border-neutral-200 rounded-lg shadow-sm p-6">
       {!upload || upload.status === 'idle' ? (
         <FileDropZone onFileSelected={handleFileSelected} disabled={!!upload} />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4" role="region" aria-live="polite">
           <UploadProgressBar
             progress={upload.progress}
             status={upload.status}
@@ -118,29 +114,42 @@ export function DocumentUpload() {
           />
 
           {upload.status === 'complete' && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-md" role="alert">
-              <h3 className="font-semibold text-green-800">Upload Successful!</h3>
-              <div className="mt-2 text-sm text-green-700">
-                <p><strong>Document:</strong> {upload.file?.name}</p>
-                <p><strong>Size:</strong> {(upload.file?.size || 0 / 1024 / 1024).toFixed(2)} MB</p>
-                <p><strong>Status:</strong> Uploaded — Processing pending</p>
+            <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-md">
+              <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-800">Uploaded</h3>
+                <p className="mt-1 text-sm text-green-700">
+                  <strong>{upload.file?.name}</strong> ({((upload.file?.size || 0) / 1024 / 1024).toFixed(1)} MB)
+                </p>
               </div>
               <button
                 onClick={handleRemoveUpload}
-                className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                aria-label="Remove file"
               >
-                Upload Another Document
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
               </button>
             </div>
           )}
 
           {upload.status === 'error' && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-md" role="alert">
-              <h3 className="font-semibold text-red-800">Upload Failed</h3>
-              <p className="mt-1 text-sm text-red-700">{upload.error}</p>
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-800">Upload Failed</h3>
+                  <p className="mt-1 text-sm text-red-700">{upload.error}</p>
+                </div>
+              </div>
               <button
                 onClick={handleRemoveUpload}
-                className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
               >
                 Try Again
               </button>
