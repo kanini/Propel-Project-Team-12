@@ -14,6 +14,7 @@ import AppointmentBooking from "./pages/AppointmentBooking";
 import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
 import { QueueManagement } from "./pages/staff/QueueManagement";
 import { ArrivalManagement } from "./pages/staff/ArrivalManagement";
+import { DocumentUploadPage } from "./pages/DocumentUploadPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -150,10 +151,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Documents</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <DocumentUploadPage />
                 </MainLayout>
               </ProtectedRoute>
             }

@@ -181,6 +181,12 @@ builder.Services.AddSingleton<IPusherService, PusherService>(); // US_030 - Real
 builder.Services.AddScoped<IQueueManagementService, QueueManagementService>(); // US_030 - Queue management and priority flagging
 builder.Services.AddScoped<IArrivalManagementService, ArrivalManagementService>(); // US_031 - Arrival status marking and search
 
+// US_042 - Document upload services (chunked upload with real-time progress)
+builder.Services.AddMemoryCache(); // Required for upload session tracking
+builder.Services.AddSingleton<ChunkedUploadManager>(); // Singleton for session management
+builder.Services.AddScoped<DocumentUploadService>(); // Scoped for DB context access
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob>(); // Background cleanup
+
 // Register IHttpContextAccessor for audit logging context extraction
 builder.Services.AddHttpContextAccessor();
 
@@ -379,6 +385,14 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 
     // Hangfire Dashboard (US_028 - Development only for monitoring background jobs)
     app.UseHangfireDashboard("/hangfire");
+
+    // Schedule recurring background jobs
+    using (var scope = app.Services.CreateScope())
+    {
+        // Schedule upload session cleanup job (US_042) - runs every 30 minutes
+        PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob.Schedule();
+        app.Logger.LogInformation("Scheduled upload session cleanup job to run every 30 minutes");
+    }
 }
 
 // Use audit logging middleware early to capture IP and User Agent for all requests (US_022)
