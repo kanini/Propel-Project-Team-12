@@ -454,6 +454,9 @@ public class AppointmentService : IAppointmentService
                     "Rescheduling appointment {AppointmentId} for Patient {PatientId} to TimeSlot {NewTimeSlotId} (Attempt {Attempt})",
                     appointmentId, patientId, newTimeSlotId, retryCount + 1);
 
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
+                {
                 // Start transaction with serializable isolation for atomic operations (AC-3)
                 using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
@@ -587,6 +590,7 @@ public class AppointmentService : IAppointmentService
                     await transaction.RollbackAsync();
                     throw;
                 }
+                }); // end strategy.ExecuteAsync
             }
             catch (DbUpdateException ex) when (IsDeadlockException(ex))
             {
@@ -700,6 +704,9 @@ public class AppointmentService : IAppointmentService
                 // Validate request
                 await ValidateWalkinAppointmentRequestAsync(request);
 
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
+                {
                 // Start transaction with serializable isolation for concurrency control
                 using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
@@ -782,32 +789,9 @@ public class AppointmentService : IAppointmentService
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-
-                    // Check if it's a deadlock (PostgreSQL deadlock_detected error code: 40P01)
-                    if (IsDeadlockException(ex))
-                    {
-                        retryCount++;
-                        if (retryCount >= MaxRetries)
-                        {
-                            _logger.LogError(ex,
-                                "Deadlock detected after {RetryCount} retries for Patient {PatientId}, TimeSlot {TimeSlotId}",
-                                retryCount, request.PatientId, request.TimeSlotId);
-                            throw new InvalidOperationException(
-                                $"Unable to complete walk-in appointment booking after {MaxRetries} attempts due to high concurrency. Please try again.",
-                                ex);
-                        }
-
-                        _logger.LogWarning(
-                            "Deadlock detected on attempt {Attempt} for Patient {PatientId}, TimeSlot {TimeSlotId}. Retrying in {Delay}ms...",
-                            retryCount, request.PatientId, request.TimeSlotId, retryDelay);
-
-                        await Task.Delay(retryDelay);
-                        retryDelay *= 2; // Exponential backoff
-                        continue; // Retry
-                    }
-
-                    throw; // Rethrow non-deadlock exceptions
+                    throw; // Rethrow all exceptions; deadlock retry handled by outer loop
                 }
+                }); // end strategy.ExecuteAsync
             }
             catch (ConflictException)
             {
@@ -816,6 +800,26 @@ public class AppointmentService : IAppointmentService
             catch (ArgumentException)
             {
                 throw; // Don't retry validation errors
+            }
+            catch (DbUpdateException ex) when (IsDeadlockException(ex))
+            {
+                retryCount++;
+                if (retryCount >= MaxRetries)
+                {
+                    _logger.LogError(ex,
+                        "Deadlock detected after {RetryCount} retries for Patient {PatientId}, TimeSlot {TimeSlotId}",
+                        retryCount, request.PatientId, request.TimeSlotId);
+                    throw new InvalidOperationException(
+                        $"Unable to complete walk-in appointment booking after {MaxRetries} attempts due to high concurrency. Please try again.",
+                        ex);
+                }
+
+                _logger.LogWarning(
+                    "Deadlock detected on attempt {Attempt} for Patient {PatientId}, TimeSlot {TimeSlotId}. Retrying in {Delay}ms...",
+                    retryCount, request.PatientId, request.TimeSlotId, retryDelay);
+
+                await Task.Delay(retryDelay);
+                retryDelay *= 2; // Exponential backoff
             }
             catch (Exception ex)
             {

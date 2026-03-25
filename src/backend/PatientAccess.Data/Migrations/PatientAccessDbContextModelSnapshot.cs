@@ -229,6 +229,9 @@ namespace PatientAccess.Data.Migrations
                         .HasColumnType("timestamptz")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<Guid?>("UploadedBy")
+                        .HasColumnType("uuid");
+
                     b.HasKey("DocumentId");
 
                     b.HasIndex("PatientId")
@@ -239,6 +242,8 @@ namespace PatientAccess.Data.Migrations
 
                     b.HasIndex("UploadedAt")
                         .HasDatabaseName("IX_ClinicalDocuments_UploadedAt");
+
+                    b.HasIndex("UploadedBy");
 
                     b.ToTable("ClinicalDocuments", (string)null);
                 });
@@ -897,7 +902,15 @@ namespace PatientAccess.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_ClinicalDocuments_Patients");
 
+                    b.HasOne("PatientAccess.Data.Models.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedBy")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_ClinicalDocuments_UploadedBy");
+
                     b.Navigation("Patient");
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.ExtractedClinicalData", b =>

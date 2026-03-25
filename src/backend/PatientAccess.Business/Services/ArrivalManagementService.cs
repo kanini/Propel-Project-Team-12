@@ -34,39 +34,44 @@ public class ArrivalManagementService : IArrivalManagementService
 
     /// <summary>
     /// Search for appointments scheduled for today matching the query (US_031, AC-1)
+    /// If no query provided, returns all appointments for the date
     /// </summary>
-    /// <param name="query">Search term (patient name, email, or phone)</param>
+    /// <param name="query">Search term (patient name, email, or phone). Empty string returns all appointments.</param>
     /// <param name="date">Date to search for appointments (defaults to today)</param>
     /// <returns>Task<List<ArrivalSearchResultDto>> - List of matching appointments</returns>
     public async Task<List<ArrivalSearchResultDto>> SearchTodayAppointmentsAsync(string query, DateTime? date = null)
     {
         try
         {
-            // Return empty list for invalid queries
-            if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < 2)
-            {
-                _logger.LogDebug("Search query too short or empty: {Query}", query);
-                return new List<ArrivalSearchResultDto>();
-            }
-
             // Use provided date or default to today (UTC)
-            var searchDate = date ?? DateTime.UtcNow.Date;
+            // Ensure DateTime.Kind is set to UTC for PostgreSQL compatibility
+            var searchDate = date.HasValue
+                ? DateTime.SpecifyKind(date.Value.Date, DateTimeKind.Utc)
+                : DateTime.UtcNow.Date;
             var nextDay = searchDate.AddDays(1);
 
             _logger.LogInformation("Searching appointments for date: {Date}, query: {Query}", searchDate, query);
 
-            var searchTerm = query.Trim().ToLower();
-
-            // Query appointments for the specified date matching patient info
-            var appointments = await _context.Appointments
+            // Build base query for appointments on the specified date
+            var appointmentsQuery = _context.Appointments
                 .AsNoTracking() // Read-only optimization
                 .Include(a => a.Patient)
                 .Include(a => a.Provider)
                 .Where(a => a.ScheduledDateTime >= searchDate &&
-                           a.ScheduledDateTime < nextDay &&
-                           (a.Patient.Name.ToLower().Contains(searchTerm) ||
-                            (a.Patient.Email != null && a.Patient.Email.ToLower().Contains(searchTerm)) ||
-                            (a.Patient.Phone != null && a.Patient.Phone.Contains(searchTerm))))
+                           a.ScheduledDateTime < nextDay);
+
+            // Apply search filter if query provided and valid
+            if (!string.IsNullOrWhiteSpace(query) && query.Trim().Length >= 2)
+            {
+                var searchTerm = query.Trim().ToLower();
+                appointmentsQuery = appointmentsQuery.Where(a =>
+                    a.Patient.Name.ToLower().Contains(searchTerm) ||
+                    (a.Patient.Email != null && a.Patient.Email.ToLower().Contains(searchTerm)) ||
+                    (a.Patient.Phone != null && a.Patient.Phone.Contains(searchTerm)));
+            }
+
+            // Execute query with ordering
+            var appointments = await appointmentsQuery
                 .OrderBy(a => a.ScheduledDateTime) // Order by time
                 .ToListAsync();
 

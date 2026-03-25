@@ -342,8 +342,11 @@ public class StaffController : ControllerBase
 
     /// <summary>
     /// Search for appointments scheduled for today matching the query (US_031, AC-1).
+    /// <summary>
+    /// Search for today's appointments or retrieve all appointments for specified date (US_031, AC-1).
+    /// If query is omitted or empty, returns all appointments for the date.
     /// </summary>
-    /// <param name="query">Search term (patient name, email, or phone)</param>
+    /// <param name="query">Optional search term (patient name, email, or phone). Returns all if empty.</param>
     /// <param name="date">Optional date to search (defaults to today)</param>
     /// <returns>List of matching appointments</returns>
     /// <response code="200">Appointments found</response>
@@ -353,11 +356,11 @@ public class StaffController : ControllerBase
     [ProducesResponseType(typeof(List<ArrivalSearchResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> SearchTodayAppointments([FromQuery] string query, [FromQuery] DateTime? date = null)
+    public async Task<IActionResult> SearchTodayAppointments([FromQuery] string? query = null, [FromQuery] DateTime? date = null)
     {
         try
         {
-            _logger.LogInformation("Searching appointments. Query={Query}, Date={Date}", query, date);
+            _logger.LogInformation("Searching appointments. Query={Query}, Date={Date}", query ?? "(all)", date);
 
             var results = await _arrivalManagementService.SearchTodayAppointmentsAsync(query, date);
 
