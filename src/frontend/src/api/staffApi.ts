@@ -295,3 +295,96 @@ export async function updatePatientPriority(
     );
   }
 }
+
+/**
+ * Staff Dashboard Metrics Data (US_068, AC2)
+ */
+export interface DashboardMetricsDto {
+  todayAppointments: number;
+  currentQueueSize: number;
+  pendingVerifications: number;
+}
+
+/**
+ * Queue Preview Data (US_068, AC4)
+ */
+export interface QueuePreviewDto {
+  appointmentId: string;
+  patientName: string;
+  providerName: string;
+  appointmentTime: string;
+  estimatedWait: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  status: string;
+}
+
+/**
+ * Get staff dashboard metrics (US_068, AC2)
+ * @returns Promise<DashboardMetricsDto> - Dashboard stat cards data
+ */
+export async function getDashboardMetrics(): Promise<DashboardMetricsDto> {
+  const url = `${API_BASE_URL}/api/staff/dashboard/metrics`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Unauthorized. Please log in again.");
+      }
+      if (response.status === 403) {
+        throw new Error("Access denied. Staff privileges required.");
+      }
+      throw new Error(`Failed to fetch metrics: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data as DashboardMetricsDto;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(
+      "Network error. Please check your connection and try again.",
+    );
+  }
+}
+
+/**
+ * Get queue preview for dashboard (US_068, AC4)
+ * @param count - Number of patients to return (default: 5)
+ * @returns Promise<QueuePreviewDto[]> - Next N patients in queue
+ */
+export async function getQueuePreview(count: number = 5): Promise<QueuePreviewDto[]> {
+  const url = `${API_BASE_URL}/api/staff/dashboard/queue-preview?count=${count}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Unauthorized. Please log in again.");
+      }
+      if (response.status === 403) {
+        throw new Error("Access denied. Staff privileges required.");
+      }
+      throw new Error(`Failed to fetch queue preview: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data as QueuePreviewDto[];
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(
+      "Network error. Please check your connection and try again.",
+    );
+  }
+}

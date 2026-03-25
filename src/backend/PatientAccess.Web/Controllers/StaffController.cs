@@ -20,17 +20,20 @@ public class StaffController : ControllerBase
     private readonly IPatientService _patientService;
     private readonly IQueueManagementService _queueManagementService;
     private readonly IArrivalManagementService _arrivalManagementService;
+    private readonly IStaffDashboardService _staffDashboardService;
 
     public StaffController(
         ILogger<StaffController> logger,
         IPatientService patientService,
         IQueueManagementService queueManagementService,
-        IArrivalManagementService arrivalManagementService)
+        IArrivalManagementService arrivalManagementService,
+        IStaffDashboardService staffDashboardService)
     {
         _logger = logger;
         _patientService = patientService;
         _queueManagementService = queueManagementService;
         _arrivalManagementService = arrivalManagementService;
+        _staffDashboardService = staffDashboardService;
     }
 
     /// <summary>
@@ -444,6 +447,77 @@ public class StaffController : ControllerBase
             return StatusCode(500, new
             {
                 error = "An error occurred while marking appointment as arrived",
+                message = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Get staff dashboard metrics (US_068, AC2).
+    /// Returns stat cards data: today's appointments, queue size, pending verifications.
+    /// </summary>
+    /// <returns>Dashboard metrics</returns>
+    /// <response code="200">Metrics retrieved successfully</response>
+    /// <response code="403">Insufficient permissions - Staff or Admin role required</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("dashboard/metrics")]
+    [ProducesResponseType(typeof(StaffDashboardMetricsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetDashboardMetrics()
+    {
+        try
+        {
+            _logger.LogInformation("Fetching staff dashboard metrics");
+
+            var metrics = await _staffDashboardService.GetDashboardMetricsAsync();
+
+            _logger.LogInformation("Dashboard metrics retrieved successfully");
+
+            return Ok(metrics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch staff dashboard metrics");
+            return StatusCode(500, new
+            {
+                error = "Failed to fetch dashboard metrics",
+                message = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Get queue preview for dashboard (US_068, AC4).
+    /// Returns next N patients in the queue with appointment details.
+    /// </summary>
+    /// <param name="count">Number of patients to return (default: 5)</param>
+    /// <returns>Queue preview list</returns>
+    /// <response code="200">Queue preview retrieved successfully</response>
+    /// <response code="403">Insufficient permissions - Staff or Admin role required</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("dashboard/queue-preview")]
+    [ProducesResponseType(typeof(List<QueuePreviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetQueuePreview([FromQuery] int count = 5)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching queue preview. Count={Count}", count);
+
+            var queue = await _staffDashboardService.GetQueuePreviewAsync(count);
+
+            _logger.LogInformation("Queue preview retrieved successfully. Count={Count}", queue.Count);
+
+            return Ok(queue);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch queue preview");
+            return StatusCode(500, new
+            {
+                error = "Failed to fetch queue preview",
                 message = ex.Message
             });
         }

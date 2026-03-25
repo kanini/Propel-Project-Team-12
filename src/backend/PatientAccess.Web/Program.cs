@@ -184,6 +184,7 @@ builder.Services.AddSingleton<IPusherService, PusherService>(); // US_030 - Real
 builder.Services.AddScoped<IQueueManagementService, QueueManagementService>(); // US_030 - Queue management and priority flagging
 builder.Services.AddScoped<IArrivalManagementService, ArrivalManagementService>(); // US_031 - Arrival status marking and search
 builder.Services.AddScoped<IDashboardService, DashboardService>(); // US_067 - Patient dashboard statistics
+builder.Services.AddScoped<IStaffDashboardService, StaffDashboardService>(); // US_068 - Staff dashboard metrics and queue preview
 builder.Services.AddScoped<INotificationService, NotificationService>(); // US_067 - Notification management for dashboard
 builder.Services.AddScoped<IDocumentService, DocumentService>(); // US_067 - Clinical document retrieval for dashboard
 builder.Services.AddScoped<IIntakeAppointmentService, IntakeAppointmentService>(); // US_037 - Intake appointment selection

@@ -7,6 +7,7 @@ import waitlistReducer from './slices/waitlistSlice';
 import documentsReducer from './documentsSlice';
 import intakeAppointmentReducer from './slices/intakeAppointmentSlice';
 import intakeReducer from './slices/intakeSlice';
+import staffDashboardReducer from './slices/staffDashboardSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -17,6 +18,7 @@ const rootReducer = combineReducers({
   documents: documentsReducer,
   intakeAppointments: intakeAppointmentReducer,
   intake: intakeReducer,
+  staffDashboard: staffDashboardReducer,
 });
 
 export default rootReducer;
