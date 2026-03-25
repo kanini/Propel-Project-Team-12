@@ -15,16 +15,16 @@
 
 ## Design References (Frontend Tasks Only)
 
-| Reference Type | Value |
-|----------------|-------|
-| **UI Impact** | Yes |
-| **Figma URL** | N/A |
-| **Wireframe Status** | AVAILABLE |
-| **Wireframe Type** | HTML |
-| **Wireframe Path/URL** | .propel/context/wireframes/Hi-Fi/wireframe-SCR-012-ai-intake.html |
-| **Screen Spec** | figma_spec.md#SCR-012 |
-| **UXR Requirements** | UXR-101, UXR-102, UXR-103, UXR-207 |
-| **Design Tokens** | designsystem.md#typography, designsystem.md#colors, designsystem.md#spacing |
+| Reference Type         | Value                                                                       |
+| ---------------------- | --------------------------------------------------------------------------- |
+| **UI Impact**          | Yes                                                                         |
+| **Figma URL**          | N/A                                                                         |
+| **Wireframe Status**   | AVAILABLE                                                                   |
+| **Wireframe Type**     | HTML                                                                        |
+| **Wireframe Path/URL** | .propel/context/wireframes/Hi-Fi/wireframe-SCR-012-ai-intake.html           |
+| **Screen Spec**        | figma_spec.md#SCR-012                                                       |
+| **UXR Requirements**   | UXR-101, UXR-102, UXR-103, UXR-207                                          |
+| **Design Tokens**      | designsystem.md#typography, designsystem.md#colors, designsystem.md#spacing |
 
 ### **CRITICAL: Wireframe Implementation Requirement (UI Tasks Only)**
 
@@ -38,34 +38,34 @@
 
 ## Applicable Technology Stack
 
-| Layer | Technology | Version |
-|-------|------------|---------|
+| Layer    | Technology                                        | Version                                       |
+| -------- | ------------------------------------------------- | --------------------------------------------- |
 | Frontend | React + TypeScript + Redux Toolkit + Tailwind CSS | React 18.x, TypeScript 5.x, Redux Toolkit 2.x |
-| Backend | .NET 8 ASP.NET Core Web API | .NET 8.0 |
-| Library | React Router | v7 |
-| AI/ML | N/A (consumed via BE API) | N/A |
+| Backend  | .NET 8 ASP.NET Core Web API                       | .NET 8.0                                      |
+| Library  | React Router                                      | v7                                            |
+| AI/ML    | N/A (consumed via BE API)                         | N/A                                           |
 
 **Note**: All code, and libraries, MUST be compatible with versions above.
 
 ## AI References (AI Tasks Only)
 
-| Reference Type | Value |
-|----------------|-------|
-| **AI Impact** | No |
-| **AIR Requirements** | N/A |
-| **AI Pattern** | N/A |
-| **Prompt Template Path** | N/A |
-| **Guardrails Config** | N/A |
-| **Model Provider** | N/A |
+| Reference Type           | Value |
+| ------------------------ | ----- |
+| **AI Impact**            | No    |
+| **AIR Requirements**     | N/A   |
+| **AI Pattern**           | N/A   |
+| **Prompt Template Path** | N/A   |
+| **Guardrails Config**    | N/A   |
+| **Model Provider**       | N/A   |
 
 ## Mobile References (Mobile Tasks Only)
 
-| Reference Type | Value |
-|----------------|-------|
-| **Mobile Impact** | No |
-| **Platform Target** | N/A |
-| **Min OS Version** | N/A |
-| **Mobile Framework** | N/A |
+| Reference Type       | Value |
+| -------------------- | ----- |
+| **Mobile Impact**    | No    |
+| **Platform Target**  | N/A   |
+| **Min OS Version**   | N/A   |
+| **Mobile Framework** | N/A   |
 
 ## Task Overview
 
@@ -73,7 +73,8 @@ Implement the AI Conversational Intake frontend UI for SCR-012. This task builds
 
 ## Dependent Tasks
 
-- None (this is the first task in US_033; backend API can be mocked during development)
+- EP-004/us_037/task_001_fe_appointment_selection_ui — Provides appointment selection UI; user must select appointment before accessing AI intake
+- EP-004/us_037/task_002_be_appointment_selection_api — Backend API for fetching appointments requiring intake
 
 ## Impacted Components
 
@@ -133,18 +134,18 @@ src/frontend/src/
 
 ## Expected Changes
 
-| Action | File Path | Description |
-|--------|-----------|-------------|
-| CREATE | src/frontend/src/types/intake.ts | TypeScript interfaces for intake session, messages, extracted data |
-| CREATE | src/frontend/src/api/intakeApi.ts | API client functions for intake endpoints |
-| CREATE | src/frontend/src/store/slices/intakeSlice.ts | Redux slice with async thunks for intake flow |
-| CREATE | src/frontend/src/features/intake/components/ChatBubble.tsx | Chat bubble component with AI/user variants |
-| CREATE | src/frontend/src/features/intake/components/TypingIndicator.tsx | Animated typing indicator |
-| CREATE | src/frontend/src/features/intake/components/ConversationalIntake.tsx | Main chat interface with message list and input |
-| CREATE | src/frontend/src/features/intake/components/IntakeSummary.tsx | Extracted data summary for review/confirm |
-| CREATE | src/frontend/src/features/intake/pages/IntakePage.tsx | Intake page with mode toggle|
-| MODIFY | src/frontend/src/App.tsx | Replace /intake placeholder with IntakePage component |
-| MODIFY | src/frontend/src/store/rootReducer.ts | Register intakeReducer |
+| Action | File Path                                                            | Description                                                        |
+| ------ | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| CREATE | src/frontend/src/types/intake.ts                                     | TypeScript interfaces for intake session, messages, extracted data |
+| CREATE | src/frontend/src/api/intakeApi.ts                                    | API client functions for intake endpoints                          |
+| CREATE | src/frontend/src/store/slices/intakeSlice.ts                         | Redux slice with async thunks for intake flow                      |
+| CREATE | src/frontend/src/features/intake/components/ChatBubble.tsx           | Chat bubble component with AI/user variants                        |
+| CREATE | src/frontend/src/features/intake/components/TypingIndicator.tsx      | Animated typing indicator                                          |
+| CREATE | src/frontend/src/features/intake/components/ConversationalIntake.tsx | Main chat interface with message list and input                    |
+| CREATE | src/frontend/src/features/intake/components/IntakeSummary.tsx        | Extracted data summary for review/confirm                          |
+| CREATE | src/frontend/src/features/intake/pages/IntakePage.tsx                | Intake page with mode toggle                                       |
+| MODIFY | src/frontend/src/App.tsx                                             | Replace /intake placeholder with IntakePage component              |
+| MODIFY | src/frontend/src/store/rootReducer.ts                                | Register intakeReducer                                             |
 
 ## External References
 
