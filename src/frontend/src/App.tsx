@@ -18,6 +18,8 @@ import { QueueManagement } from "./pages/staff/QueueManagement";
 import { ArrivalManagement } from "./pages/staff/ArrivalManagement";
 import { DocumentUploadPage } from "./pages/DocumentUploadPage";
 import DocumentStatusPage from "./pages/DocumentStatusPage";
+import AppointmentSelectionPage from "./features/intake/pages/AppointmentSelectionPage";
+import IntakePage from "./features/intake/pages/IntakePage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -132,10 +134,19 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Intake Forms</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <AppointmentSelectionPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Intake Form Route - US_033/US_034/US_035 */}
+          <Route
+            path="/intake/:appointmentId"
+            element={
+              <ProtectedRoute allowedRoles={["Patient"]}>
+                <MainLayout>
+                  <IntakePage />
                 </MainLayout>
               </ProtectedRoute>
             }

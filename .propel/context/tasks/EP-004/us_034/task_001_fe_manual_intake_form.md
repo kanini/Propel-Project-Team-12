@@ -15,16 +15,16 @@
 
 ## Design References (Frontend Tasks Only)
 
-| Reference Type | Value |
-|----------------|-------|
-| **UI Impact** | Yes |
-| **Figma URL** | N/A |
-| **Wireframe Status** | AVAILABLE |
-| **Wireframe Type** | HTML |
-| **Wireframe Path/URL** | .propel/context/wireframes/Hi-Fi/wireframe-SCR-013-manual-intake.html |
-| **Screen Spec** | figma_spec.md#SCR-013 |
-| **UXR Requirements** | UXR-101, UXR-103, UXR-203, UXR-601 |
-| **Design Tokens** | designsystem.md#typography, designsystem.md#colors, designsystem.md#spacing |
+| Reference Type         | Value                                                                       |
+| ---------------------- | --------------------------------------------------------------------------- |
+| **UI Impact**          | Yes                                                                         |
+| **Figma URL**          | N/A                                                                         |
+| **Wireframe Status**   | AVAILABLE                                                                   |
+| **Wireframe Type**     | HTML                                                                        |
+| **Wireframe Path/URL** | .propel/context/wireframes/Hi-Fi/wireframe-SCR-013-manual-intake.html       |
+| **Screen Spec**        | figma_spec.md#SCR-013                                                       |
+| **UXR Requirements**   | UXR-101, UXR-103, UXR-203, UXR-601                                          |
+| **Design Tokens**      | designsystem.md#typography, designsystem.md#colors, designsystem.md#spacing |
 
 ### **CRITICAL: Wireframe Implementation Requirement (UI Tasks Only)**
 
@@ -38,34 +38,34 @@
 
 ## Applicable Technology Stack
 
-| Layer | Technology | Version |
-|-------|------------|---------|
+| Layer    | Technology                                        | Version                                       |
+| -------- | ------------------------------------------------- | --------------------------------------------- |
 | Frontend | React + TypeScript + Redux Toolkit + Tailwind CSS | React 18.x, TypeScript 5.x, Redux Toolkit 2.x |
-| Backend | .NET 8 ASP.NET Core Web API | .NET 8.0 |
-| Library | React Router | v7 |
-| AI/ML | N/A | N/A |
+| Backend  | .NET 8 ASP.NET Core Web API                       | .NET 8.0                                      |
+| Library  | React Router                                      | v7                                            |
+| AI/ML    | N/A                                               | N/A                                           |
 
 **Note**: All code, and libraries, MUST be compatible with versions above.
 
 ## AI References (AI Tasks Only)
 
-| Reference Type | Value |
-|----------------|-------|
-| **AI Impact** | No |
-| **AIR Requirements** | N/A |
-| **AI Pattern** | N/A |
-| **Prompt Template Path** | N/A |
-| **Guardrails Config** | N/A |
-| **Model Provider** | N/A |
+| Reference Type           | Value |
+| ------------------------ | ----- |
+| **AI Impact**            | No    |
+| **AIR Requirements**     | N/A   |
+| **AI Pattern**           | N/A   |
+| **Prompt Template Path** | N/A   |
+| **Guardrails Config**    | N/A   |
+| **Model Provider**       | N/A   |
 
 ## Mobile References (Mobile Tasks Only)
 
-| Reference Type | Value |
-|----------------|-------|
-| **Mobile Impact** | No |
-| **Platform Target** | N/A |
-| **Min OS Version** | N/A |
-| **Mobile Framework** | N/A |
+| Reference Type       | Value |
+| -------------------- | ----- |
+| **Mobile Impact**    | No    |
+| **Platform Target**  | N/A   |
+| **Min OS Version**   | N/A   |
+| **Mobile Framework** | N/A   |
 
 ## Task Overview
 
@@ -73,6 +73,8 @@ Implement the Manual Intake Form UI for SCR-013. This task builds a multi-step s
 
 ## Dependent Tasks
 
+- EP-004/us_037/task_001_fe_appointment_selection_ui — Provides appointment selection UI; user must select appointment before accessing manual intake
+- EP-004/us_037/task_002_be_appointment_selection_api — Backend API for fetching appointments requiring intake
 - EP-004/us_033/task_001_fe_ai_intake_ui — Provides shared `IntakePage` with mode toggle, `intakeSlice` Redux state, `intakeApi` client, and `types/intake.ts` type definitions. This task adds the manual form branch to the existing IntakePage.
 
 ## Impacted Components
@@ -146,19 +148,19 @@ src/frontend/src/
 
 ## Expected Changes
 
-| Action | File Path | Description |
-|--------|-----------|-------------|
-| CREATE | src/frontend/src/features/intake/components/ManualIntakeForm.tsx | Multi-step form container with stepper and section navigation |
-| CREATE | src/frontend/src/features/intake/components/MedicalHistorySection.tsx | Medical history, meds, allergies, family history, lifestyle fields |
-| CREATE | src/frontend/src/features/intake/components/InsuranceSection.tsx | Insurance provider/ID fields with pre-check validation |
-| CREATE | src/frontend/src/features/intake/components/ReviewSection.tsx | Read-only summary of all form data with edit and submit actions |
-| CREATE | src/frontend/src/features/intake/components/FormTooltip.tsx | Reusable tooltip for clinical terminology help (UXR-103) |
-| CREATE | src/frontend/src/features/intake/components/FormStepper.tsx | 4-step progress indicator with completed/active/pending states |
-| CREATE | src/frontend/src/features/intake/hooks/useFormPersistence.ts | localStorage auto-save/restore hook for form draft |
-| MODIFY | src/frontend/src/features/intake/pages/IntakePage.tsx | Add manual form mode branch with conditional rendering |
-| MODIFY | src/frontend/src/store/slices/intakeSlice.ts | Add manual form state fields, submitManualIntake thunk, setFormSection reducer |
-| MODIFY | src/frontend/src/api/intakeApi.ts | Add submitManualIntake API function |
-| MODIFY | src/frontend/src/types/intake.ts | Add ManualIntakeFormData, section types, FormValidationErrors |
+| Action | File Path                                                             | Description                                                                    |
+| ------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| CREATE | src/frontend/src/features/intake/components/ManualIntakeForm.tsx      | Multi-step form container with stepper and section navigation                  |
+| CREATE | src/frontend/src/features/intake/components/MedicalHistorySection.tsx | Medical history, meds, allergies, family history, lifestyle fields             |
+| CREATE | src/frontend/src/features/intake/components/InsuranceSection.tsx      | Insurance provider/ID fields with pre-check validation                         |
+| CREATE | src/frontend/src/features/intake/components/ReviewSection.tsx         | Read-only summary of all form data with edit and submit actions                |
+| CREATE | src/frontend/src/features/intake/components/FormTooltip.tsx           | Reusable tooltip for clinical terminology help (UXR-103)                       |
+| CREATE | src/frontend/src/features/intake/components/FormStepper.tsx           | 4-step progress indicator with completed/active/pending states                 |
+| CREATE | src/frontend/src/features/intake/hooks/useFormPersistence.ts          | localStorage auto-save/restore hook for form draft                             |
+| MODIFY | src/frontend/src/features/intake/pages/IntakePage.tsx                 | Add manual form mode branch with conditional rendering                         |
+| MODIFY | src/frontend/src/store/slices/intakeSlice.ts                          | Add manual form state fields, submitManualIntake thunk, setFormSection reducer |
+| MODIFY | src/frontend/src/api/intakeApi.ts                                     | Add submitManualIntake API function                                            |
+| MODIFY | src/frontend/src/types/intake.ts                                      | Add ManualIntakeFormData, section types, FormValidationErrors                  |
 
 ## External References
 
