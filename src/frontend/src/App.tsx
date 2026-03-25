@@ -14,6 +14,7 @@ import AppointmentBooking from "./pages/AppointmentBooking";
 import {PatientDashboard} from "./pages/PatientDashboard";
 import MyAppointments from "./pages/MyAppointments";
 import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
+import { StaffDashboard } from "./features/staff/dashboard/StaffDashboard";
 import { QueueManagement } from "./pages/staff/QueueManagement";
 import { ArrivalManagement } from "./pages/staff/ArrivalManagement";
 import { DocumentUploadPage } from "./pages/DocumentUploadPage";
@@ -199,16 +200,13 @@ function App() {
             }
           />
 
-          {/* Staff Dashboard Routes - US_020, AC1, AC2 */}
+          {/* Staff Dashboard Routes - US_068 */}
           <Route
             path="/staff/dashboard"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Staff Dashboard</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <StaffDashboard />
                 </MainLayout>
               </ProtectedRoute>
             }
