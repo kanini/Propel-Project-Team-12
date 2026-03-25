@@ -43,4 +43,13 @@ public interface IEmailService
         string confirmationNumber,
         byte[] pdfBytes,
         string pdfFileName);
+
+    /// <summary>
+    /// Sends password reset email with reset link.
+    /// </summary>
+    /// <param name="toEmail">Recipient email address</param>
+    /// <param name="toName">Recipient name</param>
+    /// <param name="resetToken">Unique password reset token</param>
+    /// <returns>True if email sent successfully, false otherwise</returns>
+    Task<bool> SendPasswordResetEmailAsync(string toEmail, string toName, string resetToken);
 }

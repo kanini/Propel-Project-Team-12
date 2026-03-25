@@ -8,6 +8,8 @@ import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import LoginPage from "./features/auth/pages/LoginPage";
+import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
@@ -90,21 +92,8 @@ function App() {
           {/* Public Authentication Routes */}
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
-
-          {/* Forgot Password Route - To be implemented */}
-          <Route
-            path="/forgot-password"
-            element={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold mb-2">Forgot Password</h1>
-                  <p className="text-neutral-500">
-                    Password recovery - Coming soon
-                  </p>
-                </div>
-              </div>
-            }
-          />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Patient Dashboard Routes - US_067, AC1 */}
           <Route
