@@ -183,6 +183,10 @@ builder.Services.AddScoped<IArrivalManagementService, ArrivalManagementService>(
 builder.Services.AddScoped<IDashboardService, DashboardService>(); // US_067 - Patient dashboard statistics
 builder.Services.AddScoped<INotificationService, NotificationService>(); // US_067 - Notification management for dashboard
 builder.Services.AddScoped<IDocumentService, DocumentService>(); // US_067 - Clinical document retrieval for dashboard
+builder.Services.AddScoped<IIntakeAppointmentService, IntakeAppointmentService>(); // US_037 - Intake appointment selection
+builder.Services.AddScoped<IIntakeService, IntakeService>(); // US_033 - Intake session management
+builder.Services.AddScoped<IAiIntakeService, StubAiIntakeService>(); // US_033 - AI intake (stub until task_003)
+builder.Services.AddScoped<IInsurancePrecheckService, InsurancePrecheckService>(); // US_036 - Insurance precheck verification
 
 // US_042 - Document upload services (chunked upload with real-time progress)
 builder.Services.AddMemoryCache(); // Required for upload session tracking

@@ -5,9 +5,8 @@ import providerReducer from './slices/providerSlice';
 import appointmentReducer from './slices/appointmentSlice';
 import waitlistReducer from './slices/waitlistSlice';
 import documentsReducer from './documentsSlice';
-
-// Import your slice reducers here
-// Example: import authReducer from './slices/authSlice';
+import intakeAppointmentReducer from './slices/intakeAppointmentSlice';
+import intakeReducer from './slices/intakeSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -16,8 +15,8 @@ const rootReducer = combineReducers({
   appointments: appointmentReducer,
   waitlist: waitlistReducer,
   documents: documentsReducer,
-  // Add your slice reducers here
-  // Example: auth: authReducer,
+  intakeAppointments: intakeAppointmentReducer,
+  intake: intakeReducer,
 });
 
 export default rootReducer;
