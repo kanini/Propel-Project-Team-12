@@ -162,6 +162,9 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<IAuthorizationHandler, SamePatientAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuditingAuthorizationHandler>();
 
+// Register HttpClient for external API calls (Brevo email service)
+builder.Services.AddHttpClient();
+
 // Register Business Layer Services (DI)
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();

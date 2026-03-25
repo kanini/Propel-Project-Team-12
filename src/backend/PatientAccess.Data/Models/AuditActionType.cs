@@ -59,5 +59,15 @@ public enum AuditActionType
     /// <summary>
     /// Password reset completed successfully.
     /// </summary>
-    PasswordResetCompleted = 10
+    PasswordResetCompleted = 10,
+
+    /// <summary>
+    /// Password reset attempted for non-existent account.
+    /// </summary>
+    PasswordResetAttempt = 11,
+
+    /// <summary>
+    /// Password reset failed (invalid or expired token).
+    /// </summary>
+    PasswordResetFailed = 12
 }
