@@ -211,4 +211,116 @@ public class AuthController : ControllerBase
 
         return Ok(new { exists });
     }
+
+    /// <summary>
+    /// Initiates password reset workflow by sending reset link to email.
+    /// Returns success message regardless of email existence to prevent enumeration.
+    /// Rate limited: 3 requests per 5 minutes per email address.
+    /// </summary>
+    /// <param name="request">Forgot password request with email</param>
+    /// <returns>Success message</returns>
+    /// <response code="200">Password reset email sent (if account exists)</response>
+    /// <response code="400">Invalid input or validation error</response>
+    /// <response code="429">Rate limit exceeded</response>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ForgotPasswordResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // Extract IP address and User Agent for audit logging
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        try
+        {
+            var response = await _authService.ForgotPasswordAsync(request, ipAddress, userAgent);
+
+            _logger.LogInformation("Password reset requested for email: {Email}", request.Email);
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing password reset request for email: {Email}", request.Email);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Password reset failed", message = "An error occurred. Please try again." });
+        }
+    }
+
+    /// <summary>
+    /// Resets user password using valid reset token from email link.
+    /// Token expires after 1 hour and can only be used once.
+    /// </summary>
+    /// <param name="request">Reset password request with token and new password</param>
+    /// <returns>Success or error message</returns>
+    /// <response code="200">Password reset successful</response>
+    /// <response code="400">Invalid or expired token, or validation error</response>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // Extract IP address and User Agent for audit logging
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        try
+        {
+            var result = await _authService.ResetPasswordAsync(request, ipAddress, userAgent);
+
+            if (result)
+            {
+                _logger.LogInformation("Password reset successful");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Password has been reset successfully. You can now log in with your new password."
+                });
+            }
+            else
+            {
+                _logger.LogWarning("Password reset failed");
+
+                return BadRequest(new
+                {
+                    error = "Password reset failed",
+                    message = "Unable to reset password. Please try again."
+                });
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Password reset failed: {Reason}", ex.Message);
+
+            return BadRequest(new
+            {
+                error = "Invalid request",
+                message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during password reset");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Password reset failed", message = "An error occurred. Please try again." });
+        }
+    }
 }
