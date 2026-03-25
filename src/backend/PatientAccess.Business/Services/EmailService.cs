@@ -35,7 +35,7 @@ public class EmailService : IEmailService
         // Load Brevo settings from configuration
         _brevoApiKey = _configuration["BrevoSettings:ApiKey"] ?? throw new InvalidOperationException("Brevo API key not configured");
         _brevoApiUrl = _configuration["BrevoSettings:ApiUrl"] ?? "https://api.brevo.com/v3/smtp/email";
-        _senderEmail = _configuration["BrevoSettings:SenderEmail"] ?? "madhave.susheel@10876504.brevosend.com";
+        _senderEmail = _configuration["BrevoSettings:SenderEmail"] ?? "madhave.susheel@gmail.com";
         _senderName = _configuration["BrevoSettings:SenderName"] ?? "Patient Access Platform";
     }
 
@@ -151,6 +151,11 @@ public class EmailService : IEmailService
                     name = _senderName,
                     email = _senderEmail
                 },
+                replyTo = new
+                {
+                    email = _senderEmail,
+                    name = _senderName
+                },
                 to = new[]
                 {
                     new
@@ -255,6 +260,11 @@ public class EmailService : IEmailService
                 {
                     name = _senderName,
                     email = _senderEmail
+                },
+                replyTo = new
+                {
+                    email = _senderEmail,
+                    name = _senderName
                 },
                 to = new[]
                 {
