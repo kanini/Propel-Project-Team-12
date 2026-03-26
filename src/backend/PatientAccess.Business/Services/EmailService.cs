@@ -38,38 +38,113 @@ public class EmailService : IEmailService
         {
             var verificationLink = $"{_frontendUrl}/verify-email?token={Uri.EscapeDataString(verificationToken)}";
 
-            var htmlContent = $@"
+                    var htmlContent = $@"
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background-color: #4F46E5; color: white; padding: 20px; text-align: center; }}
-        .content {{ padding: 30px; background-color: #f9f9f9; }}
-        .button {{ display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
-        .footer {{ padding: 20px; text-align: center; font-size: 12px; color: #666; }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #eef0f2;
+            padding: 40px 20px;
+            color: #333;
+            line-height: 1.6;
+        }}
+        .wrapper {{
+            max-width: 560px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 48px 52px 36px;
+        }}
+        .brand-title {{
+            text-align: center;
+            font-size: 26px;
+            font-weight: 700;
+            color: #1f7a5c;
+            margin-bottom: 6px;
+        }}
+        .subtitle {{
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f7a5c;
+            margin-bottom: 28px;
+        }}
+        .body-text {{
+            font-size: 14.5px;
+            color: #444;
+            margin-bottom: 16px;
+        }}
+        .btn-wrap {{
+            text-align: center;
+            margin: 28px 0;
+        }}
+        .btn {{
+            display: inline-block;
+            padding: 14px 44px;
+            background-color: #1a1a1a;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }}
+        .note {{
+            font-size: 13.5px;
+            color: #555;
+            margin-bottom: 12px;
+        }}
+        .divider {{
+            border: none;
+            border-top: 1px solid #e5e5e5;
+            margin: 28px 0 16px;
+        }}
+        .footer {{
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.8;
+        }}
     </style>
 </head>
 <body>
-    <div class='container'>
-        <div class='header'>
-            <h1>Welcome to Patient Access</h1>
+    <div class='wrapper'>
+        <div class='brand-title'>Patient Access</div>
+        <div class='subtitle'>Confirm your account</div>
+
+        <p class='body-text'>Hello {toName},</p>
+
+        <p class='body-text'>
+            Thank you for creating your account with <strong>PropelIQ</strong>.
+        </p>
+
+        <p class='body-text'>
+            To complete your registration and start using the platform, please confirm your email
+            address by clicking the button below.
+        </p>
+
+        <div class='btn-wrap'>
+            <a href='{verificationLink}' class='btn'>Confirm My Account</a>
         </div>
-        <div class='content'>
-            <p>Dear {toName},</p>
-            <p>Thank you for registering with Patient Access Platform. To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
-            <div style='text-align: center;'>
-                <a href='{verificationLink}' class='button'>Verify Email Address</a>
-            </div>
-            <p>Or copy and paste this link into your browser:</p>
-            <p style='word-break: break-all;'>{verificationLink}</p>
-            <p><strong>This verification link will expire in 24 hours.</strong></p>
-            <p>If you did not create this account, please ignore this email.</p>
-        </div>
+
+        <p class='note'>If you did not create this account, you can safely ignore this email.</p>
+
+        <p class='note'>This confirmation link will expire in <strong>24 hours</strong>.</p>
+
+        <p class='note'>Need help? Contact us at <a href='mailto:support@propeliq.com' style='color:#1f7a5c;'>support@propeliq.com</a></p>
+
+        <hr class='divider' />
+
         <div class='footer'>
-            <p>&copy; {DateTime.UtcNow.Year} Patient Access Platform. All rights reserved.</p>
-            <p>Contact us: support@patientaccess.com | (555) 123-4567</p>
+            <p>&copy; {DateTime.UtcNow.Year} PropelIQ. All rights reserved.</p>
+            <p>You're receiving this email because you created an account with PropelIQ.</p>
         </div>
     </div>
 </body>
