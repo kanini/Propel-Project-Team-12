@@ -425,21 +425,21 @@ dotnet test
 - **Edge Case**: ✅ Re-indexing API endpoint allows triggering without affecting live queries
 
 ## Success Criteria Checklist
-- [MANDATORY] SharpToken library installed and cl100k_base encoder initialized
-- [MANDATORY] DocumentChunk entity created with CodeSystem, SourceText, TokenCount
-- [MANDATORY] DocumentChunkingService implements IDocumentChunkingService interface
-- [MANDATORY] ChunkICD10DocumentAsync creates chunks ≤512 tokens with 64-token overlap
-- [MANDATORY] ChunkCPTDocumentAsync creates chunks ≤512 tokens with 64-token overlap
-- [MANDATORY] ChunkClinicalTerminologyAsync creates chunks ≤512 tokens with 64-token overlap
-- [MANDATORY] ICD-10 code boundary detection prevents mid-code splits
-- [MANDATORY] ChunkDocumentsJob Hangfire job processes documents asynchronously
-- [MANDATORY] KnowledgeBaseController /reindex endpoint triggers chunking job (Admin role)
-- [MANDATORY] Unit test: All chunks ≤512 tokens
-- [MANDATORY] Unit test: Overlap = 64 tokens (12.5%)
-- [MANDATORY] Integration test: ChunkDocumentsJob persists DocumentChunk records
-- [MANDATORY] Logging: Chunk count, average token size, processing time
-- [RECOMMENDED] Polly retry logic for transient failures (3 retries, exponential backoff)
-- [RECOMMENDED] Application Insights telemetry: "ChunkingJobStarted", "ChunkingJobCompleted"
+- [x] [MANDATORY] SharpToken library installed and cl100k_base encoder initialized
+- [x] [MANDATORY] DocumentChunk entity created with CodeSystem, SourceText, TokenCount
+- [x] [MANDATORY] DocumentChunkingService implements IDocumentChunkingService interface
+- [x] [MANDATORY] ChunkICD10DocumentAsync creates chunks ≤512 tokens with 64-token overlap
+- [x] [MANDATORY] ChunkCPTDocumentAsync creates chunks ≤512 tokens with 64-token overlap
+- [x] [MANDATORY] ChunkClinicalTerminologyAsync creates chunks ≤512 tokens with 64-token overlap
+- [x] [MANDATORY] ICD-10 code boundary detection prevents mid-code splits
+- [x] [MANDATORY] ChunkDocumentsJob Hangfire job processes documents asynchronously
+- [x] [MANDATORY] KnowledgeBaseController /reindex endpoint triggers chunking job (Admin role)
+- [ ] [MANDATORY] Unit test: All chunks ≤512 tokens
+- [ ] [MANDATORY] Unit test: Overlap = 64 tokens (12.5%)
+- [ ] [MANDATORY] Integration test: ChunkDocumentsJob persists DocumentChunk records
+- [x] [MANDATORY] Logging: Chunk count, average token size, processing time
+- [ ] [RECOMMENDED] Polly retry logic for transient failures (3 retries, exponential backoff)
+- [ ] [RECOMMENDED] Application Insights telemetry: "ChunkingJobStarted", "ChunkingJobCompleted"
 
 ## Estimated Effort
 **4 hours** (Service implementation + Hangfire integration + unit tests)

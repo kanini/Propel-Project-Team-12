@@ -591,24 +591,24 @@ dotnet test
 - **Edge Case**: ✅ No matches above 0.75 triggers fallback to keyword-only with reduced confidence message
 
 ## Success Criteria Checklist
-- [MANDATORY] HybridRetrievalService implements IHybridRetrievalService interface
-- [MANDATORY] SemanticSearchAsync uses pgvector cosine similarity (ORDER BY Embedding <-> query_vector)
-- [MANDATORY] KeywordSearchAsync uses PostgreSQL FTS (to_tsvector, ts_rank)
-- [MANDATORY] HybridSearchAsync combines semantic + keyword with 0.7/0.3 weighting
-- [MANDATORY] SearchAsync returns top-5 results with cosine >0.75 (AIR-R02)
-- [MANDATORY] SearchAsync falls back to keyword-only if no semantic matches >0.75
-- [MANDATORY] Separate retrieval per code system (ICD10, CPT, ClinicalTerminology per AIR-R04)
-- [MANDATORY] KnowledgeController GET /api/knowledge/search endpoint implemented
-- [MANDATORY] Redis caching with 15-minute TTL
-- [MANDATORY] CodeRetrievalResultDto includes Code, Description, SimilarityScore, MatchType
-- [MANDATORY] FTS indexes created (idx_icd10_description_fts, idx_cpt_description_fts, idx_clinical_term_fts)
-- [MANDATORY] Unit test: Semantic search returns results with SimilarityScore ≥0.75
-- [MANDATORY] Unit test: Hybrid search calculates FinalScore = 0.7*semantic + 0.3*keyword
-- [MANDATORY] Unit test: Fallback triggered when no semantic matches >0.75
-- [MANDATORY] Integration test: Query "Type 2 Diabetes Mellitus" returns E11.x codes
-- [MANDATORY] Integration test: Response time <200ms for top-5 retrieval
-- [RECOMMENDED] Application Insights telemetry: "KnowledgeSearchExecuted", "SemanticSearchFallback"
-- [RECOMMENDED] Cache hit rate monitoring (logged or tracked in Application Insights)
+- [x] [MANDATORY] HybridRetrievalService implements IHybridRetrievalService interface
+- [x] [MANDATORY] SemanticSearchAsync uses pgvector cosine similarity (ORDER BY Embedding <-> query_vector)
+- [x] [MANDATORY] KeywordSearchAsync uses PostgreSQL FTS (to_tsvector, ts_rank)
+- [x] [MANDATORY] HybridSearchAsync combines semantic + keyword with 0.7/0.3 weighting
+- [x] [MANDATORY] SearchAsync returns top-5 results with cosine >0.75 (AIR-R02)
+- [x] [MANDATORY] SearchAsync falls back to keyword-only if no semantic matches >0.75
+- [x] [MANDATORY] Separate retrieval per code system (ICD10, CPT, ClinicalTerminology per AIR-R04)
+- [x] [MANDATORY] KnowledgeController GET /api/knowledge/search endpoint implemented
+- [x] [MANDATORY] Redis caching with 15-minute TTL
+- [x] [MANDATORY] CodeRetrievalResultDto includes Code, Description, SimilarityScore, MatchType
+- [x] [MANDATORY] FTS indexes created (idx_icd10_description_fts, idx_cpt_description_fts, idx_clinical_term_fts)
+- [ ] [MANDATORY] Unit test: Semantic search returns results with SimilarityScore ≥0.75
+- [ ] [MANDATORY] Unit test: Hybrid search calculates FinalScore = 0.7*semantic + 0.3*keyword
+- [ ] [MANDATORY] Unit test: Fallback triggered when no semantic matches >0.75
+- [ ] [MANDATORY] Integration test: Query "Type 2 Diabetes Mellitus" returns E11.x codes
+- [ ] [MANDATORY] Integration test: Response time <200ms for top-5 retrieval
+- [ ] [RECOMMENDED] Application Insights telemetry: "KnowledgeSearchExecuted", "SemanticSearchFallback"
+- [ ] [RECOMMENDED] Cache hit rate monitoring (logged or tracked in Application Insights)
 
 ## Estimated Effort
 **6 hours** (Service implementation + pgvector + FTS + Redis caching + unit tests)

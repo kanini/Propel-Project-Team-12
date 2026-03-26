@@ -36,6 +36,7 @@ public class PatientAccessDbContext : DbContext
     public DbSet<ICD10Code> ICD10Codes => Set<ICD10Code>();
     public DbSet<CPTCode> CPTCodes => Set<CPTCode>();
     public DbSet<ClinicalTerminology> ClinicalTerminology => Set<ClinicalTerminology>();
+    public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,5 +66,6 @@ public class PatientAccessDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ICD10CodeConfiguration());
         modelBuilder.ApplyConfiguration(new CPTCodeConfiguration());
         modelBuilder.ApplyConfiguration(new ClinicalTerminologyConfiguration());
+        modelBuilder.ApplyConfiguration(new DocumentChunkConfiguration());
     }
 }

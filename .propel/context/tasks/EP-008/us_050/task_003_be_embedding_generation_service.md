@@ -534,24 +534,24 @@ dotnet test
 - **Edge Case**: ✅ Re-indexing updates DocumentChunk.IsProcessed without affecting existing ICD10Code/CPTCode/ClinicalTerminology records
 
 ## Success Criteria Checklist
-- [MANDATORY] Azure.AI.OpenAI SDK installed and OpenAIClient configured
-- [MANDATORY] AzureOpenAISettings configuration in appsettings.json
-- [MANDATORY] EmbeddingGenerationService implements IEmbeddingGenerationService interface
-- [MANDATORY] GenerateEmbeddingAsync returns 1536-dimensional vector
-- [MANDATORY] GenerateBatchEmbeddingsAsync processes up to 100 chunks per API call
-- [MANDATORY] ProcessPendingChunksAsync updates DocumentChunk.IsProcessed flag
-- [MANDATORY] ICD-10 embeddings persisted to ICD10Codes table with vector(1536) column
-- [MANDATORY] CPT embeddings persisted to CPTCodes table with vector(1536) column
-- [MANDATORY] Clinical terminology embeddings persisted to ClinicalTerminology table
-- [MANDATORY] Polly retry policy: 3 retries with exponential backoff
-- [MANDATORY] Polly circuit breaker: 5 failures trigger 1-minute break
-- [MANDATORY] GenerateEmbeddingsJob Hangfire job processes code system asynchronously
-- [MANDATORY] KnowledgeBaseController /embeddings/generate endpoint triggers job (Admin role)
-- [MANDATORY] KnowledgeBaseController /embeddings/{codeSystem}/progress endpoint returns percentage
-- [MANDATORY] Unit test: Embedding has 1536 dimensions
-- [MANDATORY] Integration test: Embeddings stored in database with pgvector vector(1536) type
-- [RECOMMENDED] Rate limiting: Delay between batches (60s / MaxRequestsPerMinute)
-- [RECOMMENDED] Application Insights telemetry: "EmbeddingBatchCompleted" with batch size, latency
+- [x] [MANDATORY] Azure.AI.OpenAI SDK installed and OpenAIClient configured
+- [x] [MANDATORY] AzureOpenAISettings configuration in appsettings.json
+- [x] [MANDATORY] EmbeddingGenerationService implements IEmbeddingGenerationService interface
+- [x] [MANDATORY] GenerateEmbeddingAsync returns 1536-dimensional vector
+- [x] [MANDATORY] GenerateBatchEmbeddingsAsync processes up to 100 chunks per API call
+- [x] [MANDATORY] ProcessPendingChunksAsync updates DocumentChunk.IsProcessed flag
+- [x] [MANDATORY] ICD-10 embeddings persisted to ICD10Codes table with vector(1536) column
+- [x] [MANDATORY] CPT embeddings persisted to CPTCodes table with vector(1536) column
+- [x] [MANDATORY] Clinical terminology embeddings persisted to ClinicalTerminology table
+- [x] [MANDATORY] Polly retry policy: 3 retries with exponential backoff
+- [x] [MANDATORY] Polly circuit breaker: 5 failures trigger 1-minute break
+- [x] [MANDATORY] GenerateEmbeddingsJob Hangfire job processes code system asynchronously
+- [x] [MANDATORY] KnowledgeBaseController /embeddings/generate endpoint triggers job (Admin role)
+- [x] [MANDATORY] KnowledgeBaseController /embeddings/{codeSystem}/progress endpoint returns percentage
+- [ ] [MANDATORY] Unit test: Embedding has 1536 dimensions
+- [ ] [MANDATORY] Integration test: Embeddings stored in database with pgvector vector(1536) type
+- [x] [RECOMMENDED] Rate limiting: Delay between batches (60s / MaxRequestsPerMinute)
+- [ ] [RECOMMENDED] Application Insights telemetry: "EmbeddingBatchCompleted" with batch size, latency
 
 ## Estimated Effort
 **5 hours** (Service implementation + Azure OpenAI integration + Polly resilience + unit tests)

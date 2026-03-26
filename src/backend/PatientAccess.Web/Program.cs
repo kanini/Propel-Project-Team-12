@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Azure;
+using Azure.AI.OpenAI;
 using PatientAccess.Web.Extensions;
 using PatientAccess.Web.Middleware;
 using PatientAccess.Web.Filters;
@@ -6,10 +8,13 @@ using PatientAccess.Web.HealthChecks;
 using PatientAccess.Web.Authorization;
 using PatientAccess.Business.Services;
 using PatientAccess.Business.Interfaces;
+using PatientAccess.Business.Configuration;
+using PatientAccess.Business.BackgroundJobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -248,6 +253,25 @@ builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCl
 
 // US_043 - Document processing services (Hangfire background jobs)
 builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>(); // Processing orchestration
+
+// EP-008-US-050 - Knowledge base chunking services (AIR-R01, AIR-R04)
+builder.Services.AddScoped<IDocumentChunkingService, DocumentChunkingService>(); // Document chunking with 512-token segments
+builder.Services.AddScoped<ChunkDocumentsJob>(); // Hangfire background job for chunking
+
+// EP-008-US-050 - Embedding generation services (AIR-R04, DR-010)
+builder.Services.Configure<AzureOpenAISettings>(
+    builder.Configuration.GetSection("AzureOpenAI"));
+builder.Services.AddSingleton(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<AzureOpenAISettings>>().Value;
+    return new OpenAIClient(new Uri(settings.Endpoint), new AzureKeyCredential(settings.ApiKey));
+});
+builder.Services.AddScoped<IEmbeddingGenerationService, EmbeddingGenerationService>(); // Azure OpenAI embedding generation
+builder.Services.AddScoped<GenerateEmbeddingsJob>(); // Hangfire background job for embeddings
+
+// EP-008-US-050 - Hybrid retrieval services (AIR-R02, AIR-R03, AIR-R04)
+builder.Services.AddScoped<IHybridRetrievalService, HybridRetrievalService>(); // Semantic + keyword search with Redis caching
+
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
 
 // US_045 - AI Document Intelligence (task_002: Supabase + Tesseract + Gemini pipeline)
