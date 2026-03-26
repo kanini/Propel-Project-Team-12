@@ -8,12 +8,15 @@ import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import LoginPage from "./features/auth/pages/LoginPage";
+import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
 import { PatientDashboard } from "./pages/PatientDashboard";
 import MyAppointments from "./pages/MyAppointments";
 import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
+import { StaffDashboard } from "./features/staff/dashboard/StaffDashboard";
 import { QueueManagement } from "./pages/staff/QueueManagement";
 import { ArrivalManagement } from "./pages/staff/ArrivalManagement";
 import { DocumentUploadPage } from "./pages/DocumentUploadPage";
@@ -91,21 +94,8 @@ function App() {
           {/* Public Authentication Routes */}
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
-
-          {/* Forgot Password Route - To be implemented */}
-          <Route
-            path="/forgot-password"
-            element={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold mb-2">Forgot Password</h1>
-                  <p className="text-neutral-500">
-                    Password recovery - Coming soon
-                  </p>
-                </div>
-              </div>
-            }
-          />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Patient Dashboard Routes - US_067, AC1 */}
           <Route
@@ -200,16 +190,13 @@ function App() {
             }
           />
 
-          {/* Staff Dashboard Routes - US_020, AC1, AC2 */}
+          {/* Staff Dashboard Routes - US_068 */}
           <Route
             path="/staff/dashboard"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Staff Dashboard</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <StaffDashboard />
                 </MainLayout>
               </ProtectedRoute>
             }

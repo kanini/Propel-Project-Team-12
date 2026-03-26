@@ -8,6 +8,8 @@ import documentsReducer from "./documentsSlice";
 import intakeAppointmentReducer from "./slices/intakeAppointmentSlice";
 import intakeReducer from "./slices/intakeSlice";
 import auditLogsReducer from "./slices/auditLogsSlice";
+import staffDashboardReducer from './slices/staffDashboardSlice';
+
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -18,6 +20,7 @@ const rootReducer = combineReducers({
   documents: documentsReducer,
   intakeAppointments: intakeAppointmentReducer,
   intake: intakeReducer,
+  staffDashboard: staffDashboardReducer,
   auditLogs: auditLogsReducer,
 });
 

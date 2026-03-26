@@ -195,6 +195,158 @@ public class AuthService : IAuthService
     }
 
     /// <summary>
+    /// Initiates password reset workflow by generating reset token and sending email.
+    /// </summary>
+    public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, string? ipAddress = null, string? userAgent = null)
+    {
+        var email = request.Email.ToLower().Trim();
+
+        // Find user by email
+        var user = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        // For security, always return success even if email not found (prevent email enumeration)
+        if (user == null)
+        {
+            _logger.LogInformation("Password reset requested for non-existent email: {Email}", email);
+            
+            // Log audit event for security tracking
+            await _auditLogService.LogAuthEventAsync(
+                userId: null,
+                actionType: AuditActionType.PasswordResetAttempt,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new { 
+                    email, 
+                    description = "Password reset attempted for non-existent email" 
+                }));
+
+            // Return generic success message to prevent email enumeration
+            return new ForgotPasswordResponseDto
+            {
+                Message = "If an account exists with this email, a password reset link will be sent.",
+                Email = request.Email
+            };
+        }
+
+        // Generate cryptographically secure reset token
+        // Reuse VerificationToken field for password reset
+        var resetToken = GenerateVerificationToken();
+
+        // Update user with reset token and expiry (1 hour)
+        user.VerificationToken = resetToken;
+        user.VerificationTokenExpiry = DateTime.UtcNow.AddHours(1);
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Password reset token generated for user {UserId}, Email: {Email}", 
+            user.UserId, user.Email);
+
+        // Log password reset initiation (audit trail)
+        await _auditLogService.LogAuthEventAsync(
+            userId: user.UserId,
+            actionType: AuditActionType.PasswordResetRequested,
+            ipAddress: ipAddress,
+            userAgent: userAgent,
+            metadata: System.Text.Json.JsonSerializer.Serialize(new
+            {
+                email = user.Email,
+                tokenExpiry = user.VerificationTokenExpiry
+            }));
+
+        // Send password reset email
+        var emailSent = await _emailService.SendPasswordResetEmailAsync(
+            user.Email, 
+            user.Name, 
+            resetToken);
+
+        if (!emailSent)
+        {
+            _logger.LogError("Failed to send password reset email to {Email}", user.Email);
+        }
+
+        return new ForgotPasswordResponseDto
+        {
+            Message = "If an account exists with this email, a password reset link will be sent.",
+            Email = request.Email
+        };
+    }
+
+    /// <summary>
+    /// Resets user password using valid reset token.
+    /// </summary>
+    public async Task<bool> ResetPasswordAsync(ResetPasswordRequestDto request, string? ipAddress = null, string? userAgent = null)
+    {
+        // Find user by reset token (reusing VerificationToken field)
+        var user = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.VerificationToken == request.Token);
+
+        if (user == null)
+        {
+            _logger.LogWarning("Password reset attempted with invalid token");
+            
+            await _auditLogService.LogAuthEventAsync(
+                userId: null,
+                actionType: AuditActionType.PasswordResetFailed,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new { 
+                    description = "Invalid password reset token" 
+                }));
+
+            throw new InvalidOperationException("Invalid or expired password reset token.");
+        }
+
+        // Check if token is expired
+        if (user.VerificationTokenExpiry == null || user.VerificationTokenExpiry < DateTime.UtcNow)
+        {
+            _logger.LogWarning("Password reset attempted with expired token for user {UserId}", user.UserId);
+            
+            await _auditLogService.LogAuthEventAsync(
+                userId: user.UserId,
+                actionType: AuditActionType.PasswordResetFailed,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    reason = "Token expired",
+                    tokenExpiry = user.VerificationTokenExpiry
+                }));
+
+            throw new InvalidOperationException("Password reset token has expired. Please request a new one.");
+        }
+
+        // Hash new password
+        var newPasswordHash = _passwordHashingService.HashPassword(request.NewPassword);
+
+        // Update password and clear reset token
+        user.PasswordHash = newPasswordHash;
+        user.VerificationToken = null;
+        user.VerificationTokenExpiry = null;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Password reset successfully for user {UserId}, Email: {Email}", 
+            user.UserId, user.Email);
+
+        // Log successful password reset
+        await _auditLogService.LogAuthEventAsync(
+            userId: user.UserId,
+            actionType: AuditActionType.PasswordResetCompleted,
+            ipAddress: ipAddress,
+            userAgent: userAgent,
+            metadata: System.Text.Json.JsonSerializer.Serialize(new
+            {
+                email = user.Email,
+                success = true
+            }));
+
+        return true;
+    }
+
+    /// <summary>
     /// Authenticates user and generates JWT session token (FR-002, AC1).
     /// Implements account lockout after 5 failed attempts (AC4).
     /// </summary>
