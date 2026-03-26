@@ -50,6 +50,10 @@ public class ClinicalDocumentConfiguration : IEntityTypeConfiguration<ClinicalDo
         builder.Property(d => d.ErrorMessage)
             .HasColumnType("text");
 
+        builder.Property(d => d.RequiresManualReview)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(d => d.CreatedAt)
             .IsRequired()
             .HasColumnType("timestamptz")

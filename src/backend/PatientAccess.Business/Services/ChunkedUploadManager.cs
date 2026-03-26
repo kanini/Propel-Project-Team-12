@@ -130,9 +130,9 @@ public class ChunkedUploadManager
     }
 
     /// <summary>
-    /// Assembles all chunks into final file and returns permanent file path
+    /// Assembles all chunks into final file and returns permanent file path and document ID
     /// </summary>
-    public async Task<(string FilePath, UploadSession Session)> FinalizeSessionAsync(Guid sessionId)
+    public async Task<(string FilePath, Guid DocumentId, UploadSession Session)> FinalizeSessionAsync(Guid sessionId, Guid documentId)
     {
         var session = GetSession(sessionId);
         if (session == null)
@@ -151,7 +151,6 @@ public class ChunkedUploadManager
         var patientDir = Path.Combine(_permanentUploadPath, session.PatientId.ToString());
         Directory.CreateDirectory(patientDir);
 
-        var documentId = Guid.NewGuid();
         var extension = Path.GetExtension(session.FileName);
         var permanentPath = Path.Combine(patientDir, $"{documentId}{extension}");
 
@@ -175,9 +174,9 @@ public class ChunkedUploadManager
             await finalStream.FlushAsync();
         }
 
-        _logger.LogInformation("Upload session {SessionId} finalized. File saved to {FilePath}", sessionId, permanentPath);
+        _logger.LogInformation("Upload session {SessionId} finalized. Document {DocumentId} saved to {FilePath}", sessionId, documentId, permanentPath);
 
-        return (permanentPath, session);
+        return (permanentPath, documentId, session);
     }
 
     /// <summary>

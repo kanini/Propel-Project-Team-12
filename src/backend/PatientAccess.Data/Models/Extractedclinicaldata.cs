@@ -32,6 +32,10 @@ public class ExtractedClinicalData
 
     public DateTime? VerifiedAt { get; set; }
 
+    public DateTime ExtractedAt { get; set; }
+
+    public string? StructuredData { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

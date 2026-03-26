@@ -44,6 +44,14 @@ public class ExtractedClinicalDataConfiguration : IEntityTypeConfiguration<Extra
         builder.Property(e => e.VerifiedAt)
             .HasColumnType("timestamptz");
 
+        builder.Property(e => e.ExtractedAt)
+            .IsRequired()
+            .HasColumnType("timestamptz")
+            .HasDefaultValueSql("NOW()");
+
+        builder.Property(e => e.StructuredData)
+            .HasColumnType("jsonb");
+
         builder.Property(e => e.CreatedAt)
             .IsRequired()
             .HasColumnType("timestamptz")
