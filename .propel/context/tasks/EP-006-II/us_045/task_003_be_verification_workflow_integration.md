@@ -83,7 +83,7 @@ Implement verification workflow integration for AI-extracted clinical data. This
 
 ## Dependent Tasks
 - task_001_db_extracted_data_schema (ExtractedClinicalData table)
-- task_002_ai_document_intelligence_integration (ClinicalDataExtractionService)
+- task_002_ai_document_intelligence_integration (ClinicalDataExtractionService using Gemini + Tesseract + Supabase)
 - EP-006-I: US_043: task_001_be_hangfire_processing_pipeline (DocumentProcessingJob, DocumentProcessingService)
 - EP-006-I: US_042: task_002_be_chunked_upload_api (PusherService)
 
@@ -99,7 +99,7 @@ Implement verification workflow integration for AI-extracted clinical data. This
 
 1. **Enhance DocumentProcessingService.ProcessDocumentAsync**
    - Wrap entire processing in database transaction (`using var transaction = await context.Database.BeginTransactionAsync()`)
-   - Call `ClinicalDataExtractionService.ExtractClinicalDataAsync(documentId)`
+   - Call `ClinicalDataExtractionService.ExtractClinicalDataAsync(documentId)` (which internally uses Supabase + Tesseract + Gemini)
    - Receive `ExtractionResultDto` with extracted data points
    - Iterate through extracted data points and persist to database
    - Implement duplicate detection: check if ExtractedClinicalData exists with same DocumentId, DataType, Value, SourcePageNumber
@@ -107,7 +107,7 @@ Implement verification workflow integration for AI-extracted clinical data. This
    - Set RequiresManualReview = true on ClinicalDocument if any data point has confidence <50%
    - Update document status to "ProcessingComplete" if extraction succeeds
    - Commit transaction if successful, rollback on exception
-   - Calculate total processing time, log warning if >30 seconds
+   - Calculate total processing time (includes Supabase download, OCR, Gemini inference), log warning if >30 seconds
 
 2. **Implement Batch Persistence Logic**
    - Create list of `ExtractedClinicalData` entities from `ExtractionResultDto`
@@ -190,13 +190,17 @@ src/backend/
 ├── PatientAccess.Business/
 │   ├── Services/
 │   │   ├── DocumentProcessingService.cs (from EP-006-I, to be enhanced)
+│   │   ├── SupabaseStorageService.cs (from task_002)
+│   │   ├── TesseractOcrService.cs (from task_002)
+│   │   ├── GeminiAiService.cs (from task_002)
 │   │   ├── ClinicalDataExtractionService.cs (from task_002)
 │   │   └── PusherService.cs (from EP-006-I, to be enhanced)
 │   ├── BackgroundJobs/
 │   │   └── DocumentProcessingJob.cs (from EP-006-I, to be enhanced)
 │   └── DTOs/
 │       ├── ExtractionResultDto.cs (from task_002)
-│       └── ExtractedDataPointDto.cs (from task_002)
+│       ├── ExtractedDataPointDto.cs (from task_002)
+│       └── OcrResultDto.cs (from task_002)
 ├── PatientAccess.Data/
 │   └── Entities/
 │       ├── ClinicalDocument.cs (from EP-006-I)
@@ -237,6 +241,9 @@ src/backend/
 - **Background Job Pattern**: `src/backend/PatientAccess.Business/BackgroundJobs/DocumentProcessingJob.cs`
 - **Service Pattern**: `src/backend/PatientAccess.Business/Services/DocumentProcessingService.cs`
 - **Pusher Event Pattern**: `src/backend/PatientAccess.Business/Services/PusherService.cs`
+- **Supabase Storage Pattern**: `src/backend/PatientAccess.Business/Services/SupabaseStorageService.cs`
+- **OCR Pattern**: `src/backend/PatientAccess.Business/Services/TesseractOcrService.cs`
+- **Gemini AI Pattern**: `src/backend/PatientAccess.Business/Services/GeminiAiService.cs`
 
 ## Build Commands
 ```powershell
