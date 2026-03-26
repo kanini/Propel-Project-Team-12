@@ -12,13 +12,17 @@ export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
 
-  const [status, setStatus] = useState<VerificationStatus>('loading');
-  const [message, setMessage] = useState('');
+  // Initialize state based on token presence
+  const [status, setStatus] = useState<VerificationStatus>(() => 
+    !token ? 'error' : 'loading'
+  );
+  const [message, setMessage] = useState(() => 
+    !token ? 'Invalid verification link. No token was provided.' : ''
+  );
 
   useEffect(() => {
+    // Only run verification if token exists
     if (!token) {
-      setStatus('error');
-      setMessage('Invalid verification link. No token was provided.');
       return;
     }
 
