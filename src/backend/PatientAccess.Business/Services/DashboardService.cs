@@ -36,18 +36,9 @@ public class DashboardService : IDashboardService
     /// </summary>
     public async Task<DashboardStatsDto> GetDashboardStatsAsync(Guid userId)
     {
-        var cacheKey = $"dashboard_stats_{userId}";
-
         try
         {
-            // Try to get from cache
-            var cachedData = await _cache.GetStringAsync(cacheKey);
-            if (!string.IsNullOrEmpty(cachedData))
-            {
-                _logger.LogInformation("Dashboard stats cache hit for user {UserId}", userId);
-                return JsonSerializer.Deserialize<DashboardStatsDto>(cachedData)!;
-            }
-
+          
             _logger.LogInformation("Dashboard stats cache miss for user {UserId}, calculating stats", userId);
 
             // Calculate stats
@@ -108,14 +99,6 @@ public class DashboardService : IDashboardService
                     WaitlistEntriesTrend = 0 // Trend requires historical tracking
                 }
             };
-
-            // Cache for 5 minutes
-            var cacheOptions = new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheDurationMinutes)
-            };
-            var serializedStats = JsonSerializer.Serialize(stats);
-            await _cache.SetStringAsync(cacheKey, serializedStats, cacheOptions);
 
             _logger.LogInformation("Dashboard stats cached for user {UserId}", userId);
 

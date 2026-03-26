@@ -49,13 +49,12 @@ public class QueuePatientDto
     public Guid ProviderId { get; set; }
 
     /// <summary>
-    /// Arrival time (when patient checked in as "Arrived")
+    /// Arrival time (when patient checked in as "Arrived"). Null if patient hasn't arrived yet.
     /// </summary>
-    [Required]
-    public DateTime ArrivalTime { get; set; }
+    public DateTime? ArrivalTime { get; set; }
 
     /// <summary>
-    /// Estimated wait time in minutes (current time - arrival time)
+    /// Estimated wait time in minutes (current time - arrival time). 0 if patient hasn't arrived.
     /// </summary>
     [Required]
     public int EstimatedWaitTime { get; set; }

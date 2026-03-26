@@ -166,4 +166,61 @@ public class ProviderService : IProviderService
         return string.Join(" ", specialty.Split('-')
             .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower()));
     }
+
+    /// <summary>
+    /// Retrieves a single provider by ID (US_024 - Appointment Booking).
+    /// Returns null if provider not found or inactive.
+    /// </summary>
+    public async Task<ProviderDto?> GetProviderByIdAsync(Guid providerId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching provider with ID: {ProviderId}", providerId);
+
+            var provider = await _context.Providers
+                .AsNoTracking()
+                .Where(p => p.ProviderId == providerId && p.IsActive)
+                .Select(p => new
+                {
+                    p.ProviderId,
+                    p.Name,
+                    p.Specialty,
+                    p.Email,
+                    p.Phone,
+                    // Calculate next available slot using subquery
+                    NextAvailableSlot = p.TimeSlots
+                        .Where(ts => !ts.IsBooked && ts.StartTime > DateTime.UtcNow)
+                        .OrderBy(ts => ts.StartTime)
+                        .Select(ts => (DateTime?)ts.StartTime)
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync();
+
+            if (provider == null)
+            {
+                _logger.LogWarning("Provider not found: {ProviderId}", providerId);
+                return null;
+            }
+
+            _logger.LogInformation("Retrieved provider: {ProviderName}", provider.Name);
+
+            return new ProviderDto
+            {
+                Id = provider.ProviderId,
+                Name = provider.Name,
+                Specialty = provider.Specialty,
+                Rating = 4.5m, // TODO: Calculate from appointment reviews (future enhancement)
+                ReviewCount = 100, // TODO: Count from appointment reviews (future enhancement)
+                NextAvailableSlot = provider.NextAvailableSlot,
+                AvatarUrl = null, // TODO: Implement avatar storage (future enhancement)
+                Gender = null, // TODO: Add Gender field to Provider entity
+                Location = null // TODO: Add Location field to Provider entity
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving provider {ProviderId}", providerId);
+            throw;
+        }
+    }
 }
