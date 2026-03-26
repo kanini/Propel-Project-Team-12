@@ -268,11 +268,6 @@ public class AppointmentService : IAppointmentService
                         // Don't fail the booking if reminder scheduling fails
                     }
                 }
-
-                // US_039: Enqueue async calendar sync (AC-1) - decouples from booking transaction (EC-1)
-                BackgroundJob.Enqueue<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(
-                    job => job.CreateCalendarEventAsync(appointment.AppointmentId));
-
                 // Load provider name and specialty for response
                 var provider = await _context.Providers
                     .AsNoTracking()
@@ -510,15 +505,7 @@ public class AppointmentService : IAppointmentService
             }
 
             // US_039/US_040: Enqueue async calendar event deletion (AC-3) - decouples from cancellation transaction (EC-1)
-            var googleEventId = appointment.GoogleCalendarEventId;
-            var outlookEventId = appointment.OutlookCalendarEventId;
-
-            if (!string.IsNullOrEmpty(googleEventId) || !string.IsNullOrEmpty(outlookEventId))
-            {
-                BackgroundJob.Enqueue<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(
-                    job => job.DeleteCalendarEventAsync(
-                        appointmentId, googleEventId, outlookEventId, patientId));
-            }
+    
 
             // TODO: Send cancellation confirmation notification
             // await _notificationService.SendCancellationConfirmationAsync(appointment);
@@ -661,10 +648,7 @@ public class AppointmentService : IAppointmentService
                         _logger.LogInformation(
                             "Successfully rescheduled appointment {AppointmentId} from slot {OriginalSlotId} to {NewSlotId}",
                             appointmentId, originalSlot?.TimeSlotId, newTimeSlotId);
-
-                        // US_039: Enqueue async calendar update (AC-2) - decouples from reschedule transaction (EC-1)
-                        BackgroundJob.Enqueue<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(
-                            job => job.UpdateCalendarEventAsync(appointmentId));
+ 
 
                         // TODO: Send reschedule confirmation notification
                         // await _notificationService.SendRescheduleConfirmationAsync(appointment);

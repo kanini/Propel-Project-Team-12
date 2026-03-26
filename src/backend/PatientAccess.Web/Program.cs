@@ -199,24 +199,6 @@ builder.Services.AddScoped<IReminderService, ReminderService>(); // US_037 - Rem
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ReminderSchedulerJob>(); // US_037 - Recurring reminder scanner
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ReminderDeliveryJob>(); // US_037 - Reminder delivery with retry
 builder.Services.AddScoped<INoShowRiskService, NoShowRiskService>(); // US_038 - No-show risk scoring engine (TR-020)
-// US_039/US_040 - Multi-provider calendar integration via keyed services (FR-024)
-builder.Services.AddKeyedScoped<ICalendarService, GoogleCalendarService>("Google");
-builder.Services.AddKeyedScoped<ICalendarService, OutlookCalendarService>("Outlook");
-builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(); // US_039/US_040 - Async multi-provider calendar synchronization
-
-// Configure named HttpClient for Google OAuth2 token exchange
-builder.Services.AddHttpClient("GoogleOAuth", client =>
-{
-    client.BaseAddress = new Uri("https://oauth2.googleapis.com/");
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
-
-// Configure named HttpClient for Microsoft OAuth2 token exchange
-builder.Services.AddHttpClient("MicrosoftOAuth", client =>
-{
-    client.BaseAddress = new Uri("https://login.microsoftonline.com/");
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
 
 // US_042 - Document upload services (chunked upload with real-time progress)
 builder.Services.AddMemoryCache(); // Required for upload session tracking
@@ -448,6 +430,11 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
     app.UseHangfireDashboard("/hangfire");
 
     // Configure Hangfire recurring jobs
+    // Clean up any stale job definitions before re-registering to prevent TypeLoadException
+    RecurringJob.RemoveIfExists("reminder-scheduler");
+    RecurringJob.RemoveIfExists("waitlist-slot-detection");
+    RecurringJob.RemoveIfExists("waitlist-timeout-processing");
+
     // US_037: Reminder scheduler job runs every 30 seconds  to ensure delivery within 30s of trigger time (NFR-017)
     RecurringJob.AddOrUpdate<ReminderSchedulerJob>(
         "reminder-scheduler",
@@ -455,13 +442,13 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         "*/30 * * * * *"); // Every 30 seconds (Cron with seconds)
 
     // US_041: Waitlist slot detection job runs every 2 minutes to balance responsiveness with DB load (FR-026, AC-1)
-    RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.WaitlistSlotDetectionJob>(
+    RecurringJob.AddOrUpdate<WaitlistSlotDetectionJob>(
         "waitlist-slot-detection",
         job => job.RunAsync(),
         "*/2 * * * *"); // Every 2 minutes
 
     // US_041: Waitlist timeout job runs every 1 minute for timely timeout processing (FR-026, AC-4)
-    RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.WaitlistTimeoutJob>(
+    RecurringJob.AddOrUpdate<WaitlistTimeoutJob>(
         "waitlist-timeout-processing",
         job => job.RunAsync(),
         "* * * * *"); // Every 1 minute
