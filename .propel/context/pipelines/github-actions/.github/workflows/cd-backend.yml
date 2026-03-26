@@ -1,0 +1,169 @@
+# CD - Deploy Backend via FTP
+# Implements: CICD-051 (Backend deployment to MonsterASP.NET)
+#
+# Replaces the existing backend.yml with secrets-based credential management.
+# All FTP credentials MUST be stored in GitHub Secrets (not hardcoded).
+#
+# Required GitHub Secrets:
+#   FTP_BACKEND_HOST     - FTP server URL (e.g., ftp://site59724.siteasp.net)
+#   FTP_BACKEND_USERNAME - FTP username
+#   FTP_BACKEND_PASSWORD - FTP password
+#
+# Trigger: Manual dispatch, or after CI passes on main branch
+
+name: CD - Deploy Backend
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy Backend to MonsterASP.NET via FTP
+    runs-on: windows-latest
+    # Only deploy if triggered manually or CI passed on main
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0
+
+      # CICD-007: Restore NuGet packages
+      - name: Restore dependencies
+        run: dotnet restore src/backend/PatientAccess.sln
+
+      # Generate RSA keys for JWT authentication
+      - name: Generate RSA Keys
+        run: powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1
+
+      # CICD-006: Publish .NET application
+      - name: Publish
+        run: >
+          dotnet publish src/backend/PatientAccess.Web/PatientAccess.Web.csproj
+          --configuration Release
+          --output ./publish
+          --no-self-contained
+          --runtime win-x86
+
+      - name: Copy RSA keys into publish output
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path "./publish/rsa-keys"
+          Copy-Item "src/backend/PatientAccess.Web/rsa-keys/public-key.xml" "./publish/rsa-keys/public-key.xml"
+          Copy-Item "src/backend/PatientAccess.Web/rsa-keys/private-key.xml" "./publish/rsa-keys/private-key.xml"
+          Write-Host "RSA keys copied to publish/rsa-keys/"
+
+      - name: Configure web.config for deployment
+        shell: bash
+        run: |
+          sed -i 's|stdoutLogEnabled="false"|stdoutLogEnabled="true"|g' ./publish/web.config
+          sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
+
+      # CICD-051: Deploy backend via FTP with app_offline pattern
+      - name: Take app offline
+        shell: powershell
+        run: |
+          $content = "<html><body><h2>Deployment in progress...</h2></body></html>"
+          $content | Out-File -FilePath "./app_offline.htm" -Encoding utf8
+          & curl.exe --ftp-create-dirs --silent --show-error `
+            --user "${{ secrets.FTP_BACKEND_USERNAME }}:${{ secrets.FTP_BACKEND_PASSWORD }}" `
+            -T "./app_offline.htm" `
+            "${{ secrets.FTP_BACKEND_HOST }}/wwwroot/app_offline.htm"
+          Write-Host "App is offline"
+
+      - name: Wait for app pool to recycle
+        shell: powershell
+        run: Start-Sleep -Seconds 15
+
+      - name: Deploy all files
+        shell: powershell
+        run: |
+          $ftpHost    = "${{ secrets.FTP_BACKEND_HOST }}"
+          $ftpUser    = "${{ secrets.FTP_BACKEND_USERNAME }}"
+          $ftpPass    = "${{ secrets.FTP_BACKEND_PASSWORD }}"
+          $localDir   = (Resolve-Path "./publish").Path
+          $remoteBase = "/wwwroot"
+          $maxRetries = 5
+          $retryDelay = 10
+
+          $files = Get-ChildItem -Path $localDir -Recurse -File
+          foreach ($file in $files) {
+            $relativePath = $file.FullName.Substring($localDir.Length).Replace("\", "/")
+            $remoteUrl    = "$ftpHost$remoteBase$relativePath"
+            $attempt      = 0
+            $uploaded     = $false
+
+            while (-not $uploaded -and $attempt -lt $maxRetries) {
+              $attempt++
+              Write-Host "Uploading (attempt $attempt): $relativePath"
+              & curl.exe --ftp-create-dirs --silent --show-error --retry 0 `
+                --user "${ftpUser}:${ftpPass}" `
+                -T $file.FullName $remoteUrl
+              $exitCode = $LASTEXITCODE
+
+              if ($exitCode -eq 0) {
+                Write-Host "OK: $relativePath"
+                $uploaded = $true
+              } else {
+                Write-Host "Failed (exit $exitCode): $relativePath"
+                if ($attempt -lt $maxRetries) {
+                  Write-Host "Retrying in $retryDelay seconds..."
+                  Start-Sleep -Seconds $retryDelay
+                } else {
+                  Write-Host "FAILED after $maxRetries attempts: $relativePath"
+                  exit 1
+                }
+              }
+            }
+          }
+          Write-Host "All files uploaded"
+
+      - name: Upload RSA keys to FTP
+        shell: powershell
+        run: |
+          & curl.exe --ftp-create-dirs --silent --show-error `
+            --user "${{ secrets.FTP_BACKEND_USERNAME }}:${{ secrets.FTP_BACKEND_PASSWORD }}" `
+            -T "src/backend/PatientAccess.Web/rsa-keys/public-key.xml" `
+            "${{ secrets.FTP_BACKEND_HOST }}/wwwroot/rsa-keys/public-key.xml"
+          & curl.exe --ftp-create-dirs --silent --show-error `
+            --user "${{ secrets.FTP_BACKEND_USERNAME }}:${{ secrets.FTP_BACKEND_PASSWORD }}" `
+            -T "src/backend/PatientAccess.Web/rsa-keys/private-key.xml" `
+            "${{ secrets.FTP_BACKEND_HOST }}/wwwroot/rsa-keys/private-key.xml"
+          Write-Host "RSA keys uploaded to FTP wwwroot/rsa-keys/"
+
+      - name: Bring app back online
+        shell: powershell
+        run: |
+          & curl.exe --silent --show-error `
+            --user "${{ secrets.FTP_BACKEND_USERNAME }}:${{ secrets.FTP_BACKEND_PASSWORD }}" `
+            -Q "DELE /wwwroot/app_offline.htm" `
+            "${{ secrets.FTP_BACKEND_HOST }}/"
+          Write-Host "App is back online"
+
+      # CICD-055: Tag deployment with commit SHA
+      - name: Deployment summary
+        if: success()
+        shell: bash
+        run: |
+          echo "### Backend Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target:** MonsterASP.NET FTP" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runtime:** win-x86 (.NET 8)" >> $GITHUB_STEP_SUMMARY
