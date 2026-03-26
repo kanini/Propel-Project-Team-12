@@ -1,0 +1,19 @@
+# Gitleaks configuration
+# Extends the default gitleaks rules and adds project-specific allowlists
+
+[extend]
+# Use the default gitleaks config as base
+useDefault = true
+
+[allowlist]
+description = "Project-specific allowlist for false positives"
+
+# Documentation and task spec files with example tokens/curl commands
+# Use [/\\] to match both forward slash (Linux/CI) and backslash (Windows)
+paths = [
+  '''\.propel[/\\]context[/\\].*\.md$''',
+  '''\.propel[/\\]rules[/\\].*\.md$''',
+  '''node_modules[/\\]''',
+  '''bin[/\\]Debug[/\\]''',
+  '''obj[/\\]''',
+]
