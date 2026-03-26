@@ -53,6 +53,10 @@ namespace PatientAccess.Data.Migrations
                         .HasColumnType("timestamptz")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<string>("GoogleCalendarEventId")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
                     b.Property<bool>("IsPriority")
                         .HasColumnType("boolean");
 
@@ -66,6 +70,10 @@ namespace PatientAccess.Data.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
+
+                    b.Property<string>("OutlookCalendarEventId")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
 
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
@@ -179,6 +187,63 @@ namespace PatientAccess.Data.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("PatientAccess.Data.Models.CalendarIntegration", b =>
+                {
+                    b.Property<Guid>("CalendarIntegrationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)");
+
+                    b.Property<string>("CalendarId")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<bool>("IsConnected")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)");
+
+                    b.Property<DateTime>("TokenExpiry")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CalendarIntegrationId");
+
+                    b.HasIndex("IsConnected")
+                        .HasDatabaseName("IX_CalendarIntegrations_IsConnected");
+
+                    b.HasIndex("UserId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CalendarIntegrations_UserId_Provider");
+
+                    b.ToTable("CalendarIntegrations", (string)null);
+                });
+
             modelBuilder.Entity("PatientAccess.Data.Models.ClinicalDocument", b =>
                 {
                     b.Property<Guid>("DocumentId")
@@ -229,6 +294,9 @@ namespace PatientAccess.Data.Migrations
                         .HasColumnType("timestamptz")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<Guid?>("UploadedBy")
+                        .HasColumnType("uuid");
+
                     b.HasKey("DocumentId");
 
                     b.HasIndex("PatientId")
@@ -239,6 +307,8 @@ namespace PatientAccess.Data.Migrations
 
                     b.HasIndex("UploadedAt")
                         .HasDatabaseName("IX_ClinicalDocuments_UploadedAt");
+
+                    b.HasIndex("UploadedBy");
 
                     b.ToTable("ClinicalDocuments", (string)null);
                 });
@@ -603,6 +673,9 @@ namespace PatientAccess.Data.Migrations
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_Notifications_Status");
 
+                    b.HasIndex("Status", "ScheduledTime")
+                        .HasDatabaseName("IX_Notifications_Status_ScheduledTime");
+
                     b.ToTable("Notifications", (string)null);
                 });
 
@@ -657,6 +730,69 @@ namespace PatientAccess.Data.Migrations
                         .HasDatabaseName("IX_Providers_Specialty");
 
                     b.ToTable("Providers", (string)null);
+                });
+
+            modelBuilder.Entity("PatientAccess.Data.Models.SystemSetting", b =>
+                {
+                    b.Property<Guid>("SystemSettingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("SystemSettingId");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SystemSettings_Key");
+
+                    b.ToTable("SystemSettings", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            SystemSettingId = new Guid("00000000-0000-0000-0001-000000000001"),
+                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Reminder intervals in hours before appointment. JSON array format.",
+                            Key = "Reminder.Intervals",
+                            Value = "[48, 24, 2]"
+                        },
+                        new
+                        {
+                            SystemSettingId = new Guid("00000000-0000-0000-0001-000000000002"),
+                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Enable SMS reminder notifications via Twilio.",
+                            Key = "Reminder.SmsEnabled",
+                            Value = "true"
+                        },
+                        new
+                        {
+                            SystemSettingId = new Guid("00000000-0000-0000-0001-000000000003"),
+                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Enable Email reminder notifications via SendGrid.",
+                            Key = "Reminder.EmailEnabled",
+                            Value = "true"
+                        });
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.TimeSlot", b =>
@@ -788,6 +924,12 @@ namespace PatientAccess.Data.Migrations
                     b.Property<int>("NotificationPreference")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("NotifiedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid?>("NotifiedSlotId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
@@ -811,6 +953,13 @@ namespace PatientAccess.Data.Migrations
                     b.Property<string>("Reason")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("ResponseDeadline")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("ResponseToken")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -819,11 +968,18 @@ namespace PatientAccess.Data.Migrations
 
                     b.HasKey("WaitlistEntryId");
 
+                    b.HasIndex("NotifiedSlotId");
+
                     b.HasIndex("PatientId")
                         .HasDatabaseName("IX_WaitlistEntries_PatientId");
 
                     b.HasIndex("ProviderId")
                         .HasDatabaseName("IX_WaitlistEntries_ProviderId");
+
+                    b.HasIndex("ResponseToken")
+                        .IsUnique()
+                        .HasDatabaseName("IX_WaitlistEntries_ResponseToken")
+                        .HasFilter("\"ResponseToken\" IS NOT NULL");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_WaitlistEntries_Status");
@@ -831,6 +987,10 @@ namespace PatientAccess.Data.Migrations
                     b.HasIndex("Priority", "CreatedAt")
                         .IsDescending(true, false)
                         .HasDatabaseName("IX_WaitlistEntries_Priority_CreatedAt");
+
+                    b.HasIndex("Status", "ResponseDeadline")
+                        .HasDatabaseName("IX_WaitlistEntries_Status_ResponseDeadline")
+                        .HasFilter("\"Status\" = 2");
 
                     b.HasIndex("PatientId", "ProviderId", "PreferredDateStart")
                         .IsUnique()
@@ -888,6 +1048,18 @@ namespace PatientAccess.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PatientAccess.Data.Models.CalendarIntegration", b =>
+                {
+                    b.HasOne("PatientAccess.Data.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_CalendarIntegrations_Users");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PatientAccess.Data.Models.ClinicalDocument", b =>
                 {
                     b.HasOne("PatientAccess.Data.Models.User", "Patient")
@@ -897,7 +1069,15 @@ namespace PatientAccess.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_ClinicalDocuments_Patients");
 
+                    b.HasOne("PatientAccess.Data.Models.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedBy")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_ClinicalDocuments_UploadedBy");
+
                     b.Navigation("Patient");
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.ExtractedClinicalData", b =>
@@ -1024,6 +1204,12 @@ namespace PatientAccess.Data.Migrations
 
             modelBuilder.Entity("PatientAccess.Data.Models.WaitlistEntry", b =>
                 {
+                    b.HasOne("PatientAccess.Data.Models.TimeSlot", "NotifiedSlot")
+                        .WithMany()
+                        .HasForeignKey("NotifiedSlotId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_WaitlistEntries_NotifiedSlot");
+
                     b.HasOne("PatientAccess.Data.Models.User", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
@@ -1037,6 +1223,8 @@ namespace PatientAccess.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_WaitlistEntries_Providers");
+
+                    b.Navigation("NotifiedSlot");
 
                     b.Navigation("Patient");
 

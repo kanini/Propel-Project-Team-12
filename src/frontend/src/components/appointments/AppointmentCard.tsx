@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import type { Appointment } from '../../types/appointment';
+import { RiskBadge } from '../common/RiskBadge';
 
 interface AppointmentCardProps {
     appointment: Appointment;
@@ -87,14 +88,23 @@ export function AppointmentCard({
                         {appointment.providerSpecialty}
                     </p>
                 </div>
-                <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        appointment.status
-                    )}`}
-                >
-                    {appointment.status.charAt(0).toUpperCase() +
-                        appointment.status.slice(1)}
-                </span>
+                <div className="flex items-center gap-2">
+                    {/* US_038 AC-3: Risk badge for staff-context views (conditionally rendered) */}
+                    {appointment.noShowRiskScore != null && appointment.riskLevel && (
+                        <RiskBadge
+                            score={appointment.noShowRiskScore}
+                            riskLevel={appointment.riskLevel}
+                        />
+                    )}
+                    <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            appointment.status
+                        )}`}
+                    >
+                        {appointment.status.charAt(0).toUpperCase() +
+                            appointment.status.slice(1)}
+                    </span>
+                </div>
             </div>
 
             {/* Appointment Details */}

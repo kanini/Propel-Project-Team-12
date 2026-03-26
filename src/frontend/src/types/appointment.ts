@@ -39,6 +39,10 @@ export interface Appointment {
     preferredSlotId?: string;
     createdAt: string;
     confirmationNumber?: string;
+    noShowRiskScore?: number; // US_038 AC-3: 0-100 risk score (nullable for legacy appointments)
+    riskLevel?: 'Low' | 'Medium' | 'High'; // US_038 AC-3: Risk level derived from score
+    googleCalendarSynced?: boolean; // US_039 AC-1: True when event is synced to Google Calendar
+    outlookCalendarSynced?: boolean; // US_040 AC-1: True when event is synced to Outlook Calendar
 }
 
 /**

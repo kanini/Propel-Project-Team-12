@@ -7,58 +7,51 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Custom design tokens - Primary Colors
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#EBF5FF',
+          100: '#D1E9FF',
+          500: '#0F62FE',
+          600: '#0C50D4',
+          700: '#0A3FA8',
         },
-        // Custom design tokens - Secondary Colors
-        secondary: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
+        success: {
+          50: '#DCFCE7',
+          600: '#16A34A',
+          700: '#15803D',
+          800: '#166534',
         },
-        // Custom design tokens - Semantic Colors
-        success: '#10b981',
-        warning: '#f59e0b',
-        error: '#ef4444',
-        info: '#3b82f6',
+        error: {
+          50: '#FEE2E2',
+          200: '#FECACA',
+          500: '#DC2626',
+          600: '#DC2626',
+          700: '#B91C1C',
+          800: '#991B1B',
+        },
+        warning: {
+          50: '#FEF3C7',
+          200: '#FDE68A',
+          600: '#D97706',
+          700: '#B45309',
+          800: '#92400E',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        serif: ['Merriweather', 'Georgia', 'serif'],
-        mono: ['Fira Code', 'Consolas', 'monospace'],
-      },
-      spacing: {
-        '128': '32rem',
-        '144': '36rem',
-      },
-      borderRadius: {
-        '4xl': '2rem',
       },
       keyframes: {
         'slide-up': {
           '0%': { transform: 'translateY(100%)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        'slide-down': {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 0.3s ease-out',
+        'slide-down': 'slide-down 0.3s ease-out',
       },
     },
   },

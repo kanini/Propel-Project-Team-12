@@ -8,7 +8,7 @@ namespace PatientAccess.Business.Services;
 
 /// <summary>
 /// JWT token generation and validation service using RS256 asymmetric signing algorithm (TR-012).
-/// Uses RSA key pair from security/rsa-keys directory for enhanced security.
+/// Uses RSA key pair from src/backend/rsa-keys directory for enhanced security.
 /// Private key signs tokens, public key validates them.
 /// </summary>
 public class JwtTokenService : IJwtTokenService
@@ -29,9 +29,9 @@ public class JwtTokenService : IJwtTokenService
         _expirationMinutes = int.Parse(jwtSettings["ExpirationMinutes"] ?? "15");
         _clockSkewMinutes = int.Parse(jwtSettings["ClockSkewMinutes"] ?? "5");
 
-        // Load RSA keys from security/rsa-keys directory
-        var privateKeyPath = jwtSettings["PrivateKeyPath"] ?? "security/rsa-keys/private-key.xml";
-        var publicKeyPath = jwtSettings["PublicKeyPath"] ?? "security/rsa-keys/public-key.xml";
+        // Load RSA keys from src/backend/rsa-keys directory
+        var privateKeyPath = jwtSettings["PrivateKeyPath"] ?? "rsa-keys/private-key.xml";
+        var publicKeyPath = jwtSettings["PublicKeyPath"] ?? "rsa-keys/public-key.xml";
 
         // Load private key for signing
         var privateKeyXml = File.ReadAllText(privateKeyPath);

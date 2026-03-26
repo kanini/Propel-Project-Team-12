@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CoverageSession>
+  <Summary numSequencePoints="0" visitedSequencePoints="0" numBranchPoints="0" visitedBranchPoints="0" sequenceCoverage="100" branchCoverage="100" maxCyclomaticComplexity="0" minCyclomaticComplexity="0" visitedClasses="0" numClasses="0" visitedMethods="0" numMethods="0" />
+  <Modules>
+    <Module hash="EA2810B9-3E58-4E2D-A9DD-B2BD03E4A182">
+      <ModulePath>PatientAccess.Data.dll</ModulePath>
+      <ModuleTime>2026-03-24T09:31:13</ModuleTime>
+      <ModuleName>PatientAccess.Data</ModuleName>
+      <Files />
+      <Classes />
+    </Module>
+  </Modules>
+</CoverageSession>

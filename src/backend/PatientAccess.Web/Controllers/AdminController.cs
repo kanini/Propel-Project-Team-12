@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
+using PatientAccess.Data;
 using System.Security.Claims;
 
 namespace PatientAccess.Web.Controllers;
@@ -17,13 +19,16 @@ public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
     private readonly ILogger<AdminController> _logger;
+    private readonly PatientAccessDbContext _context;
 
     public AdminController(
         IAdminService adminService,
-        ILogger<AdminController> logger)
+        ILogger<AdminController> logger,
+        PatientAccessDbContext context)
     {
         _adminService = adminService;
         _logger = logger;
+        _context = context;
     }
 
     /// <summary>
@@ -253,6 +258,94 @@ public class AdminController : ControllerBase
             _logger.LogError(ex, "User deactivation failed for {UserId}", userId);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { error = "User deactivation failed", message = "An error occurred while deactivating the user." });
+        }
+    }
+
+    /// <summary>
+    /// Gets all system settings (US_037 - AC-4).
+    /// Returns configurable reminder intervals and notification channel toggles.
+    /// </summary>
+    /// <returns>List of system settings</returns>
+    /// <response code="200">Settings retrieved successfully</response>
+    /// <response code="403">Insufficient permissions - Admin role required</response>
+    [HttpGet("settings")]
+    [ProducesResponseType(typeof(List<SystemSettingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetSettings()
+    {
+        _logger.LogInformation("Admin fetching system settings");
+
+        var settings = await _context.SystemSettings
+            .Select(s => new SystemSettingDto
+            {
+                Key = s.Key,
+                Value = s.Value,
+                Description = s.Description
+            })
+            .ToListAsync();
+
+        return Ok(settings);
+    }
+
+    /// <summary>
+    /// Updates system settings (US_037 - AC-4).
+    /// Future appointments use new intervals; already-scheduled reminders remain unchanged.
+    /// </summary>
+    /// <param name="request">Settings to update</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Settings updated successfully</response>
+    /// <response code="400">Invalid request</response>
+    /// <response code="403">Insufficient permissions - Admin role required</response>
+    [HttpPut("settings")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateSettings([FromBody] UpdateSystemSettingsRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var now = DateTime.UtcNow;
+
+            foreach (var settingDto in request.Settings)
+            {
+                var existingSetting = await _context.SystemSettings
+                    .FirstOrDefaultAsync(s => s.Key == settingDto.Key);
+
+                if (existingSetting != null)
+                {
+                    existingSetting.Value = settingDto.Value;
+                    existingSetting.Description = settingDto.Description;
+                    existingSetting.UpdatedAt = now;
+                }
+                else
+                {
+                    // Create new setting if it doesn't exist
+                    _context.SystemSettings.Add(new Data.Models.SystemSetting
+                    {
+                        Key = settingDto.Key,
+                        Value = settingDto.Value,
+                        Description = settingDto.Description,
+                        CreatedAt = now
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Admin updated {Count} system settings", request.Settings.Count);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update system settings");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "Settings update failed", message = "An error occurred while updating settings." });
         }
     }
 }

@@ -17,13 +17,16 @@ namespace PatientAccess.Web.Controllers;
 public class WaitlistController : ControllerBase
 {
     private readonly IWaitlistService _waitlistService;
+    private readonly IWaitlistNotificationService _notificationService;
     private readonly ILogger<WaitlistController> _logger;
 
     public WaitlistController(
         IWaitlistService waitlistService,
+        IWaitlistNotificationService notificationService,
         ILogger<WaitlistController> logger)
     {
         _waitlistService = waitlistService ?? throw new ArgumentNullException(nameof(waitlistService));
+        _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -223,6 +226,100 @@ public class WaitlistController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting waitlist entry {EntryId}", id);
             return StatusCode(500, new { message = "An error occurred while deleting waitlist entry" });
+        }
+    }
+
+    /// <summary>
+    /// Confirms waitlist slot offer — books appointment (US_041 - FR-026, AC-2).
+    /// AllowAnonymous because patient clicks link from email/SMS.
+    /// Token-based authentication via ResponseToken.
+    /// </summary>
+    /// <param name="token">Unique response token from notification</param>
+    /// <returns>Appointment booking result</returns>
+    /// <response code="200">Appointment booked successfully</response>
+    /// <response code="404">Invalid or expired token</response>
+    /// <response code="409">Slot no longer available (EC-2)</response>
+    /// <response code="410">Notification already responded to or expired</response>
+    [HttpPost("{token}/confirm")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ConfirmWaitlistResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status410Gone)]
+    public async Task<IActionResult> ConfirmSlot([FromRoute] string token)
+    {
+        try
+        {
+            _logger.LogInformation("Processing waitlist slot confirmation for token {Token}", token);
+
+            var result = await _notificationService.ProcessConfirmAsync(token);
+
+            if (!result.Success)
+            {
+                // EC-2: Slot no longer available
+                _logger.LogWarning("Slot no longer available for token {Token}", token);
+                return Conflict(new { message = result.Message });
+            }
+
+            _logger.LogInformation("Appointment {AppointmentId} booked via waitlist confirmation", result.AppointmentId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException)
+        {
+            _logger.LogWarning("Invalid or expired token: {Token}", token);
+            return NotFound(new { message = "Invalid or expired notification token" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Notification already responded to or expired: {Token}", token);
+            return StatusCode(StatusCodes.Status410Gone, new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing waitlist confirmation for token {Token}", token);
+            return StatusCode(500, new { message = "An error occurred while confirming the appointment" });
+        }
+    }
+
+    /// <summary>
+    /// Declines waitlist slot offer — stays on waitlist, next patient notified (US_041 - FR-026, AC-3).
+    /// AllowAnonymous for same reason as confirm.
+    /// </summary>
+    /// <param name="token">Unique response token from notification</param>
+    /// <returns>Decline confirmation</returns>
+    /// <response code="200">Declined successfully, remains on waitlist</response>
+    /// <response code="404">Invalid or expired token</response>
+    /// <response code="410">Notification already responded to</response>
+    [HttpPost("{token}/decline")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status410Gone)]
+    public async Task<IActionResult> DeclineSlot([FromRoute] string token)
+    {
+        try
+        {
+            _logger.LogInformation("Processing waitlist slot decline for token {Token}", token);
+
+            await _notificationService.ProcessDeclineAsync(token);
+
+            _logger.LogInformation("Slot declined for token {Token}, patient remains on waitlist", token);
+            return Ok(new { message = "You remain on the waitlist. We'll notify you when another slot opens." });
+        }
+        catch (KeyNotFoundException)
+        {
+            _logger.LogWarning("Invalid or expired token: {Token}", token);
+            return NotFound(new { message = "Invalid or expired notification token" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Notification already responded to: {Token}", token);
+            return StatusCode(StatusCodes.Status410Gone, new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing waitlist decline for token {Token}", token);
+            return StatusCode(500, new { message = "An error occurred while processing your decline" });
         }
     }
 }

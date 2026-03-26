@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,8 @@ public class AppointmentService : IAppointmentService
     private readonly PatientAccessDbContext _context;
     private readonly ILogger<AppointmentService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IReminderService? _reminderService;
+    private readonly INoShowRiskService? _noShowRiskService;
     private const int MaxRetries = 3;
     private const int InitialRetryDelayMs = 100;
     private const int DefaultCancellationNoticeHours = 24;
@@ -27,11 +30,15 @@ public class AppointmentService : IAppointmentService
     public AppointmentService(
         PatientAccessDbContext context,
         ILogger<AppointmentService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IReminderService? reminderService = null,
+        INoShowRiskService? noShowRiskService = null)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _reminderService = reminderService; // US_037 - Optional for backward compatibility
+        _noShowRiskService = noShowRiskService; // US_038 - Optional for backward compatibility
     }
 
     /// <summary>
@@ -215,11 +222,56 @@ public class AppointmentService : IAppointmentService
 
                 _context.Appointments.Add(appointment);
                 await _context.SaveChangesAsync();
+
+                // US_038 AC-1: Calculate no-show risk score after appointment creation (within transaction)
+                if (_noShowRiskService != null)
+                {
+                    try
+                    {
+                        var riskResult = await _noShowRiskService.CalculateRiskScoreAsync(
+                            patientId,
+                            timeSlot.StartTime,
+                            isWalkIn: false);
+                        appointment.NoShowRiskScore = riskResult.Score;
+                        await _context.SaveChangesAsync();
+
+                        _logger.LogDebug(
+                            "Calculated risk score for appointment {AppointmentId}: Score={Score}, RiskLevel={RiskLevel}",
+                            appointment.AppointmentId, riskResult.Score, riskResult.RiskLevel);
+
+                        // US_038 AC-4 (EC-1): Ensure NoShowHistory record exists for first-time patients
+                        await EnsureNoShowHistoryExistsAsync(patientId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to calculate risk score for appointment {AppointmentId}", appointment.AppointmentId);
+                        // Don't fail the booking if risk scoring fails
+                    }
+                }
+
                 await transaction.CommitAsync();
 
                 _logger.LogInformation(
                     "Appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
                     appointment.AppointmentId, appointment.ConfirmationNumber);
+
+                // US_037: Schedule reminder notifications after successful booking
+                if (_reminderService != null)
+                {
+                    try
+                    {
+                        await _reminderService.ScheduleRemindersAsync(appointment.AppointmentId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to schedule reminders for appointment {AppointmentId}", appointment.AppointmentId);
+                        // Don't fail the booking if reminder scheduling fails
+                    }
+                }
+
+                // US_039: Enqueue async calendar sync (AC-1) - decouples from booking transaction (EC-1)
+                BackgroundJob.Enqueue<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(
+                    job => job.CreateCalendarEventAsync(appointment.AppointmentId));
 
                 // Load provider name and specialty for response
                 var provider = await _context.Providers
@@ -239,6 +291,14 @@ public class AppointmentService : IAppointmentService
                         .FirstOrDefaultAsync();
                 }
 
+                // Derive risk level from score (US_038 AC-1)
+                string? riskLevel = null;
+                if (appointment.NoShowRiskScore.HasValue)
+                {
+                    var score = appointment.NoShowRiskScore.Value;
+                    riskLevel = score < 40 ? "Low" : score <= 70 ? "Medium" : "High";
+                }
+
                 return new AppointmentResponseDto
                 {
                     Id = appointment.AppointmentId,
@@ -250,7 +310,9 @@ public class AppointmentService : IAppointmentService
                     Status = appointment.Status.ToString(),
                     ConfirmationNumber = appointment.ConfirmationNumber,
                     PreferredSlotId = appointment.PreferredSlotId,
-                    PreferredSlotStartTime = preferredSlotStartTime
+                    PreferredSlotStartTime = preferredSlotStartTime,
+                    NoShowRiskScore = appointment.NoShowRiskScore,
+                    RiskLevel = riskLevel
                 };
             }
             catch (ConflictException)
@@ -387,6 +449,9 @@ public class AppointmentService : IAppointmentService
                 throw new ArgumentException($"Appointment {appointmentId} is already cancelled", nameof(appointmentId));
             }
 
+            // Capture Google Calendar event ID before status change (US_039 - AC-3)
+            var googleCalendarEventId = appointment.GoogleCalendarEventId;
+
             // Enforce cancellation policy (AC-4)
             var cancellationNoticeHours = _configuration.GetSection("AppointmentSettings")?["CancellationNoticeHours"] != null
                 ? int.Parse(_configuration.GetSection("AppointmentSettings")["CancellationNoticeHours"]!)
@@ -422,6 +487,39 @@ public class AppointmentService : IAppointmentService
                 "Successfully cancelled appointment {AppointmentId}. Time slot {TimeSlotId} released.",
                 appointmentId, timeSlot?.TimeSlotId);
 
+            // US_041: Trigger waitlist notification check for freed slot (AC-1)
+            if (timeSlot != null)
+            {
+                BackgroundJob.Enqueue<PatientAccess.Business.BackgroundJobs.WaitlistSlotDetectionJob>(
+                    job => job.RunAsync());
+                _logger.LogInformation("Enqueued WaitlistSlotDetectionJob for freed slot {TimeSlotId}", timeSlot.TimeSlotId);
+            }
+
+            // US_037: Cancel pending reminder notifications
+            if (_reminderService != null)
+            {
+                try
+                {
+                    await _reminderService.CancelRemindersAsync(appointmentId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to cancel reminders for appointment {AppointmentId}", appointmentId);
+                    // Don't fail the cancellation if reminder cancellation fails
+                }
+            }
+
+            // US_039/US_040: Enqueue async calendar event deletion (AC-3) - decouples from cancellation transaction (EC-1)
+            var googleEventId = appointment.GoogleCalendarEventId;
+            var outlookEventId = appointment.OutlookCalendarEventId;
+
+            if (!string.IsNullOrEmpty(googleEventId) || !string.IsNullOrEmpty(outlookEventId))
+            {
+                BackgroundJob.Enqueue<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(
+                    job => job.DeleteCalendarEventAsync(
+                        appointmentId, googleEventId, outlookEventId, patientId));
+            }
+
             // TODO: Send cancellation confirmation notification
             // await _notificationService.SendCancellationConfirmationAsync(appointment);
 
@@ -454,139 +552,147 @@ public class AppointmentService : IAppointmentService
                     "Rescheduling appointment {AppointmentId} for Patient {PatientId} to TimeSlot {NewTimeSlotId} (Attempt {Attempt})",
                     appointmentId, patientId, newTimeSlotId, retryCount + 1);
 
-                // Start transaction with serializable isolation for atomic operations (AC-3)
-                using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-
-                try
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
                 {
-                    // Fetch appointment with provider
-                    var appointment = await _context.Appointments
-                        .Include(a => a.Provider)
-                        .Where(a => a.AppointmentId == appointmentId)
-                        .FirstOrDefaultAsync();
+                    // Start transaction with serializable isolation for atomic operations (AC-3)
+                    using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
-                    if (appointment == null)
+                    try
+                    {
+                        // Fetch appointment with provider
+                        var appointment = await _context.Appointments
+                            .Include(a => a.Provider)
+                            .Where(a => a.AppointmentId == appointmentId)
+                            .FirstOrDefaultAsync();
+
+                        if (appointment == null)
+                        {
+                            await transaction.RollbackAsync();
+                            _logger.LogWarning("Appointment {AppointmentId} not found", appointmentId);
+                            throw new ArgumentException($"Appointment {appointmentId} not found", nameof(appointmentId));
+                        }
+
+                        // Verify ownership
+                        if (appointment.PatientId != patientId)
+                        {
+                            await transaction.RollbackAsync();
+                            _logger.LogWarning(
+                                "Unauthorized reschedule attempt: Appointment {AppointmentId} belongs to Patient {OwnerId}, not {RequesterId}",
+                                appointmentId, appointment.PatientId, patientId);
+                            throw new UnauthorizedAccessException(
+                                $"Appointment {appointmentId} does not belong to patient {patientId}");
+                        }
+
+                        // Check if appointment is in a state that allows rescheduling
+                        if (appointment.Status == AppointmentStatus.Cancelled ||
+                            appointment.Status == AppointmentStatus.Completed)
+                        {
+                            await transaction.RollbackAsync();
+                            _logger.LogWarning(
+                                "Appointment {AppointmentId} cannot be rescheduled. Current status: {Status}",
+                                appointmentId, appointment.Status);
+                            throw new ArgumentException(
+                                $"Appointment cannot be rescheduled. Current status: {appointment.Status}",
+                                nameof(appointmentId));
+                        }
+
+                        // Fetch original time slot
+                        var originalSlot = await _context.TimeSlots
+                            .Where(ts => ts.TimeSlotId == appointment.TimeSlotId)
+                            .FirstOrDefaultAsync();
+
+                        // Fetch new time slot
+                        var newSlot = await _context.TimeSlots
+                            .Where(ts => ts.TimeSlotId == newTimeSlotId)
+                            .FirstOrDefaultAsync();
+
+                        if (newSlot == null)
+                        {
+                            await transaction.RollbackAsync();
+                            _logger.LogWarning("New time slot {TimeSlotId} not found", newTimeSlotId);
+                            throw new ArgumentException($"New time slot {newTimeSlotId} not found", nameof(newTimeSlotId));
+                        }
+
+                        // Verify new slot belongs to same provider
+                        if (newSlot.ProviderId != appointment.ProviderId)
+                        {
+                            await transaction.RollbackAsync();
+                            _logger.LogWarning(
+                                "New time slot {TimeSlotId} belongs to different provider {NewProviderId}, expected {OriginalProviderId}",
+                                newTimeSlotId, newSlot.ProviderId, appointment.ProviderId);
+                            throw new ArgumentException(
+                                $"New time slot must be with the same provider ({appointment.Provider.Name})",
+                                nameof(newTimeSlotId));
+                        }
+
+                        // Check if new slot is available (AC-3 - conflict handling)
+                        if (newSlot.IsBooked)
+                        {
+                            await transaction.RollbackAsync();
+                            _logger.LogWarning(
+                                "New time slot {TimeSlotId} is already booked. Conflict detected.",
+                                newTimeSlotId);
+                            throw new ConflictException($"Time slot {newTimeSlotId} is no longer available");
+                        }
+
+                        // Execute atomic reschedule (AC-3)
+                        // 1. Release original slot
+                        if (originalSlot != null)
+                        {
+                            originalSlot.IsBooked = false;
+                            originalSlot.UpdatedAt = DateTime.UtcNow;
+                        }
+
+                        // 2. Book new slot
+                        newSlot.IsBooked = true;
+                        newSlot.UpdatedAt = DateTime.UtcNow;
+
+                        // 3. Update appointment
+                        appointment.TimeSlotId = newTimeSlotId;
+                        appointment.ScheduledDateTime = newSlot.StartTime;
+                        appointment.UpdatedAt = DateTime.UtcNow;
+                        // Clear preferred slot if it was set
+                        appointment.PreferredSlotId = null;
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "Successfully rescheduled appointment {AppointmentId} from slot {OriginalSlotId} to {NewSlotId}",
+                            appointmentId, originalSlot?.TimeSlotId, newTimeSlotId);
+
+                        // US_039: Enqueue async calendar update (AC-2) - decouples from reschedule transaction (EC-1)
+                        BackgroundJob.Enqueue<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(
+                            job => job.UpdateCalendarEventAsync(appointmentId));
+
+                        // TODO: Send reschedule confirmation notification
+                        // await _notificationService.SendRescheduleConfirmationAsync(appointment);
+
+                        // Return updated appointment details
+                        return new AppointmentResponseDto
+                        {
+                            Id = appointment.AppointmentId,
+                            ProviderId = appointment.ProviderId,
+                            ProviderName = appointment.Provider.Name,
+                            ScheduledDateTime = appointment.ScheduledDateTime,
+                            VisitReason = appointment.VisitReason,
+                            Status = appointment.Status.ToString(),
+                            ConfirmationNumber = appointment.ConfirmationNumber,
+                            PreferredSlotId = appointment.PreferredSlotId
+                        };
+                    }
+                    catch (ConflictException)
                     {
                         await transaction.RollbackAsync();
-                        _logger.LogWarning("Appointment {AppointmentId} not found", appointmentId);
-                        throw new ArgumentException($"Appointment {appointmentId} not found", nameof(appointmentId));
+                        throw; // Rethrow conflict exceptions immediately (no retry)
                     }
-
-                    // Verify ownership
-                    if (appointment.PatientId != patientId)
+                    catch (Exception)
                     {
                         await transaction.RollbackAsync();
-                        _logger.LogWarning(
-                            "Unauthorized reschedule attempt: Appointment {AppointmentId} belongs to Patient {OwnerId}, not {RequesterId}",
-                            appointmentId, appointment.PatientId, patientId);
-                        throw new UnauthorizedAccessException(
-                            $"Appointment {appointmentId} does not belong to patient {patientId}");
+                        throw;
                     }
-
-                    // Check if appointment is in a state that allows rescheduling
-                    if (appointment.Status == AppointmentStatus.Cancelled ||
-                        appointment.Status == AppointmentStatus.Completed)
-                    {
-                        await transaction.RollbackAsync();
-                        _logger.LogWarning(
-                            "Appointment {AppointmentId} cannot be rescheduled. Current status: {Status}",
-                            appointmentId, appointment.Status);
-                        throw new ArgumentException(
-                            $"Appointment cannot be rescheduled. Current status: {appointment.Status}",
-                            nameof(appointmentId));
-                    }
-
-                    // Fetch original time slot
-                    var originalSlot = await _context.TimeSlots
-                        .Where(ts => ts.TimeSlotId == appointment.TimeSlotId)
-                        .FirstOrDefaultAsync();
-
-                    // Fetch new time slot
-                    var newSlot = await _context.TimeSlots
-                        .Where(ts => ts.TimeSlotId == newTimeSlotId)
-                        .FirstOrDefaultAsync();
-
-                    if (newSlot == null)
-                    {
-                        await transaction.RollbackAsync();
-                        _logger.LogWarning("New time slot {TimeSlotId} not found", newTimeSlotId);
-                        throw new ArgumentException($"New time slot {newTimeSlotId} not found", nameof(newTimeSlotId));
-                    }
-
-                    // Verify new slot belongs to same provider
-                    if (newSlot.ProviderId != appointment.ProviderId)
-                    {
-                        await transaction.RollbackAsync();
-                        _logger.LogWarning(
-                            "New time slot {TimeSlotId} belongs to different provider {NewProviderId}, expected {OriginalProviderId}",
-                            newTimeSlotId, newSlot.ProviderId, appointment.ProviderId);
-                        throw new ArgumentException(
-                            $"New time slot must be with the same provider ({appointment.Provider.Name})",
-                            nameof(newTimeSlotId));
-                    }
-
-                    // Check if new slot is available (AC-3 - conflict handling)
-                    if (newSlot.IsBooked)
-                    {
-                        await transaction.RollbackAsync();
-                        _logger.LogWarning(
-                            "New time slot {TimeSlotId} is already booked. Conflict detected.",
-                            newTimeSlotId);
-                        throw new ConflictException($"Time slot {newTimeSlotId} is no longer available");
-                    }
-
-                    // Execute atomic reschedule (AC-3)
-                    // 1. Release original slot
-                    if (originalSlot != null)
-                    {
-                        originalSlot.IsBooked = false;
-                        originalSlot.UpdatedAt = DateTime.UtcNow;
-                    }
-
-                    // 2. Book new slot
-                    newSlot.IsBooked = true;
-                    newSlot.UpdatedAt = DateTime.UtcNow;
-
-                    // 3. Update appointment
-                    appointment.TimeSlotId = newTimeSlotId;
-                    appointment.ScheduledDateTime = newSlot.StartTime;
-                    appointment.UpdatedAt = DateTime.UtcNow;
-                    // Clear preferred slot if it was set
-                    appointment.PreferredSlotId = null;
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    _logger.LogInformation(
-                        "Successfully rescheduled appointment {AppointmentId} from slot {OriginalSlotId} to {NewSlotId}",
-                        appointmentId, originalSlot?.TimeSlotId, newTimeSlotId);
-
-                    // TODO: Send reschedule confirmation notification
-                    // await _notificationService.SendRescheduleConfirmationAsync(appointment);
-
-                    // Return updated appointment details
-                    return new AppointmentResponseDto
-                    {
-                        Id = appointment.AppointmentId,
-                        ProviderId = appointment.ProviderId,
-                        ProviderName = appointment.Provider.Name,
-                        ScheduledDateTime = appointment.ScheduledDateTime,
-                        VisitReason = appointment.VisitReason,
-                        Status = appointment.Status.ToString(),
-                        ConfirmationNumber = appointment.ConfirmationNumber,
-                        PreferredSlotId = appointment.PreferredSlotId
-                    };
-                }
-                catch (ConflictException)
-                {
-                    await transaction.RollbackAsync();
-                    throw; // Rethrow conflict exceptions immediately (no retry)
-                }
-                catch (Exception)
-                {
-                    await transaction.RollbackAsync();
-                    throw;
-                }
+                }); // end strategy.ExecuteAsync
             }
             catch (DbUpdateException ex) when (IsDeadlockException(ex))
             {
@@ -700,114 +806,94 @@ public class AppointmentService : IAppointmentService
                 // Validate request
                 await ValidateWalkinAppointmentRequestAsync(request);
 
-                // Start transaction with serializable isolation for concurrency control
-                using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-
-                try
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
                 {
-                    // Fetch and lock the time slot
-                    var timeSlot = await _context.TimeSlots
-                        .Where(ts => ts.TimeSlotId == request.TimeSlotId)
-                        .FirstOrDefaultAsync();
+                    // Start transaction with serializable isolation for concurrency control
+                    using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
-                    if (timeSlot == null)
+                    try
                     {
-                        throw new ArgumentException($"Time slot {request.TimeSlotId} does not exist", nameof(request.TimeSlotId));
-                    }
+                        // Fetch and lock the time slot
+                        var timeSlot = await _context.TimeSlots
+                            .Where(ts => ts.TimeSlotId == request.TimeSlotId)
+                            .FirstOrDefaultAsync();
 
-                    // Check if slot is already booked (AC4 - conflict detection)
-                    if (timeSlot.IsBooked)
-                    {
-                        await transaction.RollbackAsync();
-                        _logger.LogWarning(
-                            "Time slot {TimeSlotId} is already booked. Conflict detected.",
-                            request.TimeSlotId);
-                        throw new ConflictException($"Time slot {request.TimeSlotId} is no longer available");
-                    }
-
-                    // Mark time slot as booked
-                    timeSlot.IsBooked = true;
-                    timeSlot.UpdatedAt = DateTime.UtcNow;
-
-                    // Create walk-in appointment record
-                    var appointment = new Appointment
-                    {
-                        AppointmentId = Guid.NewGuid(),
-                        PatientId = request.PatientId,
-                        ProviderId = request.ProviderId,
-                        TimeSlotId = request.TimeSlotId,
-                        ScheduledDateTime = timeSlot.StartTime,
-                        Status = AppointmentStatus.Arrived, // Walk-ins default to Arrived status
-                        VisitReason = request.VisitReason,
-                        IsWalkIn = true, // Flag for walk-in appointments
-                        ConfirmationReceived = true, // Walk-ins are considered confirmed (staff-initiated)
-                        NoShowRiskScore = 0, // Zero risk for walk-ins (already arrived)
-                        ConfirmationNumber = GenerateConfirmationNumber(),
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    _context.Appointments.Add(appointment);
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    _logger.LogInformation(
-                        "Walk-in appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
-                        appointment.AppointmentId, appointment.ConfirmationNumber);
-
-                    // Load provider name for response
-                    var provider = await _context.Providers
-                        .AsNoTracking()
-                        .Where(p => p.ProviderId == request.ProviderId)
-                        .Select(p => p.Name)
-                        .FirstOrDefaultAsync();
-
-                    return new AppointmentResponseDto
-                    {
-                        Id = appointment.AppointmentId,
-                        ProviderId = appointment.ProviderId,
-                        ProviderName = provider ?? "Unknown",
-                        ScheduledDateTime = appointment.ScheduledDateTime,
-                        VisitReason = appointment.VisitReason,
-                        Status = appointment.Status.ToString(),
-                        ConfirmationNumber = appointment.ConfirmationNumber,
-                        PreferredSlotId = null,
-                        PreferredSlotStartTime = null
-                    };
-                }
-                catch (ConflictException)
-                {
-                    await transaction.RollbackAsync();
-                    throw; // Rethrow conflict exceptions immediately (no retry)
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-
-                    // Check if it's a deadlock (PostgreSQL deadlock_detected error code: 40P01)
-                    if (IsDeadlockException(ex))
-                    {
-                        retryCount++;
-                        if (retryCount >= MaxRetries)
+                        if (timeSlot == null)
                         {
-                            _logger.LogError(ex,
-                                "Deadlock detected after {RetryCount} retries for Patient {PatientId}, TimeSlot {TimeSlotId}",
-                                retryCount, request.PatientId, request.TimeSlotId);
-                            throw new InvalidOperationException(
-                                $"Unable to complete walk-in appointment booking after {MaxRetries} attempts due to high concurrency. Please try again.",
-                                ex);
+                            throw new ArgumentException($"Time slot {request.TimeSlotId} does not exist", nameof(request.TimeSlotId));
                         }
 
-                        _logger.LogWarning(
-                            "Deadlock detected on attempt {Attempt} for Patient {PatientId}, TimeSlot {TimeSlotId}. Retrying in {Delay}ms...",
-                            retryCount, request.PatientId, request.TimeSlotId, retryDelay);
+                        // Check if slot is already booked (AC4 - conflict detection)
+                        if (timeSlot.IsBooked)
+                        {
+                            await transaction.RollbackAsync();
+                            _logger.LogWarning(
+                                "Time slot {TimeSlotId} is already booked. Conflict detected.",
+                                request.TimeSlotId);
+                            throw new ConflictException($"Time slot {request.TimeSlotId} is no longer available");
+                        }
 
-                        await Task.Delay(retryDelay);
-                        retryDelay *= 2; // Exponential backoff
-                        continue; // Retry
+                        // Mark time slot as booked
+                        timeSlot.IsBooked = true;
+                        timeSlot.UpdatedAt = DateTime.UtcNow;
+
+                        // Create walk-in appointment record
+                        var appointment = new Appointment
+                        {
+                            AppointmentId = Guid.NewGuid(),
+                            PatientId = request.PatientId,
+                            ProviderId = request.ProviderId,
+                            TimeSlotId = request.TimeSlotId,
+                            ScheduledDateTime = timeSlot.StartTime,
+                            Status = AppointmentStatus.Arrived, // Walk-ins default to Arrived status
+                            VisitReason = request.VisitReason,
+                            IsWalkIn = true, // Flag for walk-in appointments
+                            ConfirmationReceived = true, // Walk-ins are considered confirmed (staff-initiated)
+                            NoShowRiskScore = 0, // Zero risk for walk-ins (already arrived)
+                            ConfirmationNumber = GenerateConfirmationNumber(),
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        _context.Appointments.Add(appointment);
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "Walk-in appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
+                            appointment.AppointmentId, appointment.ConfirmationNumber);
+
+                        // Load provider name for response
+                        var provider = await _context.Providers
+                            .AsNoTracking()
+                            .Where(p => p.ProviderId == request.ProviderId)
+                            .Select(p => p.Name)
+                            .FirstOrDefaultAsync();
+
+                        return new AppointmentResponseDto
+                        {
+                            Id = appointment.AppointmentId,
+                            ProviderId = appointment.ProviderId,
+                            ProviderName = provider ?? "Unknown",
+                            ScheduledDateTime = appointment.ScheduledDateTime,
+                            VisitReason = appointment.VisitReason,
+                            Status = appointment.Status.ToString(),
+                            ConfirmationNumber = appointment.ConfirmationNumber,
+                            PreferredSlotId = null,
+                            PreferredSlotStartTime = null
+                        };
                     }
-
-                    throw; // Rethrow non-deadlock exceptions
-                }
+                    catch (ConflictException)
+                    {
+                        await transaction.RollbackAsync();
+                        throw; // Rethrow conflict exceptions immediately (no retry)
+                    }
+                    catch (Exception)
+                    {
+                        await transaction.RollbackAsync();
+                        throw; // Rethrow all exceptions; deadlock retry handled by outer loop
+                    }
+                }); // end strategy.ExecuteAsync
             }
             catch (ConflictException)
             {
@@ -816,6 +902,26 @@ public class AppointmentService : IAppointmentService
             catch (ArgumentException)
             {
                 throw; // Don't retry validation errors
+            }
+            catch (DbUpdateException ex) when (IsDeadlockException(ex))
+            {
+                retryCount++;
+                if (retryCount >= MaxRetries)
+                {
+                    _logger.LogError(ex,
+                        "Deadlock detected after {RetryCount} retries for Patient {PatientId}, TimeSlot {TimeSlotId}",
+                        retryCount, request.PatientId, request.TimeSlotId);
+                    throw new InvalidOperationException(
+                        $"Unable to complete walk-in appointment booking after {MaxRetries} attempts due to high concurrency. Please try again.",
+                        ex);
+                }
+
+                _logger.LogWarning(
+                    "Deadlock detected on attempt {Attempt} for Patient {PatientId}, TimeSlot {TimeSlotId}. Retrying in {Delay}ms...",
+                    retryCount, request.PatientId, request.TimeSlotId, retryDelay);
+
+                await Task.Delay(retryDelay);
+                retryDelay *= 2; // Exponential backoff
             }
             catch (Exception ex)
             {
@@ -870,6 +976,97 @@ public class AppointmentService : IAppointmentService
         if (string.IsNullOrWhiteSpace(request.VisitReason) || request.VisitReason.Length > 500)
         {
             throw new ArgumentException("VisitReason must be between 1 and 500 characters", nameof(request.VisitReason));
+        }
+    }
+
+    /// <summary>
+    /// US_038 AC-4 (EC-1): Ensure NoShowHistory record exists for first-time patients.
+    /// Creates initial record with neutral defaults if none exists.
+    /// </summary>
+    private async Task EnsureNoShowHistoryExistsAsync(Guid patientId)
+    {
+        var exists = await _context.NoShowHistory
+            .AnyAsync(h => h.PatientId == patientId);
+
+        if (!exists)
+        {
+            var history = new NoShowHistory
+            {
+                NoShowHistoryId = Guid.NewGuid(),
+                PatientId = patientId,
+                TotalAppointments = 0,
+                NoShowCount = 0,
+                ConfirmationResponseRate = null,
+                AverageLeadTimeHours = null,
+                LastCalculatedRiskScore = null,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.NoShowHistory.Add(history);
+            await _context.SaveChangesAsync();
+
+            _logger.LogDebug("Created initial NoShowHistory record for patient {PatientId}", patientId);
+        }
+    }
+
+    /// <summary>
+    /// US_038 AC-4: Update NoShowHistory when appointment status transitions to NoShow.
+    /// Increments NoShowCount and TotalAppointments.
+    /// </summary>
+    /// <param name="patientId">Patient unique identifier.</param>
+    public async Task UpdateNoShowHistoryForNoShowAsync(Guid patientId)
+    {
+        var history = await _context.NoShowHistory
+            .FirstOrDefaultAsync(h => h.PatientId == patientId);
+
+        if (history != null)
+        {
+            history.NoShowCount++;
+            history.TotalAppointments++;
+            history.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            _logger.LogDebug(
+                "Updated NoShowHistory for patient {PatientId}: NoShowCount={NoShowCount}, TotalAppointments={TotalAppointments}",
+                patientId, history.NoShowCount, history.TotalAppointments);
+        }
+        else
+        {
+            _logger.LogWarning("NoShowHistory record not found for patient {PatientId} during no-show update", patientId);
+        }
+    }
+
+    /// <summary>
+    /// US_038 AC-4: Update NoShowHistory when appointment confirmation is received.
+    /// Updates ConfirmationResponseRate and TotalAppointments.
+    /// </summary>
+    /// <param name="patientId">Patient unique identifier.</param>
+    public async Task UpdateNoShowHistoryForConfirmationAsync(Guid patientId)
+    {
+        var history = await _context.NoShowHistory
+            .FirstOrDefaultAsync(h => h.PatientId == patientId);
+
+        if (history != null)
+        {
+            // Calculate updated confirmation response rate
+            // Count confirmations from appointments with ConfirmationReceived = true
+            var confirmedCount = await _context.Appointments
+                .CountAsync(a => a.PatientId == patientId && a.ConfirmationReceived);
+
+            var totalConfirmable = history.TotalAppointments + 1; // +1 for current confirmation
+            history.TotalAppointments = totalConfirmable;
+            history.ConfirmationResponseRate = (decimal)confirmedCount / totalConfirmable;
+            history.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogDebug(
+                "Updated NoShowHistory for patient {PatientId}: ConfirmationResponseRate={ConfirmationResponseRate:F2}, TotalAppointments={TotalAppointments}",
+                patientId, history.ConfirmationResponseRate, history.TotalAppointments);
+        }
+        else
+        {
+            _logger.LogWarning("NoShowHistory record not found for patient {PatientId} during confirmation update", patientId);
         }
     }
 }

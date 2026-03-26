@@ -14,12 +14,14 @@ export interface ArrivalAppointment {
   providerName: string;
   visitReason: string;
   status:
-    | "Scheduled"
-    | "Confirmed"
-    | "Arrived"
-    | "Cancelled"
-    | "Completed"
-    | "NoShow";
+  | "Scheduled"
+  | "Confirmed"
+  | "Arrived"
+  | "Cancelled"
+  | "Completed"
+  | "NoShow";
+  noShowRiskScore?: number; // US_038 AC-3: 0-100 risk score (nullable for legacy appointments)
+  riskLevel?: 'Low' | 'Medium' | 'High'; // US_038 AC-3: Risk level derived from score
 }
 
 /**

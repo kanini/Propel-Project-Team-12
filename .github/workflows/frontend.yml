@@ -1,54 +1,38 @@
-name: CI/CD - Deploy Frontend to Vercel
+name: CD - Deploy Frontend via FTP
+
 on:
   workflow_dispatch:
+
 jobs:
-  ci:
-    name: CI - Lint, Type Check & Build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src/frontend
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-          cache-dependency-path: src/frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Type Check
-        run: npx tsc --noEmit
-      - name: Lint
-        run: npm run lint
-      - name: Build
-        run: npm run build
   deploy:
-    name: CD - Deploy to Vercel
+    name: CD - Deploy to FTP
     runs-on: ubuntu-latest
-    needs: ci
     defaults:
       run:
         working-directory: src/frontend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "npm"
           cache-dependency-path: src/frontend/package-lock.json
+
       - name: Install dependencies
         run: npm ci
+
       - name: Build
         run: npm run build
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      - name: Deploy to Production
-        run: vercel deploy --prod --yes --token=vcp_8869JAwma7Wzy29sM9HGjido3s6QldZFOcLd7heemOs9OGQa013Y7JAL
-        env:
-          VERCEL_ORG_ID: team_hH0sJbNJ7qDNNYo1UIpEB5FO
-          VERCEL_PROJECT_ID: prj_8kJoeqeth4slr6yoBaRjIyBJ0Wpb
+
+      - name: Deploy to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftpupload.net
+          username: if0_41471813
+          password: wBB0WkTWIJ7pob
+          port: 21
+          local-dir: src/frontend/dist/
+          server-dir: /htdocs/

@@ -47,4 +47,23 @@ public interface IAuthService
     /// <returns>Login response with JWT token and user information</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when credentials are invalid or account is locked</exception>
     Task<LoginResponseDto> LoginAsync(LoginRequestDto request, string? ipAddress = null, string? userAgent = null);
+
+    /// <summary>
+    /// Initiates password reset workflow by generating reset token and sending email.
+    /// </summary>
+    /// <param name="request">Forgot password request with email</param>
+    /// <param name="ipAddress">Client IP address for audit logging</param>
+    /// <param name="userAgent">Client user agent for audit logging</param>
+    /// <returns>Forgot password response with confirmation message</returns>
+    Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, string? ipAddress = null, string? userAgent = null);
+
+    /// <summary>
+    /// Resets user password using valid reset token.
+    /// </summary>
+    /// <param name="request">Reset password request with token and new password</param>
+    /// <param name="ipAddress">Client IP address for audit logging</param>
+    /// <param name="userAgent">Client user agent for audit logging</param>
+    /// <returns>True if password reset successful, false otherwise</returns>
+    /// <exception cref="InvalidOperationException">Thrown when token is invalid or expired</exception>
+    Task<bool> ResetPasswordAsync(ResetPasswordRequestDto request, string? ipAddress = null, string? userAgent = null);
 }

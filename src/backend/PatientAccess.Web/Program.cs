@@ -5,12 +5,14 @@ using PatientAccess.Web.HealthChecks;
 using PatientAccess.Web.Authorization;
 using PatientAccess.Business.Services;
 using PatientAccess.Business.Interfaces;
+using PatientAccess.Business.BackgroundJobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -73,22 +75,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultCorsPolicy", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowAnyHeader();
     });
 });
 
 // Configure JWT Authentication (TR-012) - RS256 with RSA asymmetric keys
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var publicKeyPath = jwtSettings["PublicKeyPath"] ?? "security/rsa-keys/public-key.xml";
+var publicKeyPath = jwtSettings["PublicKeyPath"]
+    ?? Path.Combine(AppContext.BaseDirectory, "security", "rsa-keys", "public-key.xml");
 
 // Load public key for token validation
 if (!File.Exists(publicKeyPath))
 {
     throw new InvalidOperationException(
-        $"JWT public key not found at {publicKeyPath}. " +
+        $"JWT public key not found at {publicKeyPath} (absolute: {Path.GetFullPath(publicKeyPath)}). " +
         "Run 'powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1' to generate RSA key pair. " +
         "See docs/AUTHENTICATION.md for setup instructions.");
 }
@@ -161,24 +163,70 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<IAuthorizationHandler, SamePatientAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuditingAuthorizationHandler>();
 
+// Register HttpClient for external API calls (Brevo email service)
+builder.Services.AddHttpClient();
+
 // Register Business Layer Services (DI)
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<ISmsService, SmsService>(); // US_037 - SMS reminder delivery via Twilio
 builder.Services.AddScoped<IAuditLogService, AuditLogService>(); // US_022 - Audit logging for authentication events
 builder.Services.AddScoped<IAdminService, AdminService>(); // US_021 - User management
 builder.Services.AddScoped<IPatientService, PatientService>(); // US_029 - Walk-in booking (patient search and minimal creation)
 builder.Services.AddScoped<IProviderService, ProviderService>(); // US_023 - Provider browser
 builder.Services.AddScoped<IAppointmentService, AppointmentService>(); // US_024 - Appointment booking
 builder.Services.AddScoped<IWaitlistService, WaitlistService>(); // US_025 - Waitlist enrollment
+builder.Services.AddScoped<IWaitlistNotificationService, WaitlistNotificationService>(); // US_041 - Waitlist slot notification lifecycle
 builder.Services.AddScoped<ISlotSwapService, SlotSwapService>(); // US_026 - Dynamic preferred slot swap
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.SlotAvailabilityMonitor>(); // US_026 - Slot swap monitoring
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.WaitlistSlotDetectionJob>(); // US_041 - Waitlist slot detection
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.WaitlistTimeoutJob>(); // US_041 - Waitlist timeout processing
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>(); // US_028 - PDF generation
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ConfirmationEmailJob>(); // US_028 - Confirmation email job
 builder.Services.AddSingleton<IPusherService, PusherService>(); // US_030 - Real-time event broadcasting via Pusher Channels
 builder.Services.AddScoped<IQueueManagementService, QueueManagementService>(); // US_030 - Queue management and priority flagging
 builder.Services.AddScoped<IArrivalManagementService, ArrivalManagementService>(); // US_031 - Arrival status marking and search
+builder.Services.AddScoped<IDashboardService, DashboardService>(); // US_067 - Patient dashboard statistics
+builder.Services.AddScoped<INotificationService, NotificationService>(); // US_067 - Notification management for dashboard
+builder.Services.AddScoped<IDocumentService, DocumentService>(); // US_067 - Clinical document retrieval for dashboard
+builder.Services.AddScoped<IIntakeAppointmentService, IntakeAppointmentService>(); // US_037 - Intake appointment selection
+builder.Services.AddScoped<IIntakeService, IntakeService>(); // US_033 - Intake session management
+builder.Services.AddScoped<IAiIntakeService, StubAiIntakeService>(); // US_033 - AI intake (stub until task_003)
+builder.Services.AddScoped<IInsurancePrecheckService, InsurancePrecheckService>(); // US_036 - Insurance precheck verification
+builder.Services.AddScoped<IReminderService, ReminderService>(); // US_037 - Reminder scheduling and cancellation
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ReminderSchedulerJob>(); // US_037 - Recurring reminder scanner
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ReminderDeliveryJob>(); // US_037 - Reminder delivery with retry
+builder.Services.AddScoped<INoShowRiskService, NoShowRiskService>(); // US_038 - No-show risk scoring engine (TR-020)
+// US_039/US_040 - Multi-provider calendar integration via keyed services (FR-024)
+builder.Services.AddKeyedScoped<ICalendarService, GoogleCalendarService>("Google");
+builder.Services.AddKeyedScoped<ICalendarService, OutlookCalendarService>("Outlook");
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.CalendarSyncJob>(); // US_039/US_040 - Async multi-provider calendar synchronization
+
+// Configure named HttpClient for Google OAuth2 token exchange
+builder.Services.AddHttpClient("GoogleOAuth", client =>
+{
+    client.BaseAddress = new Uri("https://oauth2.googleapis.com/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// Configure named HttpClient for Microsoft OAuth2 token exchange
+builder.Services.AddHttpClient("MicrosoftOAuth", client =>
+{
+    client.BaseAddress = new Uri("https://login.microsoftonline.com/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// US_042 - Document upload services (chunked upload with real-time progress)
+builder.Services.AddMemoryCache(); // Required for upload session tracking
+builder.Services.AddSingleton<ChunkedUploadManager>(); // Singleton for session management
+builder.Services.AddScoped<DocumentUploadService>(); // Scoped for DB context access
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob>(); // Background cleanup
+
+// US_043 - Document processing services (Hangfire background jobs)
+builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>(); // Processing orchestration
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
 
 // Register IHttpContextAccessor for audit logging context extraction
 builder.Services.AddHttpContextAccessor();
@@ -216,6 +264,13 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
             }
         });
 
+        // Register IDistributedCache for dashboard and notification services (US_067)
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = redisSettings.GetValue<string>("InstanceName", "PatientAccess:");
+        });
+
         // Register SessionCacheService (US_006)
         builder.Services.AddSingleton<ISessionCacheService, SessionCacheService>();
 
@@ -238,7 +293,10 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
 else
 {
     var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("Redis caching disabled in configuration. Application will use database-only session management.");
+    logger.LogInformation("Redis caching disabled in configuration. Application will use in-memory distributed cache fallback.");
+    
+    // Register in-memory distributed cache as fallback (US_067)
+    builder.Services.AddDistributedMemoryCache();
 }
 
 // Register Data Layer Repositories (DI)
@@ -290,7 +348,17 @@ var healthChecksBuilder = builder.Services.AddHealthChecks()
         name: "database",
         failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
         tags: new[] { "db", "postgresql" },
-        timeout: TimeSpan.FromSeconds(5)); // AC-4: 5-second timeout
+        timeout: TimeSpan.FromSeconds(5)) // AC-4: 5-second timeout
+    .AddCheck<HangfireHealthCheck>(
+        "hangfire",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+        tags: new[] { "hangfire", "backgroundjobs" },
+        timeout: TimeSpan.FromSeconds(5)) // US_043: Hangfire server health
+    .AddCheck<DocumentProcessingHealthCheck>(
+        "document-processing",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "documents", "processing" },
+        timeout: TimeSpan.FromSeconds(5)); // US_043: Document processing backlog health
 
 // Add Redis health check if enabled (US_006)
 if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
@@ -378,6 +446,25 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 
     // Hangfire Dashboard (US_028 - Development only for monitoring background jobs)
     app.UseHangfireDashboard("/hangfire");
+
+    // Configure Hangfire recurring jobs
+    // US_037: Reminder scheduler job runs every 30 seconds  to ensure delivery within 30s of trigger time (NFR-017)
+    RecurringJob.AddOrUpdate<ReminderSchedulerJob>(
+        "reminder-scheduler",
+        job => job.RunAsync(),
+        "*/30 * * * * *"); // Every 30 seconds (Cron with seconds)
+
+    // US_041: Waitlist slot detection job runs every 2 minutes to balance responsiveness with DB load (FR-026, AC-1)
+    RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.WaitlistSlotDetectionJob>(
+        "waitlist-slot-detection",
+        job => job.RunAsync(),
+        "*/2 * * * *"); // Every 2 minutes
+
+    // US_041: Waitlist timeout job runs every 1 minute for timely timeout processing (FR-026, AC-4)
+    RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.WaitlistTimeoutJob>(
+        "waitlist-timeout-processing",
+        job => job.RunAsync(),
+        "* * * * *"); // Every 1 minute
 }
 
 // Use audit logging middleware early to capture IP and User Agent for all requests (US_022)

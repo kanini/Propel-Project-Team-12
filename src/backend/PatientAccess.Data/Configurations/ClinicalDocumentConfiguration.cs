@@ -36,6 +36,9 @@ public class ClinicalDocumentConfiguration : IEntityTypeConfiguration<ClinicalDo
             .IsRequired()
             .HasConversion<int>();
 
+        builder.Property(d => d.UploadedBy)
+            .IsRequired(false);
+
         builder.Property(d => d.UploadedAt)
             .IsRequired()
             .HasColumnType("timestamptz")
@@ -61,6 +64,13 @@ public class ClinicalDocumentConfiguration : IEntityTypeConfiguration<ClinicalDo
             .HasForeignKey(d => d.PatientId)
             .OnDelete(DeleteBehavior.Cascade)
             .HasConstraintName("FK_ClinicalDocuments_Patients");
+
+        // FK: ClinicalDocument -> User (uploader) — SET NULL on delete
+        builder.HasOne(d => d.UploadedByUser)
+            .WithMany()
+            .HasForeignKey(d => d.UploadedBy)
+            .OnDelete(DeleteBehavior.SetNull)
+            .HasConstraintName("FK_ClinicalDocuments_UploadedBy");
 
         builder.HasIndex(d => d.PatientId)
             .HasDatabaseName("IX_ClinicalDocuments_PatientId");

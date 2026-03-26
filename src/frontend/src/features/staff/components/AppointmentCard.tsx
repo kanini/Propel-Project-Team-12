@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import type { ArrivalAppointment } from "../../../types/arrival";
+import { RiskBadge } from "../../../components/common/RiskBadge";
 
 interface AppointmentCardProps {
   appointment: ArrivalAppointment;
@@ -81,7 +82,7 @@ export function AppointmentCard({
   return (
     <>
       <div className="bg-neutral-0 border border-neutral-200 rounded-lg shadow-sm p-6">
-        {/* Header with Status Badge */}
+        {/* Header with Status Badge and Risk Badge */}
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-xl font-bold text-neutral-900">
@@ -91,12 +92,21 @@ export function AppointmentCard({
               DOB: {appointment.dateOfBirth}
             </p>
           </div>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}
-            aria-label={`Appointment status: ${statusInfo.label}`}
-          >
-            {statusInfo.label}
-          </span>
+          <div className="flex items-center gap-2">
+            {/* US_038 AC-3: Risk indicator badge (only shown when score available) */}
+            {appointment.noShowRiskScore != null && appointment.riskLevel && (
+              <RiskBadge
+                score={appointment.noShowRiskScore}
+                riskLevel={appointment.riskLevel}
+              />
+            )}
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}
+              aria-label={`Appointment status: ${statusInfo.label}`}
+            >
+              {statusInfo.label}
+            </span>
+          </div>
         </div>
 
         {/* Appointment Details */}

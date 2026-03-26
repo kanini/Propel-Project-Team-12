@@ -60,6 +60,14 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
             .HasMaxLength(8)
             .HasColumnType("varchar(8)");
 
+        builder.Property(a => a.GoogleCalendarEventId)
+            .HasMaxLength(256)
+            .HasColumnType("varchar(256)");
+
+        builder.Property(a => a.OutlookCalendarEventId)
+            .HasMaxLength(256)
+            .HasColumnType("varchar(256)");
+
         builder.Property(a => a.CreatedAt)
             .IsRequired()
             .HasColumnType("timestamptz")

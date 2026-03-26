@@ -8,12 +8,22 @@ import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import LoginPage from "./features/auth/pages/LoginPage";
+import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
+import { SystemSettingsPage } from "./features/admin/pages/SystemSettingsPage";
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
+import { PatientDashboard } from "./pages/PatientDashboard";
+import MyAppointments from "./pages/MyAppointments";
+import { WaitlistResponsePage } from "./pages/WaitlistResponsePage";
 import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
 import { QueueManagement } from "./pages/staff/QueueManagement";
 import { ArrivalManagement } from "./pages/staff/ArrivalManagement";
+import { DocumentUploadPage } from "./pages/DocumentUploadPage";
+import DocumentStatusPage from "./pages/DocumentStatusPage";
+import AppointmentSelectionPage from "./features/intake/pages/AppointmentSelectionPage";
+import IntakePage from "./features/intake/pages/IntakePage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -84,34 +94,17 @@ function App() {
           {/* Public Authentication Routes */}
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/waitlist/response/:token" element={<WaitlistResponsePage />} />
 
-          {/* Forgot Password Route - To be implemented */}
-          <Route
-            path="/forgot-password"
-            element={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold mb-2">Forgot Password</h1>
-                  <p className="text-neutral-500">
-                    Password recovery - Coming soon
-                  </p>
-                </div>
-              </div>
-            }
-          />
-
-          {/* Patient Dashboard Routes - US_020, AC1, AC4 */}
+          {/* Patient Dashboard Routes - US_067, AC1 */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">
-                      Patient Dashboard
-                    </h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <PatientDashboard />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -122,10 +115,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Appointments</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <MyAppointments />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -136,10 +126,19 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Intake Forms</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <AppointmentSelectionPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Intake Form Route - US_033/US_034/US_035 */}
+          <Route
+            path="/intake/:appointmentId"
+            element={
+              <ProtectedRoute allowedRoles={["Patient"]}>
+                <MainLayout>
+                  <IntakePage />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -150,10 +149,19 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Patient"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Documents</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <DocumentUploadPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Document Status Route - US_044 */}
+          <Route
+            path="/documents/status"
+            element={
+              <ProtectedRoute allowedRoles={["Patient"]}>
+                <MainLayout>
+                  <DocumentStatusPage />
                 </MainLayout>
               </ProtectedRoute>
             }
@@ -203,7 +211,9 @@ function App() {
             path="/staff/queue"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
-                <QueueManagement />
+                <MainLayout>
+                  <QueueManagement />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -213,7 +223,9 @@ function App() {
             path="/staff/walk-in"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
-                <WalkinBooking />
+                <MainLayout>
+                  <WalkinBooking />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -223,7 +235,9 @@ function App() {
             path="/staff/arrivals"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
-                <ArrivalManagement />
+                <MainLayout>
+                  <ArrivalManagement />
+                </MainLayout>
               </ProtectedRoute>
             }
           />
@@ -287,10 +301,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Settings</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <SystemSettingsPage />
                 </MainLayout>
               </ProtectedRoute>
             }

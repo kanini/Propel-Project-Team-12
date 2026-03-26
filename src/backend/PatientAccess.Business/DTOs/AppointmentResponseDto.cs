@@ -58,4 +58,14 @@ public class AppointmentResponseDto
     /// Only populated when PreferredSlotId is set.
     /// </summary>
     public DateTime? PreferredSlotStartTime { get; set; }
+
+    /// <summary>
+    /// Calculated no-show risk score (0-100). Null for legacy appointments without scoring (US_038 AC-1).
+    /// </summary>
+    public decimal? NoShowRiskScore { get; set; }
+
+    /// <summary>
+    /// Risk level derived from score: "Low" (&lt;40), "Medium" (40-70), "High" (&gt;70). Null when score is null (US_038 AC-1).
+    /// </summary>
+    public string? RiskLevel { get; set; }
 }

@@ -36,6 +36,10 @@ public class Appointment
 
     public string? PdfFilePath { get; set; }
 
+    public string? GoogleCalendarEventId { get; set; }
+
+    public string? OutlookCalendarEventId { get; set; }
+
     public bool IsPriority { get; set; } = false;
 
     public DateTime? ArrivalTime { get; set; }

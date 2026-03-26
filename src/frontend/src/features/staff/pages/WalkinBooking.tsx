@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   PatientSearch,
   PatientSearchContext,
@@ -17,6 +18,7 @@ import { WalkinBookingForm } from "../components/WalkinBookingForm";
  * WalkinBooking page for staff to book immediate appointments (US_029)
  */
 export function WalkinBooking() {
+  const navigate = useNavigate();
   const [selectedPatient, setSelectedPatient] =
     useState<PatientSearchResult | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -66,6 +68,7 @@ export function WalkinBooking() {
     setSelectedPatient(null);
     // Auto-hide toast after 5 seconds
     setTimeout(() => setToast(null), 5000);
+    navigate("/staff/queue");
   };
 
   /**
@@ -96,9 +99,9 @@ export function WalkinBooking() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <>
       {/* Header */}
-      <header className="bg-neutral-0 border-b border-neutral-200 shadow-sm">
+      <header className="bg-neutral-0 border-b border-neutral-200 shadow-sm mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <h1 className="text-2xl font-bold text-neutral-900">
             Walk-in Appointment Booking
@@ -110,7 +113,7 @@ export function WalkinBooking() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Patient Search */}
           <div>
@@ -220,7 +223,7 @@ export function WalkinBooking() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Toast Notification */}
       {toast && (
@@ -316,6 +319,6 @@ export function WalkinBooking() {
         onClose={() => setIsCreateModalOpen(false)}
         onPatientCreated={handlePatientCreated}
       />
-    </div>
+    </>
   );
 }
