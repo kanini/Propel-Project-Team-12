@@ -250,7 +250,9 @@ public class AppointmentService : IAppointmentService
                     Status = appointment.Status.ToString(),
                     ConfirmationNumber = appointment.ConfirmationNumber,
                     PreferredSlotId = appointment.PreferredSlotId,
-                    PreferredSlotStartTime = preferredSlotStartTime
+                    PreferredSlotStartTime = preferredSlotStartTime,
+                    IntakeStatus = "pending",
+                    IntakeSessionId = null
                 };
             }
             catch (ConflictException)
@@ -567,17 +569,27 @@ public class AppointmentService : IAppointmentService
                     // TODO: Send reschedule confirmation notification
                     // await _notificationService.SendRescheduleConfirmationAsync(appointment);
 
+                    // Load intake status for response
+                    var intakeRecord = await _context.IntakeRecords
+                        .AsNoTracking()
+                        .Where(ir => ir.AppointmentId == appointment.AppointmentId)
+                        .FirstOrDefaultAsync();
+
                     // Return updated appointment details
                     return new AppointmentResponseDto
                     {
                         Id = appointment.AppointmentId,
                         ProviderId = appointment.ProviderId,
                         ProviderName = appointment.Provider.Name,
+                        ProviderSpecialty = appointment.Provider.Specialty,
                         ScheduledDateTime = appointment.ScheduledDateTime,
                         VisitReason = appointment.VisitReason,
                         Status = appointment.Status.ToString(),
                         ConfirmationNumber = appointment.ConfirmationNumber,
-                        PreferredSlotId = appointment.PreferredSlotId
+                        PreferredSlotId = appointment.PreferredSlotId,
+                        IntakeStatus = intakeRecord == null ? "pending" : 
+                                       intakeRecord.IsCompleted ? "completed" : "inProgress",
+                        IntakeSessionId = intakeRecord?.IntakeRecordId
                     };
                 }
                 catch (ConflictException)
@@ -627,23 +639,31 @@ public class AppointmentService : IAppointmentService
         {
             _logger.LogInformation("Fetching all appointments for Patient {PatientId}", patientId);
 
-            // Fetch all appointments for the patient with provider details
+            // Fetch all appointments for the patient with provider details and intake status
             var appointments = await _context.Appointments
                 .AsNoTracking()
                 .Include(a => a.Provider)
                 .Where(a => a.PatientId == patientId)
-                .OrderByDescending(a => a.ScheduledDateTime)
-                .Select(a => new AppointmentResponseDto
+                .GroupJoin(
+                    _context.IntakeRecords,
+                    a => a.AppointmentId,
+                    ir => ir.AppointmentId,
+                    (appointment, intakeRecords) => new { appointment, intakeRecord = intakeRecords.FirstOrDefault() })
+                .OrderByDescending(x => x.appointment.ScheduledDateTime)
+                .Select(x => new AppointmentResponseDto
                 {
-                    Id = a.AppointmentId,
-                    ProviderId = a.ProviderId,
-                    ProviderName = a.Provider.Name,
-                    ProviderSpecialty = a.Provider.Specialty,
-                    ScheduledDateTime = a.ScheduledDateTime,
-                    VisitReason = a.VisitReason,
-                    Status = a.Status.ToString(),
-                    ConfirmationNumber = a.ConfirmationNumber,
-                    PreferredSlotId = a.PreferredSlotId
+                    Id = x.appointment.AppointmentId,
+                    ProviderId = x.appointment.ProviderId,
+                    ProviderName = x.appointment.Provider.Name,
+                    ProviderSpecialty = x.appointment.Provider.Specialty,
+                    ScheduledDateTime = x.appointment.ScheduledDateTime,
+                    VisitReason = x.appointment.VisitReason,
+                    Status = x.appointment.Status.ToString(),
+                    ConfirmationNumber = x.appointment.ConfirmationNumber,
+                    PreferredSlotId = x.appointment.PreferredSlotId,
+                    IntakeStatus = x.intakeRecord == null ? "pending" :
+                                   x.intakeRecord.IsCompleted ? "completed" : "inProgress",
+                    IntakeSessionId = x.intakeRecord != null ? x.intakeRecord.IntakeRecordId : null
                 })
                 .ToListAsync();
 
@@ -761,24 +781,27 @@ public class AppointmentService : IAppointmentService
                         "Walk-in appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
                         appointment.AppointmentId, appointment.ConfirmationNumber);
 
-                    // Load provider name for response
+                    // Load provider name and specialty for response
                     var provider = await _context.Providers
                         .AsNoTracking()
                         .Where(p => p.ProviderId == request.ProviderId)
-                        .Select(p => p.Name)
+                        .Select(p => new { p.Name, p.Specialty })
                         .FirstOrDefaultAsync();
 
                     return new AppointmentResponseDto
                     {
                         Id = appointment.AppointmentId,
                         ProviderId = appointment.ProviderId,
-                        ProviderName = provider ?? "Unknown",
+                        ProviderName = provider?.Name ?? "Unknown",
+                        ProviderSpecialty = provider?.Specialty ?? "General Practice",
                         ScheduledDateTime = appointment.ScheduledDateTime,
                         VisitReason = appointment.VisitReason,
                         Status = appointment.Status.ToString(),
                         ConfirmationNumber = appointment.ConfirmationNumber,
                         PreferredSlotId = null,
-                        PreferredSlotStartTime = null
+                        PreferredSlotStartTime = null,
+                        IntakeStatus = "pending",
+                        IntakeSessionId = null
                     };
                 }
                 catch (ConflictException)
