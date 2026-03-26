@@ -68,11 +68,18 @@ jobs:
           Copy-Item "src/backend/PatientAccess.Web/rsa-keys/private-key.xml" "./publish/rsa-keys/private-key.xml"
           Write-Host "RSA keys copied to publish/rsa-keys/"
 
+      # Inject secrets into appsettings.json connection string (Password= can't be overridden via env vars)
+      - name: Inject secrets into config
+        shell: bash
+        run: |
+          sed -i "s|Password=SET_VIA_ENV|Password=${{ secrets.DB_PASSWORD }}|g" ./publish/appsettings.json
+          sed -i "s|Password=SET_VIA_ENV|Password=${{ secrets.DB_PASSWORD }}|g" ./publish/appsettings.Development.json
+
       - name: Configure web.config for deployment
         shell: bash
         run: |
           sed -i 's|stdoutLogEnabled="false"|stdoutLogEnabled="true"|g' ./publish/web.config
-          sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
+          sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n          <environmentVariable name="ResendSettings__ApiKey" value="${{ secrets.RESEND_API_KEY }}" />\n          <environmentVariable name="Pusher__AppId" value="${{ secrets.PUSHER_APP_ID }}" />\n          <environmentVariable name="Pusher__Key" value="${{ secrets.PUSHER_KEY }}" />\n          <environmentVariable name="Pusher__Secret" value="${{ secrets.PUSHER_SECRET }}" />\n          <environmentVariable name="GeminiAI__ApiKey" value="${{ secrets.GEMINI_API_KEY }}" />\n          <environmentVariable name="Supabase__ApiKey" value="${{ secrets.SUPABASE_API_KEY }}" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
 
       # CICD-051: Deploy backend via FTP with app_offline pattern
       - name: Take app offline

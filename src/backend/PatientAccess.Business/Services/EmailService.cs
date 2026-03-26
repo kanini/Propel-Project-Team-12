@@ -1,72 +1,44 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
+using Resend;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
 /// Email service implementation for sending transactional emails.
-/// Uses Brevo (formerly Sendinblue) API for email delivery.
+/// Uses Resend API for email delivery.
 /// Implements FR-001 verification email and US_028 appointment confirmation email.
 /// </summary>
 public class EmailService : IEmailService
 {
-    private readonly IConfiguration _configuration;
     private readonly ILogger<EmailService> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly string _frontendUrl;
-    private readonly string _brevoApiKey;
-    private readonly string _brevoApiUrl;
     private readonly string _senderEmail;
     private readonly string _senderName;
+    private readonly IResend _resendClient;
 
     public EmailService(
-        IConfiguration configuration, 
+        IConfiguration configuration,
         ILogger<EmailService> logger,
         IHttpClientFactory httpClientFactory)
     {
-        _configuration = configuration;
         _logger = logger;
-        _httpClientFactory = httpClientFactory;
-        _frontendUrl = _configuration["FrontendUrl"] ?? "http://localhost:5173";
-        
-        // Load Brevo settings from configuration
-        _brevoApiKey = _configuration["BrevoSettings:ApiKey"] ?? throw new InvalidOperationException("Brevo API key not configured");
-        _brevoApiUrl = _configuration["BrevoSettings:ApiUrl"] ?? "https://api.brevo.com/v3/smtp/email";
-        _senderEmail = _configuration["BrevoSettings:SenderEmail"] ?? "madhave.susheel@gmail.com";
-        _senderName = _configuration["BrevoSettings:SenderName"] ?? "Patient Access Platform";
+        _frontendUrl = configuration["FrontendUrl"] ?? "http://localhost:5173";
+
+        var apiKey = configuration["ResendSettings:ApiKey"] ?? throw new InvalidOperationException("Resend API key not configured");
+        _senderEmail = configuration["ResendSettings:SenderEmail"] ?? "onboarding@resend.dev";
+        _senderName = configuration["ResendSettings:SenderName"] ?? "Patient Access Platform";
+
+        _resendClient = ResendClient.Create(apiKey);
     }
 
-    /// <summary>
-    /// Sends verification email with activation link (FR-001).
-    /// Uses Brevo transactional email API.
-    /// </summary>
     public async Task<bool> SendVerificationEmailAsync(string toEmail, string toName, string verificationToken)
     {
         try
         {
             var verificationLink = $"{_frontendUrl}/verify-email?token={Uri.EscapeDataString(verificationToken)}";
 
-            // Create email payload for Brevo API
-            var emailPayload = new
-            {
-                sender = new
-                {
-                    name = _senderName,
-                    email = _senderEmail
-                },
-                to = new[]
-                {
-                    new
-                    {
-                        email = toEmail,
-                        name = toName
-                    }
-                },
-                subject = "Verify Your Patient Access Account",
-                htmlContent = $@"
+            var htmlContent = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -101,20 +73,14 @@ public class EmailService : IEmailService
         </div>
     </div>
 </body>
-</html>"
-            };
+</html>";
 
-            // Send email via Brevo API
-            var result = await SendBrevoEmailAsync(emailPayload);
+            var result = await SendEmailAsync(toEmail, "Verify Your Patient Access Account", htmlContent);
 
             if (result)
-            {
                 _logger.LogInformation("Verification email sent successfully to {Email}", toEmail);
-            }
             else
-            {
                 _logger.LogWarning("Failed to send verification email to {Email}", toEmail);
-            }
 
             return result;
         }
@@ -125,47 +91,18 @@ public class EmailService : IEmailService
         }
     }
 
-    /// <summary>
-    /// Resends verification email for expired or lost tokens.
-    /// </summary>
     public async Task<bool> ResendVerificationEmailAsync(string toEmail, string toName, string verificationToken)
     {
-        // Same implementation as SendVerificationEmailAsync
         return await SendVerificationEmailAsync(toEmail, toName, verificationToken);
     }
 
-    /// <summary>
-    /// Sends password reset email with reset link.
-    /// </summary>
     public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string toName, string resetToken)
     {
         try
         {
             var resetLink = $"{_frontendUrl}/reset-password?token={Uri.EscapeDataString(resetToken)}";
 
-            // Create email payload for Brevo API
-            var emailPayload = new
-            {
-                sender = new
-                {
-                    name = _senderName,
-                    email = _senderEmail
-                },
-                replyTo = new
-                {
-                    email = _senderEmail,
-                    name = _senderName
-                },
-                to = new[]
-                {
-                    new
-                    {
-                        email = toEmail,
-                        name = toName
-                    }
-                },
-                subject = "Reset Your Password - Patient Access",
-                htmlContent = $@"
+            var htmlContent = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -194,7 +131,7 @@ public class EmailService : IEmailService
             <p style='word-break: break-all;'>{resetLink}</p>
             
             <div class='warning'>
-                <p><strong>⚠️ Important Security Information:</strong></p>
+                <p><strong>Important Security Information:</strong></p>
                 <ul>
                     <li>This password reset link will expire in 1 hour</li>
                     <li>For security reasons, the link can only be used once</li>
@@ -211,20 +148,14 @@ public class EmailService : IEmailService
         </div>
     </div>
 </body>
-</html>"
-            };
+</html>";
 
-            // Send email via Brevo API
-            var result = await SendBrevoEmailAsync(emailPayload);
+            var result = await SendEmailAsync(toEmail, "Reset Your Password - Patient Access", htmlContent);
 
             if (result)
-            {
                 _logger.LogInformation("Password reset email sent successfully to {Email}", toEmail);
-            }
             else
-            {
                 _logger.LogWarning("Failed to send password reset email to {Email}", toEmail);
-            }
 
             return result;
         }
@@ -235,10 +166,6 @@ public class EmailService : IEmailService
         }
     }
 
-    /// <summary>
-    /// Sends appointment confirmation email with PDF attachment (US_028 - FR-012, AC-2, AC-3).
-    /// Uses Brevo transactional email API with attachment support.
-    /// </summary>
     public async Task<bool> SendAppointmentConfirmationAsync(
         string toEmail,
         string toName,
@@ -250,32 +177,7 @@ public class EmailService : IEmailService
     {
         try
         {
-            // Convert PDF to Base64 for Brevo API
-            var pdfBase64 = Convert.ToBase64String(pdfBytes);
-
-            // Create email payload with attachment
-            var emailPayload = new
-            {
-                sender = new
-                {
-                    name = _senderName,
-                    email = _senderEmail
-                },
-                replyTo = new
-                {
-                    email = _senderEmail,
-                    name = _senderName
-                },
-                to = new[]
-                {
-                    new
-                    {
-                        email = toEmail,
-                        name = toName
-                    }
-                },
-                subject = $"Appointment Confirmation - {confirmationNumber}",
-                htmlContent = $@"
+            var htmlContent = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -292,7 +194,7 @@ public class EmailService : IEmailService
 <body>
     <div class='container'>
         <div class='header'>
-            <h1>✓ Appointment Confirmed</h1>
+            <h1>Appointment Confirmed</h1>
         </div>
         <div class='content'>
             <p>Dear {toName},</p>
@@ -324,34 +226,36 @@ public class EmailService : IEmailService
         </div>
     </div>
 </body>
-</html>",
-                attachment = new[]
+</html>";
+
+            var message = new EmailMessage
+            {
+                From = $"{_senderName} <{_senderEmail}>",
+                Subject = $"Appointment Confirmation - {confirmationNumber}",
+                HtmlBody = htmlContent,
+                Attachments = new List<EmailAttachment>
                 {
-                    new
+                    new EmailAttachment
                     {
-                        content = pdfBase64,
-                        name = pdfFileName
+                        Filename = pdfFileName,
+                        Content = pdfBytes
                     }
                 }
             };
+            message.To.Add(toEmail);
 
-            // Send email via Brevo API
-            var result = await SendBrevoEmailAsync(emailPayload);
+            var response = await _resendClient.EmailSendAsync(message);
 
-            if (result)
+            if (response != null)
             {
                 _logger.LogInformation(
                     "Appointment confirmation email sent to {Email} for appointment {ConfirmationNumber}",
                     toEmail, confirmationNumber);
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "Failed to send appointment confirmation email to {Email}",
-                    toEmail);
+                return true;
             }
 
-            return result;
+            _logger.LogWarning("Failed to send appointment confirmation email to {Email}", toEmail);
+            return false;
         }
         catch (Exception ex)
         {
@@ -360,70 +264,34 @@ public class EmailService : IEmailService
         }
     }
 
-    /// <summary>
-    /// Helper method to send email via Brevo API.
-    /// </summary>
-    /// <param name="emailPayload">Email payload object</param>
-    /// <returns>True if email sent successfully, false otherwise</returns>
-    private async Task<bool> SendBrevoEmailAsync(object emailPayload)
+    private async Task<bool> SendEmailAsync(string toEmail, string subject, string htmlContent)
     {
         try
         {
-            var httpClient = _httpClientFactory.CreateClient();
-            
-            // Set Brevo API key in request headers
-            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpClient.DefaultRequestHeaders.Add("api-key", _brevoApiKey);
-
-            // Serialize payload to JSON
-            var jsonContent = JsonSerializer.Serialize(emailPayload, new JsonSerializerOptions
+            var message = new EmailMessage
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true
-            });
+                From = $"{_senderName} <{_senderEmail}>",
+                Subject = subject,
+                HtmlBody = htmlContent
+            };
+            message.To.Add(toEmail);
 
-            _logger.LogInformation("Sending email via Brevo API. Sender: {SenderEmail}, API URL: {ApiUrl}", 
-                _senderEmail, _brevoApiUrl);
-            _logger.LogDebug("Brevo API Request Payload: {Payload}", jsonContent);
+            _logger.LogInformation("Sending email via Resend. To: {ToEmail}, Subject: {Subject}", toEmail, subject);
 
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+            var response = await _resendClient.EmailSendAsync(message);
 
-            // Send POST request to Brevo API
-            var response = await httpClient.PostAsync(_brevoApiUrl, content);
-            var responseBody = await response.Content.ReadAsStringAsync();
-
-            if (response.IsSuccessStatusCode)
+            if (response != null)
             {
-                _logger.LogInformation("✓ Email sent successfully via Brevo. Response: {Response}", responseBody);
+                _logger.LogInformation("Email sent successfully via Resend.");
                 return true;
             }
-            else
-            {
-                _logger.LogError(
-                    "✗ Brevo API error. Status: {StatusCode}, Response: {Response}\n" +
-                    "IMPORTANT: If you see 'sender not verified' or similar errors, you must:\n" +
-                    "1. Log into your Brevo account at https://app.brevo.com\n" +
-                    "2. Go to Senders & IP > Senders\n" +
-                    "3. Add and verify the sender email: {SenderEmail}\n" +
-                    "4. Check the verification email in your inbox and click the verification link",
-                    response.StatusCode, responseBody, _senderEmail);
-                
-                // Check for common Brevo error codes
-                if (responseBody.Contains("unauthorized_sender") || responseBody.Contains("sender") && responseBody.Contains("not verified"))
-                {
-                    _logger.LogError(
-                        "⚠️ SENDER NOT VERIFIED ERROR DETECTED!\n" +
-                        "The sender email '{SenderEmail}' is not verified in your Brevo account.\n" +
-                        "Please verify it at: https://app.brevo.com/settings/senders", 
-                        _senderEmail);
-                }
-                
-                return false;
-            }
+
+            _logger.LogError("Resend API returned null response for email to {Email}", toEmail);
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception calling Brevo API. Check your API key and network connection.");
+            _logger.LogError(ex, "Exception calling Resend API. Check your API key and network connection.");
             return false;
         }
     }

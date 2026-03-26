@@ -19,6 +19,34 @@ using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load .env file for local development (secrets not committed to git)
+var envFile = Path.Combine(builder.Environment.ContentRootPath, ".env");
+if (File.Exists(envFile))
+{
+    foreach (var line in File.ReadAllLines(envFile))
+    {
+        var trimmed = line.Trim();
+        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#')) continue;
+        var idx = trimmed.IndexOf('=');
+        if (idx <= 0) continue;
+        var key = trimmed[..idx].Trim();
+        var value = trimmed[(idx + 1)..].Trim();
+        Environment.SetEnvironmentVariable(key, value);
+        // Also set in configuration directly (env vars set after builder init aren't picked up)
+        var configKey = key.Replace("__", ":");
+        builder.Configuration[configKey] = value;
+    }
+
+    // Inject DB_PASSWORD into connection string if provided
+    var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+    if (!string.IsNullOrEmpty(dbPassword))
+    {
+        var connStr = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+        connStr = connStr.Replace("Password=SET_VIA_ENV", $"Password={dbPassword}");
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = connStr;
+    }
+}
+
 // Add services to the container
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -94,7 +122,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultCorsPolicy", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -182,7 +210,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<IAuthorizationHandler, SamePatientAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuditingAuthorizationHandler>();
 
-// Register HttpClient for external API calls (Brevo email service)
+// Register HttpClient for external API calls
 builder.Services.AddHttpClient();
 
 // Register Business Layer Services (DI)

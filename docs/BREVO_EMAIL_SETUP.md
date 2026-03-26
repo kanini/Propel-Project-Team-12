@@ -32,7 +32,7 @@ This happens because **the sender email address is not verified** in your Brevo 
 2. Update the `SenderEmail` field:
    ```json
    "BrevoSettings": {
-     "ApiKey": "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",
+     "ApiKey": "SET_VIA_ENV_BREVO__APIKEY",
      "ApiUrl": "https://api.brevo.com/v3/smtp/email",
      "SenderEmail": "your-verified-email@gmail.com",  // <-- Change this
      "SenderName": "Patient Access Platform - Dev"
