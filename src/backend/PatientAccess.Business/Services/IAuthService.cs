@@ -66,4 +66,25 @@ public interface IAuthService
     /// <param name="userAgent">Client user agent.</param>
     /// <param name="lastActivityTimestamp">Last recorded activity timestamp from the client.</param>
     Task LogSessionTimeoutAsync(string userId, string? ipAddress = null, string? userAgent = null, DateTime? lastActivityTimestamp = null);
+
+    /// <summary>
+    /// Initiates password reset workflow by generating reset token and sending email.
+    /// Returns success message regardless of email existence to prevent email enumeration.
+    /// </summary>
+    /// <param name="request">Forgot password request containing user email</param>
+    /// <param name="ipAddress">Client IP address for audit logging</param>
+    /// <param name="userAgent">Client user agent for audit logging</param>
+    /// <returns>Response with generic success message</returns>
+    Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, string? ipAddress = null, string? userAgent = null);
+
+    /// <summary>
+    /// Resets user password using valid reset token.
+    /// Validates token, checks expiration, and updates password.
+    /// </summary>
+    /// <param name="request">Reset password request containing token and new password</param>
+    /// <param name="ipAddress">Client IP address for audit logging</param>
+    /// <param name="userAgent">Client user agent for audit logging</param>
+    /// <returns>True if password reset successful</returns>
+    /// <exception cref="InvalidOperationException">Thrown when token is invalid or expired</exception>
+    Task<bool> ResetPasswordAsync(ResetPasswordRequestDto request, string? ipAddress = null, string? userAgent = null);
 }
