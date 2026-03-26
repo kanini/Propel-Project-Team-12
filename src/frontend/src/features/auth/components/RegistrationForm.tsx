@@ -106,7 +106,7 @@ export default function RegistrationForm() {
         }
         break;
 
-      case 'password':
+      case 'password': {
         const passwordValidation = validatePassword(value);
         if (!value) {
           error = 'Password is required';
@@ -114,6 +114,7 @@ export default function RegistrationForm() {
           error = 'Password does not meet requirements';
         }
         break;
+      }
     }
 
     if (error) {

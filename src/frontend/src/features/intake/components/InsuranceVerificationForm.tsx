@@ -43,7 +43,7 @@ const INSURANCE_PROVIDERS = [
  * InsuranceVerificationForm - Initiates insurance precheck process
  */
 export default function InsuranceVerificationForm({
-  appointmentId: _appointmentId, // Reserved for future API integration
+  appointmentId: _appointmentId, // eslint-disable-line @typescript-eslint/no-unused-vars -- Reserved for future API integration
   onVerificationComplete,
 }: InsuranceVerificationFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -131,7 +131,7 @@ export default function InsuranceVerificationForm({
 
       setPrecheckResult(result);
       onVerificationComplete?.(result);
-    } catch (error) {
+    } catch {
       setPrecheckResult({
         status: 'failed',
         message: 'Unable to verify insurance at this time. Please try again or enter manually.',

@@ -33,7 +33,7 @@ export function RescheduleModal({
     // Reset selection when modal opens
     useEffect(() => {
         if (isOpen) {
-            setSelectedSlotId(null);
+            setSelectedSlotId(null); // eslint-disable-line react-hooks/set-state-in-effect -- Resetting state when prop changes is intentional
         }
     }, [isOpen]);
 

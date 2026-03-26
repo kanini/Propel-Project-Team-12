@@ -17,7 +17,7 @@ interface UsePusherDocumentStatusOptions {
 export function usePusherDocumentStatus({ userId, enabled }: UsePusherDocumentStatusOptions) {
   const dispatch = useDispatch();
   const pusherRef = useRef<Pusher | null>(null);
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<ReturnType<Pusher['subscribe']> | null>(null);
   const liveRegionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

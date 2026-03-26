@@ -129,6 +129,7 @@ export const useSessionTimeout = (): UseSessionTimeoutReturn => {
   }, []);
 
   // Set up activity listeners
+  /* eslint-disable react-hooks/set-state-in-effect -- Resetting warning state on auth change is intentional */
   useEffect(() => {
     if (!isAuthenticated) {
       clearTimers();
@@ -199,6 +200,7 @@ export const useSessionTimeout = (): UseSessionTimeoutReturn => {
     handleActivity,
     showWarning,
   ]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return {
     showWarning,
