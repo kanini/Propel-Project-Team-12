@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using PatientAccess.Web.Extensions;
 using PatientAccess.Web.Middleware;
 using PatientAccess.Web.Filters;
@@ -26,6 +27,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         // Enable case-insensitive property matching for deserialization
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        // Allow string-to-enum conversion for JSON payloads
+        // Use null naming policy to keep enum values as PascalCase (e.g., "Admin" -> UserRole.Admin)
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: true));
     });
 
 // Configure Swagger/OpenAPI (TR-005)
@@ -53,12 +57,28 @@ builder.Services.AddSwaggerGen(options =>
     // Add JWT Bearer authentication to Swagger (TR-012)
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.\n\nExample: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'",
+        Description = "JWT Authorization header using the Bearer scheme. Enter your JWT token in the text input below (without 'Bearer' prefix - it will be added automatically).\n\nExample: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
+        Type = SecuritySchemeType.Http, // ✅ Changed from ApiKey to Http
+        Scheme = "bearer", // ✅ Must be lowercase for HTTP scheme
         BearerFormat = "JWT"
+    });
+
+    // Add global security requirement (makes "Authorize" button work in Swagger UI)
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
 
     // Automatically add 401/403 responses to endpoints with [Authorize] attribute (AC-1)
@@ -82,7 +102,7 @@ builder.Services.AddCors(options =>
 
 // Configure JWT Authentication (TR-012) - RS256 with RSA asymmetric keys
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var publicKeyPath = jwtSettings["PublicKeyPath"] 
+var publicKeyPath = jwtSettings["PublicKeyPath"]
     ?? Path.Combine(AppContext.BaseDirectory, "rsa-keys", "public-key.xml");
 
 // Load public key for token validation
@@ -97,7 +117,7 @@ if (!File.Exists(publicKeyPath))
 var publicKeyXml = File.ReadAllText(publicKeyPath);
 var rsa = System.Security.Cryptography.RSA.Create();
 rsa.FromXmlString(publicKeyXml);
-var validationKey = new RsaSecurityKey(rsa);
+var validationKey = new RsaSecurityKey(rsa) { KeyId = "patient-access-rsa-key-1" };
 
 builder.Services.AddAuthentication(options =>
 {
@@ -268,7 +288,7 @@ else
 {
     var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
     logger.LogInformation("Redis caching disabled in configuration. Application will use in-memory distributed cache fallback.");
-    
+
     // Register in-memory distributed cache as fallback (US_067)
     builder.Services.AddDistributedMemoryCache();
 }
