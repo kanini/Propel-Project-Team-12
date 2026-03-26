@@ -620,7 +620,7 @@ public class IntakeService : IIntakeService
         return progress;
     }
 
-    private async Task UpdateIntakeDataFromExtraction(
+    private Task UpdateIntakeDataFromExtraction(
         IntakeRecord record,
         AiExtractionResult extraction,
         CancellationToken cancellationToken)
@@ -699,6 +699,7 @@ public class IntakeService : IIntakeService
         }
 
         record.UpdatedAt = DateTime.UtcNow;
+        return Task.CompletedTask;
     }
 
     private static List<string> TryDeserializeList(string? json)

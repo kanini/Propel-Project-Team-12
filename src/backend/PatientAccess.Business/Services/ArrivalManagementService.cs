@@ -39,7 +39,7 @@ public class ArrivalManagementService : IArrivalManagementService
     /// <param name="query">Search term (patient name, email, or phone). Empty string returns all appointments.</param>
     /// <param name="date">Date to search for appointments (defaults to today)</param>
     /// <returns>Task<List<ArrivalSearchResultDto>> - List of matching appointments</returns>
-    public async Task<List<ArrivalSearchResultDto>> SearchTodayAppointmentsAsync(string query, DateTime? date = null)
+    public async Task<List<ArrivalSearchResultDto>> SearchTodayAppointmentsAsync(string? query = null, DateTime? date = null)
     {
         try
         {

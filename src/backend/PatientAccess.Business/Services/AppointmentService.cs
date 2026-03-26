@@ -786,7 +786,7 @@ public class AppointmentService : IAppointmentService
                     await transaction.RollbackAsync();
                     throw; // Rethrow conflict exceptions immediately (no retry)
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await transaction.RollbackAsync();
                     throw; // Rethrow all exceptions; deadlock retry handled by outer loop
