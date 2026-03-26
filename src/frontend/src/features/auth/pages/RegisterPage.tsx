@@ -49,7 +49,7 @@ export default function RegisterPage() {
           >
             +
           </div>
-          <span className="text-2xl font-semibold text-neutral-900">PatientAccess</span>
+          <span className="text-2xl font-semibold text-neutral-900">CareSync AI</span>
         </div>
 
         {/* Registration Card */}
@@ -88,7 +88,7 @@ export default function RegisterPage() {
                   Create your account
                 </h1>
                 <p className="text-sm text-neutral-500">
-                  Join PatientAccess to manage your healthcare
+                  Join CareSync AI to manage your healthcare
                 </p>
               </div>
 
