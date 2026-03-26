@@ -33,7 +33,7 @@ export function TimeSlotGrid() {
      */
     useEffect(() => {
         if (selectedProviderId && selectedDate) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+             
             setShowTimeout(false);
 
             dispatch(
@@ -45,7 +45,7 @@ export function TimeSlotGrid() {
 
             // Set timeout for 10 seconds (Edge Case: timeout handling)
             const timeoutId = setTimeout(() => {
-                // eslint-disable-next-line react-hooks/exhaustive-deps
+                 
                 if (isLoadingTimeSlots) {
                     setShowTimeout(true);
                 }

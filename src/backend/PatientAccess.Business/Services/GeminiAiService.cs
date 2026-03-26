@@ -40,14 +40,14 @@ public class GeminiAiService : IGeminiAiService
         }
     }
 
-    public async Task<List<ExtractedDataPointDto>> ExtractClinicalDataAsync(string ocrText, string promptTemplate)
+    public Task<List<ExtractedDataPointDto>> ExtractClinicalDataAsync(string ocrText, string promptTemplate)
     {
         _logger.LogInformation("Extracting clinical data using Gemini AI. Text length: {Length}", ocrText.Length);
 
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
             _logger.LogWarning("Gemini API key not configured. Returning stub data.");
-            return GetStubExtractedData();
+            return Task.FromResult(GetStubExtractedData());
         }
 
         try
@@ -66,7 +66,7 @@ public class GeminiAiService : IGeminiAiService
             _logger.LogInformation("Gemini API call would be made here (stub mode)");
 
             // Return stub data for now
-            return GetStubExtractedData();
+            return Task.FromResult(GetStubExtractedData());
         }
         catch (Exception ex)
         {

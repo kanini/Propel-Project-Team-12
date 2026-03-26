@@ -36,9 +36,10 @@ export function ProviderSearch({
     // Sync local value when prop changes externally (including when filters are cleared)
     useEffect(() => {
         if (value !== localValue) {
-            setLocalValue(value);
+            setLocalValue(value);  
         }
-    }, [value]); // Removed localValue from dependencies to avoid circular updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally omitting localValue to avoid circular updates
+    }, [value]);
 
     // Update parent when debounced value changes
     useEffect(() => {

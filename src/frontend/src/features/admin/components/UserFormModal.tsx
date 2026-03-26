@@ -36,6 +36,7 @@ export const UserFormModal = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Syncing form state from user prop is intentional */
   useEffect(() => {
     if (user) {
       setFormData({
@@ -56,6 +57,7 @@ export const UserFormModal = ({
     }
     setErrors({});
   }, [user, isOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

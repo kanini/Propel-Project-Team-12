@@ -98,7 +98,7 @@ public class ProvidersController : ControllerBase
     [ProducesResponseType(typeof(ProviderDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetProviderById(Guid id)
+    public Task<IActionResult> GetProviderById(Guid id)
     {
         try
         {
@@ -106,12 +106,12 @@ public class ProvidersController : ControllerBase
             // This is a placeholder for future US_024 (Appointment Booking) where detailed provider view is needed
 
             _logger.LogWarning("GetProviderById not yet implemented");
-            return StatusCode(501, new { message = "Provider detail view not yet implemented" });
+            return Task.FromResult<IActionResult>(StatusCode(501, new { message = "Provider detail view not yet implemented" }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving provider {ProviderId}", id);
-            return StatusCode(500, new { message = "An error occurred while retrieving provider" });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { message = "An error occurred while retrieving provider" }));
         }
     }
 }

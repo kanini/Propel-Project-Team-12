@@ -90,13 +90,13 @@ export const fetchUsers = createAsyncThunk(
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        return rejectWithValue(error.message || "Failed to fetch users");
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || "Failed to fetch users");
       }
 
       const data = await response.json();
       return data as User[];
-    } catch (error) {
+    } catch {
       return rejectWithValue("Network error");
     }
   },
@@ -123,13 +123,13 @@ export const createUser = createAsyncThunk(
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        return rejectWithValue(error.message || "Failed to create user");
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || "Failed to create user");
       }
 
       const data = await response.json();
       return data as User;
-    } catch (error) {
+    } catch {
       return rejectWithValue("Network error");
     }
   },
@@ -159,13 +159,13 @@ export const updateUser = createAsyncThunk(
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        return rejectWithValue(error.message || "Failed to update user");
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || "Failed to update user");
       }
 
       const data = await response.json();
       return data as User;
-    } catch (error) {
+    } catch {
       return rejectWithValue("Network error");
     }
   },
@@ -188,12 +188,12 @@ export const deactivateUser = createAsyncThunk(
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        return rejectWithValue(error.message || "Failed to deactivate user");
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || "Failed to deactivate user");
       }
 
       return userId;
-    } catch (error) {
+    } catch {
       return rejectWithValue("Network error");
     }
   },

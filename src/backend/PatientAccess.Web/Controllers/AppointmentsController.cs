@@ -204,11 +204,11 @@ public class AppointmentsController : ControllerBase
     [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetAppointmentById([FromRoute] Guid id)
+    public Task<IActionResult> GetAppointmentById([FromRoute] Guid id)
     {
         // Placeholder for future implementation
         // For now, return 501 Not Implemented
-        return StatusCode(501, new { message = "Get appointment by ID not yet implemented" });
+        return Task.FromResult<IActionResult>(StatusCode(501, new { message = "Get appointment by ID not yet implemented" }));
     }
 
     /// <summary>
