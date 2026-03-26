@@ -10,6 +10,7 @@ import RegisterPage from "./features/auth/pages/RegisterPage";
 import LoginPage from "./features/auth/pages/LoginPage";
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage";
+import VerifyEmailPage from "./features/auth/pages/VerifyEmailPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
@@ -96,6 +97,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
 
           {/* Patient Dashboard Routes - US_067, AC1 */}
           <Route
