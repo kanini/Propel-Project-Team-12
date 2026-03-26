@@ -32,14 +32,13 @@ export function QueuePatientRow({
   };
 
   const waitTime = calculateWaitTime(patient.arrivalTime);
-  const arrivalTimeFormatted = new Date(patient.arrivalTime).toLocaleTimeString(
-    "en-US",
-    {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    },
-  );
+  const arrivalTimeFormatted = patient.arrivalTime
+    ? new Date(patient.arrivalTime).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : "-";
 
   return (
     <tr className="border-b border-neutral-200 hover:bg-neutral-50 transition-colors">

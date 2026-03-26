@@ -4,13 +4,14 @@
  * Integrates all booking components with progress indicator
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../store';
 import { setSelectedProvider, resetBooking } from '../store/slices/appointmentSlice';
 import { ProgressIndicator } from '../components/appointments/ProgressIndicator';
 import { BookingSteps } from '../components/appointments/BookingSteps';
+import { fetchProviderById } from '../api/providerApi';
 
 /**
  * AppointmentBooking is the main booking wizard page (AC-5, AC-1)
@@ -20,6 +21,8 @@ export default function AppointmentBooking() {
     const { providerId } = useParams<{ providerId: string }>();
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
+    const [isLoadingProvider, setIsLoadingProvider] = useState(false);
+    const [providerError, setProviderError] = useState<string | null>(null);
 
     const { 
         selectedProviderId, 
@@ -49,18 +52,38 @@ export default function AppointmentBooking() {
             dispatch(resetBooking());
         }
 
-        // If provider not set or different provider, fetch and set
+        // If provider not set or different provider, fetch from API
         if (!selectedProviderId || selectedProviderId !== providerId) {
-            // TODO: Fetch provider details from API
-            // For now, set placeholder data
-            // This would be replaced with actual API call in task_002_be_appointment_booking_api
-            dispatch(
-                setSelectedProvider({
-                    id: providerId,
-                    name: 'Dr. Sarah Chen', // Placeholder
-                    specialty: 'Family Medicine', // Placeholder
-                })
-            );
+            const loadProvider = async () => {
+                try {
+                    setIsLoadingProvider(true);
+                    setProviderError(null);
+                    
+                    const providerData = await fetchProviderById(providerId);
+                    
+                    dispatch(
+                        setSelectedProvider({
+                            id: providerData.id,
+                            name: providerData.name,
+                            specialty: providerData.specialty,
+                        })
+                    );
+                } catch (error) {
+                    const errorMessage = error instanceof Error 
+                        ? error.message 
+                        : 'Failed to load provider details';
+                    setProviderError(errorMessage);
+                    
+                    // If provider not found, redirect back to provider list
+                    if (errorMessage.includes('not found')) {
+                        setTimeout(() => navigate('/providers'), 2000);
+                    }
+                } finally {
+                    setIsLoadingProvider(false);
+                }
+            };
+
+            loadProvider();
         }
     }, [providerId, selectedProviderId, dispatch, navigate]);
 
@@ -171,22 +194,63 @@ export default function AppointmentBooking() {
                 <h1 className="text-2xl font-bold text-neutral-900">Book an appointment</h1>
             </div>
 
-            {/* Progress indicator (UXR-101) */}
-            <ProgressIndicator currentStep={currentStep} />
-
-            {/* Booking layout: main content + summary sidebar */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-                {/* Main booking content */}
-                <div>
-                    <BookingSteps />
+            {/* Loading state */}
+            {isLoadingProvider && (
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                        <p className="text-neutral-600">Loading provider details...</p>
+                    </div>
                 </div>
+            )}
 
-                {/* Booking summary sidebar (hidden on mobile, shown on desktop) */}
-                <div className="hidden lg:block">{renderBookingSummary()}</div>
-            </div>
+            {/* Error state */}
+            {providerError && !isLoadingProvider && (
+                <div className="bg-error-light border border-error-base rounded-lg p-4 mb-6">
+                    <div className="flex items-start">
+                        <svg
+                            className="h-5 w-5 text-error-dark mt-0.5 mr-3"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clipRule="evenodd"
+                            />
+                        </svg>
+                        <div>
+                            <h3 className="text-sm font-medium text-error-dark">
+                                Error loading provider
+                            </h3>
+                            <p className="text-sm text-error-dark mt-1">{providerError}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-            {/* Mobile summary (shown below content on mobile) */}
-            <div className="lg:hidden mt-6">{renderBookingSummary()}</div>
+            {/* Main content - only show when not loading and no error */}
+            {!isLoadingProvider && !providerError && (
+                <>
+                    {/* Progress indicator (UXR-101) */}
+                    <ProgressIndicator currentStep={currentStep} />
+
+                    {/* Booking layout: main content + summary sidebar */}
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+                        {/* Main booking content */}
+                        <div>
+                            <BookingSteps />
+                        </div>
+
+                        {/* Booking summary sidebar (hidden on mobile, shown on desktop) */}
+                        <div className="hidden lg:block">{renderBookingSummary()}</div>
+                    </div>
+
+                    {/* Mobile summary (shown below content on mobile) */}
+                    <div className="lg:hidden mt-6">{renderBookingSummary()}</div>
+                </>
+            )}
         </div>
     );
 }

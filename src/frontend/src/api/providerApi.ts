@@ -3,7 +3,7 @@
  * Handles all HTTP requests to provider endpoints with error handling and retry logic
  */
 
-import type { ProviderListResponse, ProviderFilters, PaginationParams } from '../types/provider';
+import type { ProviderListResponse, ProviderFilters, PaginationParams, Provider } from '../types/provider';
 
 /**
  * API base URL from environment variables with fallback
@@ -123,4 +123,51 @@ export async function fetchProvidersWithRetry(
     }
 
     throw lastError || new Error('Failed to fetch providers after multiple attempts');
+}
+
+/**
+ * Fetch a single provider by ID (US_024 - Appointment Booking)
+ * Used to display provider details in appointment booking flow
+ * @param providerId - Provider GUID
+ * @returns Promise<Provider>
+ */
+export async function fetchProviderById(providerId: string): Promise<Provider> {
+    const url = `${API_BASE_URL}/api/providers/${providerId}`;
+
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+        });
+
+        if (!response.ok) {
+            // Handle HTTP error responses
+            if (response.status === 401) {
+                throw new Error('Unauthorized. Please log in again.');
+            }
+            if (response.status === 404) {
+                throw new Error(`Provider with ID ${providerId} not found`);
+            }
+            if (response.status === 500) {
+                throw new Error('Server error. Please try again later.');
+            }
+            throw new Error(`Failed to fetch provider: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data as Provider;
+
+    } catch (error) {
+        // Handle network errors
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error('Network error. Please check your connection and try again.');
+    }
 }

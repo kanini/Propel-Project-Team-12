@@ -98,20 +98,24 @@ public class ProvidersController : ControllerBase
     [ProducesResponseType(typeof(ProviderDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public Task<IActionResult> GetProviderById(Guid id)
+    public async Task<IActionResult> GetProviderById(Guid id)
     {
         try
         {
-            // TODO: Implement GetProviderByIdAsync in IProviderService
-            // This is a placeholder for future US_024 (Appointment Booking) where detailed provider view is needed
+            var provider = await _providerService.GetProviderByIdAsync(id);
 
-            _logger.LogWarning("GetProviderById not yet implemented");
-            return Task.FromResult<IActionResult>(StatusCode(501, new { message = "Provider detail view not yet implemented" }));
+            if (provider == null)
+            {
+                _logger.LogWarning("Provider not found: {ProviderId}", id);
+                return NotFound(new { message = $"Provider with ID {id} not found" });
+            }
+
+            return Ok(provider);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving provider {ProviderId}", id);
-            return Task.FromResult<IActionResult>(StatusCode(500, new { message = "An error occurred while retrieving provider" }));
+            return StatusCode(500, new { message = "An error occurred while retrieving provider" });
         }
     }
 }
