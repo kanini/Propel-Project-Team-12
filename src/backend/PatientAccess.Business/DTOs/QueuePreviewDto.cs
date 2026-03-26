@@ -27,8 +27,13 @@ public class QueuePreviewDto
     public DateTime AppointmentTime { get; set; }
 
     /// <summary>
+    /// Actual arrival time when patient checked in. Null if not yet arrived.
+    /// </summary>
+    public DateTime? ArrivalTime { get; set; }
+
+    /// <summary>
     /// Estimated wait time in human-readable format (e.g., "15 mins", "1 hour").
-    /// Calculated based on current queue position and average appointment duration.
+    /// Calculated as time from arrival to now. Shows "-" if patient hasn't arrived.
     /// </summary>
     public string EstimatedWait { get; set; } = string.Empty;
 

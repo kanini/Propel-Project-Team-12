@@ -57,7 +57,7 @@ export function CalendarView() {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowNoAvailability(true);
         } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+             
             setShowNoAvailability(false);
         }
     }, [monthlyAvailability]);

@@ -4,7 +4,7 @@
  * Displays only booked slots for the same provider on the same day or nearby dates
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { setPreferredSlotId } from '../../store/slices/appointmentSlice';
@@ -22,25 +22,19 @@ export function PreferredSlotSelector() {
         dailyTimeSlots,
     } = useSelector((state: RootState) => state.appointments);
 
-    const [unavailableSlots, setUnavailableSlots] = useState<TimeSlot[]>([]);
-    const [selectedPreferredSlot, setSelectedPreferredSlot] = useState<string | null>(
-        preferredSlotId
-    );
+    const unavailableSlots = useMemo(() => {
+        if (!selectedTimeSlot) return [];
 
-    /**
-     * Filter for unavailable (booked) slots excluding the currently selected slot
-     */
-    useEffect(() => {
-        if (!selectedTimeSlot) return;
-
-        const booked = dailyTimeSlots.filter(
+        return dailyTimeSlots.filter(
             (slot) =>
                 slot.status === 'booked' &&
                 slot.id !== selectedTimeSlot.id
         );
-
-        setUnavailableSlots(booked);
     }, [dailyTimeSlots, selectedTimeSlot]);
+
+    const [selectedPreferredSlot, setSelectedPreferredSlot] = useState<string | null>(
+        preferredSlotId
+    );
 
     /**
      * Handle preferred slot selection

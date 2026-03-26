@@ -122,13 +122,16 @@ public class DocumentUploadService
                 throw new InvalidOperationException("Cannot finalize incomplete upload. Upload all chunks first.");
             }
 
+            // Generate document ID (used for both filename and database)
+            var documentId = Guid.NewGuid();
+
             // Assemble chunks into final file
-            var (filePath, session) = await _uploadManager.FinalizeSessionAsync(request.UploadSessionId);
+            var (filePath, returnedDocId, session) = await _uploadManager.FinalizeSessionAsync(request.UploadSessionId, documentId);
 
             // Create database record
             var document = new ClinicalDocument
             {
-                DocumentId = Guid.NewGuid(),
+                DocumentId = documentId,
                 PatientId = session.PatientId,
                 UploadedBy = session.UploadedBy,
                 FileName = session.FileName,

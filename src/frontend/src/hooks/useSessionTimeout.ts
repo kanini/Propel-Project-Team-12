@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from './useAuth';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useAuth } from "./useAuth";
+import { logSessionTimeout } from "../api/auditApi";
 
 interface UseSessionTimeoutReturn {
   showWarning: boolean;
@@ -10,7 +11,7 @@ interface UseSessionTimeoutReturn {
 
 const WARNING_TIME = 13 * 60 * 1000; // 13 minutes in milliseconds
 const SESSION_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
-const STORAGE_KEY = 'lastActivityTime';
+const STORAGE_KEY = "lastActivityTime";
 
 /**
  * Custom hook for session timeout management (US_022, AC4, AC5).
@@ -49,32 +50,41 @@ export const useSessionTimeout = (): UseSessionTimeoutReturn => {
   }, []);
 
   // Start countdown timer
-  const startCountdown = useCallback((lastActivity: number) => {
-    const updateCountdown = () => {
-      const elapsed = Date.now() - lastActivity;
-      const remaining = Math.max(0, SESSION_DURATION - elapsed);
-      const seconds = Math.ceil(remaining / 1000);
-      
-      setSecondsRemaining(seconds);
+  const startCountdown = useCallback(
+    (lastActivity: number) => {
+      const updateCountdown = () => {
+        const elapsed = Date.now() - lastActivity;
+        const remaining = Math.max(0, SESSION_DURATION - elapsed);
+        const seconds = Math.ceil(remaining / 1000);
 
-      if (seconds <= 0) {
-        // Session expired - trigger logout (handled by parent component)
-        setShowWarning(false);
-        clearTimers();
-      }
-    };
+        setSecondsRemaining(seconds);
 
-    // Initial update
-    updateCountdown();
+        if (seconds <= 0) {
+          // Session expired - log timeout event (US_022, AC3)
+          const userId = localStorage.getItem("userId");
+          if (userId) {
+            const lastActivityTs = new Date(lastActivity).toISOString();
+            logSessionTimeout(userId, lastActivityTs);
+          }
+          // Trigger logout (handled by parent component)
+          setShowWarning(false);
+          clearTimers();
+        }
+      };
 
-    // Update every second
-    countdownTimerRef.current = setInterval(updateCountdown, 1000);
-  }, [clearTimers]);
+      // Initial update
+      updateCountdown();
+
+      // Update every second
+      countdownTimerRef.current = setInterval(updateCountdown, 1000);
+    },
+    [clearTimers],
+  );
 
   // Start warning timer
   const startWarningTimer = useCallback(() => {
     clearTimers();
-    
+
     const lastActivity = getLastActivityTime();
     const elapsed = Date.now() - lastActivity;
     const timeUntilWarning = Math.max(0, WARNING_TIME - elapsed);
@@ -119,6 +129,7 @@ export const useSessionTimeout = (): UseSessionTimeoutReturn => {
   }, []);
 
   // Set up activity listeners
+  /* eslint-disable react-hooks/set-state-in-effect -- Resetting warning state on auth change is intentional */
   useEffect(() => {
     if (!isAuthenticated) {
       clearTimers();
@@ -140,13 +151,13 @@ export const useSessionTimeout = (): UseSessionTimeoutReturn => {
     }
 
     // Activity event handlers
-    const events = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'];
-    
+    const events = ["mousemove", "keydown", "scroll", "click", "touchstart"];
+
     // Throttle activity updates to avoid excessive writes
     let activityTimeout: number | null = null;
     const throttledActivity = () => {
       if (activityTimeout) return;
-      
+
       activityTimeout = setTimeout(() => {
         handleActivity();
         activityTimeout = null;
@@ -168,7 +179,7 @@ export const useSessionTimeout = (): UseSessionTimeoutReturn => {
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     // Cleanup
     return () => {
@@ -176,12 +187,20 @@ export const useSessionTimeout = (): UseSessionTimeoutReturn => {
       events.forEach((event) => {
         window.removeEventListener(event, throttledActivity);
       });
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
       if (activityTimeout) {
         clearTimeout(activityTimeout);
       }
     };
-  }, [isAuthenticated, clearTimers, getLastActivityTime, startWarningTimer, handleActivity, showWarning]);
+  }, [
+    isAuthenticated,
+    clearTimers,
+    getLastActivityTime,
+    startWarningTimer,
+    handleActivity,
+    showWarning,
+  ]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return {
     showWarning,

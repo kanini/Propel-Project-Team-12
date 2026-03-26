@@ -10,10 +10,11 @@ import RegisterPage from "./features/auth/pages/RegisterPage";
 import LoginPage from "./features/auth/pages/LoginPage";
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage";
+import VerifyEmailPage from "./features/auth/pages/VerifyEmailPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
-import {PatientDashboard} from "./pages/PatientDashboard";
+import { PatientDashboard } from "./pages/PatientDashboard";
 import MyAppointments from "./pages/MyAppointments";
 import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
 import { StaffDashboard } from "./features/staff/dashboard/StaffDashboard";
@@ -23,6 +24,7 @@ import { DocumentUploadPage } from "./pages/DocumentUploadPage";
 import DocumentStatusPage from "./pages/DocumentStatusPage";
 import AppointmentSelectionPage from "./features/intake/pages/AppointmentSelectionPage";
 import IntakePage from "./features/intake/pages/IntakePage";
+import AuditLogsPage from "./pages/AuditLogsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -95,6 +97,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
 
           {/* Patient Dashboard Routes - US_067, AC1 */}
           <Route
@@ -282,10 +285,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Audit Logs</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <AuditLogsPage />
                 </MainLayout>
               </ProtectedRoute>
             }

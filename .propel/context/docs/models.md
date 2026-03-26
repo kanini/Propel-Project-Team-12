@@ -362,216 +362,224 @@ d3 -> staff : 360-Degree View\n(Verification context)
 
 ```mermaid
 erDiagram
+    USER ||--o{ APPOINTMENT : "books (as patient)"
+    USER ||--o{ CLINICAL_DOCUMENT : "uploads (as patient)"
+    USER ||--o{ WAITLIST_ENTRY : "joins (as patient)"
+    USER ||--o| NO_SHOW_HISTORY : "has history"
+    USER ||--o{ NOTIFICATION : "receives (as patient)"
+    USER ||--o{ INTAKE_RECORD : "completes (as patient)"
     USER ||--o{ AUDIT_LOG : creates
-    USER ||--o| PATIENT : "extends to"
-    
-    PATIENT ||--o{ APPOINTMENT : books
-    PATIENT ||--o{ CLINICAL_DOCUMENT : uploads
-    PATIENT ||--o{ WAITLIST_ENTRY : joins
-    PATIENT ||--o| PATIENT_PROFILE : has
-    PATIENT ||--o| NO_SHOW_HISTORY : tracks
-    PATIENT ||--o{ NOTIFICATION : receives
-    PATIENT ||--o{ INTAKE_RECORD : completes
+    USER ||--o{ EXTRACTED_CLINICAL_DATA : "verifies (as staff)"
+    USER ||--o{ MEDICAL_CODE : "verifies (as staff)"
     
     PROVIDER ||--o{ TIME_SLOT : offers
     PROVIDER ||--o{ APPOINTMENT : attends
     PROVIDER ||--o{ WAITLIST_ENTRY : "preferred for"
     
     TIME_SLOT ||--o| APPOINTMENT : "booked as"
+    TIME_SLOT ||--o{ APPOINTMENT : "preferred slot"
     
-    APPOINTMENT ||--o| INTAKE_RECORD : "requires"
+    APPOINTMENT ||--o| INTAKE_RECORD : requires
     APPOINTMENT ||--o{ NOTIFICATION : triggers
-    APPOINTMENT ||--o| NO_SHOW_HISTORY : "updates"
     
     CLINICAL_DOCUMENT ||--o{ EXTRACTED_CLINICAL_DATA : contains
-    CLINICAL_DOCUMENT ||--o{ DOCUMENT_EMBEDDING : "has embeddings"
     
     EXTRACTED_CLINICAL_DATA ||--o{ MEDICAL_CODE : "maps to"
-    EXTRACTED_CLINICAL_DATA }o--|| PATIENT_PROFILE : "aggregates into"
     
     INTAKE_RECORD }o--o| INSURANCE_RECORD : validates
 
     USER {
-        uuid id PK
-        string email UK
-        string password_hash
-        string name
-        date date_of_birth
-        string phone
-        enum role "Patient|Staff|Admin"
-        boolean is_active
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    PATIENT {
-        uuid id PK
-        uuid user_id FK
-        string emergency_contact_name
-        string emergency_contact_phone
-        string insurance_provider
-        string insurance_id
-        uuid no_show_history_id FK
+        uuid UserId PK
+        string Email UK
+        string PasswordHash
+        string Name
+        date DateOfBirth "nullable"
+        string Phone "nullable"
+        enum Role "1=Patient, 2=Staff, 3=Admin"
+        enum Status "1=Active, 2=Suspended, 3=Inactive"
+        string VerificationToken "nullable"
+        timestamp VerificationTokenExpiry "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     PROVIDER {
-        uuid id PK
-        string name
-        string specialty
-        jsonb availability_schedule
-        boolean is_active
+        uuid ProviderId PK
+        string Name
+        string Specialty
+        string Email "nullable"
+        string Phone "nullable"
+        string LicenseNumber "nullable"
+        boolean IsActive
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     TIME_SLOT {
-        uuid id PK
-        uuid provider_id FK
-        timestamp start_time
-        timestamp end_time
-        enum status "Available|Booked|Blocked"
+        uuid TimeSlotId PK
+        uuid ProviderId FK
+        timestamp StartTime
+        timestamp EndTime
+        boolean IsBooked
+        uuid AppointmentId FK "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     APPOINTMENT {
-        uuid id PK
-        uuid patient_id FK
-        uuid provider_id FK
-        uuid time_slot_id FK
-        timestamp scheduled_datetime
-        enum status "Scheduled|Confirmed|Arrived|Completed|Cancelled|NoShow"
-        string visit_reason
-        boolean is_walkin
-        uuid preferred_slot_id FK "nullable"
-        boolean confirmation_received
-        decimal no_show_risk_score
-        integer cancellation_notice_hours
-        timestamp created_at
+        uuid AppointmentId PK
+        uuid PatientId FK "references UserId"
+        uuid ProviderId FK
+        uuid TimeSlotId FK
+        timestamp ScheduledDateTime
+        enum Status "1=Scheduled, 2=Confirmed, 3=Arrived, 4=Completed, 5=Cancelled, 6=NoShow"
+        string VisitReason
+        boolean IsWalkIn
+        boolean ConfirmationReceived
+        decimal NoShowRiskScore "nullable"
+        integer CancellationNoticeHours
+        string Notes "nullable"
+        uuid PreferredSlotId FK "nullable"
+        string ConfirmationNumber
+        string PdfFilePath "nullable"
+        boolean IsPriority
+        timestamp ArrivalTime "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     WAITLIST_ENTRY {
-        uuid id PK
-        uuid patient_id FK
-        uuid provider_id FK
-        jsonb preferred_time_ranges
-        enum notification_preference "SMS|Email|Both"
-        timestamp priority_timestamp
-        boolean is_active
+        uuid WaitlistEntryId PK
+        uuid PatientId FK "references UserId"
+        uuid ProviderId FK
+        date PreferredDateStart
+        date PreferredDateEnd
+        enum PreferredTimeOfDay "1=Morning, 2=Afternoon, 3=Evening, 4=Anytime"
+        enum NotificationPreference "1=Email, 2=SMS, 3=Both"
+        integer Priority
+        enum Status "1=Active, 2=Notified, 3=Fulfilled, 4=Cancelled"
+        string Reason "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     CLINICAL_DOCUMENT {
-        uuid id PK
-        uuid patient_id FK
-        string file_name
-        string file_path
-        integer file_size_bytes
-        enum processing_status "Uploaded|Processing|Completed|Failed"
-        timestamp uploaded_at
-        timestamp processed_at
-    }
-
-    DOCUMENT_EMBEDDING {
-        uuid id PK
-        uuid document_id FK
-        integer chunk_index
-        string chunk_text
-        vector embedding "1536 dimensions"
-        integer token_count
-        timestamp created_at
+        uuid DocumentId PK
+        uuid PatientId FK "references UserId"
+        string FileName
+        bigint FileSize
+        string FileType
+        string StoragePath
+        enum ProcessingStatus "1=Uploaded, 2=Processing, 3=Completed, 4=Failed"
+        timestamp UploadedAt
+        timestamp ProcessedAt "nullable"
+        string ErrorMessage "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     EXTRACTED_CLINICAL_DATA {
-        uuid id PK
-        uuid document_id FK
-        uuid patient_id FK
-        enum data_type "Vital|Medication|Allergy|Diagnosis|LabResult"
-        string value
-        decimal confidence_score
-        enum verification_status "Pending|Verified|Rejected|Corrected"
-        string source_page
-        string source_excerpt
-        uuid verified_by FK "nullable"
-        timestamp verified_at
-    }
-
-    PATIENT_PROFILE {
-        uuid id PK
-        uuid patient_id FK
-        jsonb conditions
-        jsonb medications
-        jsonb allergies
-        jsonb vital_trends
-        jsonb identified_conflicts
-        timestamp last_aggregated_at
+        uuid ExtractedDataId PK
+        uuid DocumentId FK
+        uuid PatientId FK "references UserId"
+        enum DataType "1=Vital, 2=Medication, 3=Allergy, 4=Diagnosis, 5=LabResult, 6=Procedure"
+        string DataKey
+        string DataValue
+        decimal ConfidenceScore "0.00 to 100.00"
+        enum VerificationStatus "1=Pending, 2=Verified, 3=Rejected"
+        integer SourcePageNumber "nullable"
+        string SourceTextExcerpt "nullable"
+        vector VectorEmbedding "1536d pgvector, nullable"
+        uuid VerifiedBy FK "references UserId, nullable"
+        timestamp VerifiedAt "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     INTAKE_RECORD {
-        uuid id PK
-        uuid appointment_id FK
-        uuid patient_id FK
-        enum intake_mode "AIConversational|ManualForm"
-        jsonb health_history
-        jsonb current_medications
-        jsonb allergies
-        jsonb visit_concerns
-        enum insurance_validation_status "Pending|Valid|Invalid"
-        uuid validated_insurance_id FK "nullable"
-        boolean is_complete
-        timestamp completed_at
+        uuid IntakeRecordId PK
+        uuid AppointmentId FK
+        uuid PatientId FK "references UserId"
+        enum IntakeMode "1=AIConversational, 2=ManualForm"
+        string ChiefComplaint "nullable"
+        jsonb SymptomHistory "nullable"
+        jsonb CurrentMedications "nullable"
+        jsonb KnownAllergies "nullable"
+        jsonb MedicalHistory "nullable"
+        enum InsuranceValidationStatus "1=NotValidated, 2=Valid, 3=Invalid"
+        uuid ValidatedInsuranceRecordId FK "nullable"
+        boolean IsCompleted
+        timestamp CompletedAt "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     MEDICAL_CODE {
-        uuid id PK
-        uuid extracted_data_id FK
-        enum code_system "ICD10|CPT"
-        string code_value
-        string description
-        decimal confidence_score
-        enum verification_status "Pending|Verified|Rejected"
-        uuid verified_by FK "nullable"
+        uuid MedicalCodeId PK
+        uuid ExtractedDataId FK
+        string CodeSystem "ICD10 or CPT"
+        string CodeValue
+        string CodeDescription
+        decimal ConfidenceScore
+        enum VerificationStatus "1=Pending, 2=Verified, 3=Rejected"
+        uuid VerifiedBy FK "references UserId, nullable"
+        timestamp VerifiedAt "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     AUDIT_LOG {
-        uuid id PK
-        uuid user_id FK
-        timestamp timestamp
-        enum action_type "Create|Read|Update|Delete|Login|Logout"
-        string resource_type
-        uuid resource_id
-        jsonb action_details
-        string ip_address
+        uuid AuditLogId PK
+        uuid UserId FK
+        string ActionType "CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT"
+        string ResourceType "User, Appointment, ClinicalDocument, etc"
+        uuid ResourceId "nullable"
+        jsonb ActionDetails
+        string IpAddress "nullable"
+        string UserAgent "nullable"
+        timestamp Timestamp
     }
 
     NOTIFICATION {
-        uuid id PK
-        uuid patient_id FK
-        uuid appointment_id FK "nullable"
-        enum channel "SMS|Email"
-        string template_name
-        enum status "Scheduled|Sent|Delivered|Failed"
-        timestamp scheduled_at
-        timestamp sent_at
-        string delivery_confirmation
-        integer retry_count
+        uuid NotificationId PK
+        uuid PatientId FK "references UserId"
+        uuid AppointmentId FK "nullable"
+        enum ChannelType "1=SMS, 2=Email, 3=Both"
+        string TemplateType "AppointmentReminder, WaitlistNotification, etc"
+        string Subject "nullable"
+        string MessageBody
+        enum Status "1=Scheduled, 2=Sent, 3=Delivered, 4=Failed"
+        timestamp ScheduledAt
+        timestamp SentAt "nullable"
+        timestamp DeliveredAt "nullable"
+        string ErrorMessage "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     INSURANCE_RECORD {
-        uuid id PK
-        string provider_name
-        string accepted_id_pattern
-        enum coverage_type "HMO|PPO|Medicare|Medicaid|Other"
-        boolean is_active
+        uuid InsuranceRecordId PK
+        string ProviderName
+        string AcceptedIdPattern "Regex pattern, nullable"
+        string CoverageType "HMO, PPO, Medicare, Medicaid, etc"
+        boolean IsActive
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 
     NO_SHOW_HISTORY {
-        uuid id PK
-        uuid patient_id FK
-        integer total_appointments
-        integer no_show_count
-        decimal confirmation_response_rate
-        decimal average_lead_time_hours
-        decimal last_risk_score
-        timestamp last_calculated_at
+        uuid NoShowHistoryId PK
+        uuid PatientId FK "references UserId"
+        integer TotalAppointments
+        integer NoShowCount
+        decimal ConfirmationResponseRate "Percentage, nullable"
+        decimal AverageLeadTimeHours "nullable"
+        decimal LastCalculatedRiskScore "nullable"
+        timestamp LastCalculatedAt "nullable"
+        timestamp CreatedAt
+        timestamp UpdatedAt "nullable"
     }
 ```
-
 ---
 
 ## AI Architecture Diagrams

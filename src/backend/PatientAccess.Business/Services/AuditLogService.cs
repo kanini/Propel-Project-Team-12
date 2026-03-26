@@ -123,6 +123,117 @@ public class AuditLogService : IAuditLogService
     }
 
     /// <summary>
+    /// Logs a session timeout event (US_022, AC3).
+    /// Called when a user's 15-minute session TTL expires.
+    /// </summary>
+    public async Task LogSessionTimeoutAsync(
+        Guid userId,
+        string? ipAddress,
+        string? userAgent,
+        DateTime? lastActivityTimestamp = null)
+    {
+        try
+        {
+            var metadata = JsonSerializer.Serialize(new
+            {
+                lastActivity = lastActivityTimestamp ?? DateTime.UtcNow,
+                reason = "Session expired due to 15-minute inactivity timeout"
+            });
+
+            var auditLog = new AuditLog
+            {
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                ActionType = AuditActionType.SessionTimeout.ToString(),
+                ResourceType = "Authentication",
+                IpAddress = ipAddress ?? "Unknown",
+                UserAgent = userAgent ?? "Unknown",
+                ActionDetails = metadata
+            };
+
+            await _context.AuditLogs.AddAsync(auditLog);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Session timeout logged: UserId={UserId}, LastActivity={LastActivity}",
+                userId,
+                lastActivityTimestamp);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to log session timeout: UserId={UserId}",
+                userId);
+        }
+    }
+
+    /// <summary>
+    /// Queries audit logs with filtering and pagination for admin review.
+    /// </summary>
+    public async Task<AuditLogQueryResult> GetAuditLogsAsync(
+        Guid? userId = null,
+        string? actionType = null,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int page = 1,
+        int pageSize = 25)
+    {
+        var query = _context.AuditLogs
+            .Include(a => a.User)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (userId.HasValue)
+        {
+            query = query.Where(a => a.UserId == userId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(actionType))
+        {
+            query = query.Where(a => a.ActionType == actionType);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(a => a.Timestamp >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(a => a.Timestamp <= endDate.Value);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(a => a.Timestamp)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(a => new AuditLogDto
+            {
+                AuditLogId = a.AuditLogId,
+                UserId = a.UserId,
+                UserName = a.User != null ? a.User.Name : null,
+                UserEmail = a.User != null ? a.User.Email : null,
+                Timestamp = a.Timestamp,
+                ActionType = a.ActionType,
+                ResourceType = a.ResourceType,
+                ActionDetails = a.ActionDetails,
+                IpAddress = a.IpAddress
+            })
+            .ToListAsync();
+
+        return new AuditLogQueryResult
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    /// <summary>
     /// Hashes email using SHA256 for privacy compliance (GDPR).
     /// </summary>
     private string HashEmail(string email)

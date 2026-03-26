@@ -1,10 +1,10 @@
-import { useState, useEffect, type FormEvent } from 'react';
-import { type User } from '../../../store/usersSlice';
+import { useState, useEffect, type FormEvent } from "react";
+import { type User, type CreateUserRequest } from "../../../store/usersSlice";
 
 interface UserFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (userData: any) => void;
+  onSubmit: (userData: CreateUserRequest | Partial<CreateUserRequest>) => void;
   user: User | null;
   title: string;
 }
@@ -20,54 +20,62 @@ export const UserFormModal = ({
   user,
   title,
 }: UserFormModalProps) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'Staff',
-    password: '',
-    phone: '',
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    role: "Patient" | "Staff" | "Admin";
+    password: string;
+    phone: string;
+  }>({
+    name: "",
+    email: "",
+    role: "Patient", // Default to Patient role
+    password: "",
+    phone: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Syncing form state from user prop is intentional */
   useEffect(() => {
     if (user) {
       setFormData({
         name: user.name,
         email: user.email,
         role: user.role,
-        password: '',
-        phone: user.phone || '',
+        password: "",
+        phone: user.phone || "",
       });
     } else {
       setFormData({
-        name: '',
-        email: '',
-        role: 'Staff',
-        password: '',
-        phone: '',
+        name: "",
+        email: "",
+        role: "Patient", // Default to Patient role
+        password: "",
+        phone: "",
       });
     }
     setErrors({});
   }, [user, isOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = "Invalid email format";
     }
 
     if (!user && !formData.password) {
-      newErrors.password = 'Password is required for new users';
+      newErrors.password = "Password is required for new users";
     } else if (!user && formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = "Password must be at least 8 characters";
     }
 
     setErrors(newErrors);
@@ -81,22 +89,26 @@ export const UserFormModal = ({
       return;
     }
 
-    const submitData: any = {
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-    };
-
-    if (formData.phone) {
-      submitData.phone = formData.phone;
-    }
-
     if (!user) {
-      // Creating new user - include password
-      submitData.password = formData.password;
+      // Creating new user - send complete CreateUserRequest
+      const submitData: CreateUserRequest = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        role: formData.role,
+        password: formData.password,
+        ...(formData.phone && { phone: formData.phone.trim() }),
+      };
+      onSubmit(submitData);
+    } else {
+      // Updating existing user - send partial data without password
+      const submitData: Partial<CreateUserRequest> = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        role: formData.role,
+        ...(formData.phone && { phone: formData.phone.trim() }),
+      };
+      onSubmit(submitData);
     }
-
-    onSubmit(submitData);
   };
 
   if (!isOpen) return null;
@@ -121,16 +133,21 @@ export const UserFormModal = ({
           <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Name *
               </label>
               <input
                 type="text"
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 className={`mt-1 block w-full px-3 py-2 border ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
+                  errors.name ? "border-red-500" : "border-gray-300"
                 } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
               />
               {errors.name && (
@@ -140,16 +157,21 @@ export const UserFormModal = ({
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email *
               </label>
               <input
                 type="email"
                 id="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className={`mt-1 block w-full px-3 py-2 border ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
+                  errors.email ? "border-red-500" : "border-gray-300"
                 } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
               />
               {errors.email && (
@@ -159,30 +181,47 @@ export const UserFormModal = ({
 
             {/* Role */}
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Role *
               </label>
               <select
                 id="role"
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    role: e.target.value as "Patient" | "Staff" | "Admin",
+                  })
+                }
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
+                <option value="Patient">Patient</option>
                 <option value="Staff">Staff</option>
                 <option value="Admin">Admin</option>
               </select>
+              <p className="mt-1 text-sm text-gray-500">
+                Select the user's role in the system
+              </p>
             </div>
 
             {/* Phone */}
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Phone
               </label>
               <input
                 type="tel"
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -190,7 +229,10 @@ export const UserFormModal = ({
             {/* Password (only for new users) */}
             {!user && (
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Password *
                 </label>
                 <input
@@ -201,7 +243,7 @@ export const UserFormModal = ({
                     setFormData({ ...formData, password: e.target.value })
                   }
                   className={`mt-1 block w-full px-3 py-2 border ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
+                    errors.password ? "border-red-500" : "border-gray-300"
                   } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
                 />
                 {errors.password && (
@@ -226,7 +268,7 @@ export const UserFormModal = ({
                 type="submit"
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {user ? 'Update User' : 'Create User'}
+                {user ? "Update User" : "Create User"}
               </button>
             </div>
           </form>

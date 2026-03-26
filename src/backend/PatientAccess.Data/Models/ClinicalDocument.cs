@@ -27,6 +27,8 @@ public class ClinicalDocument
 
     public string? ErrorMessage { get; set; }
 
+    public bool RequiresManualReview { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

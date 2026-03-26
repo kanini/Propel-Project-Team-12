@@ -1,46 +1,58 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
 using PatientAccess.Data;
 using PatientAccess.Data.Models;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// Service for orchestrating clinical document processing (US_043).
-/// Manages document status lifecycle and AI extraction coordination.
+/// Service for orchestrating clinical document processing (US_043, US_045).
+/// Manages document status lifecycle, AI extraction coordination, and data persistence.
 /// </summary>
 public class DocumentProcessingService : IDocumentProcessingService
 {
     private readonly PatientAccessDbContext _context;
     private readonly IPusherService _pusherService;
+    private readonly IClinicalDataExtractionService _extractionService;
     private readonly ILogger<DocumentProcessingService> _logger;
 
     private const int ProcessingTimeoutSeconds = 60; // NFR-010: 60-second target for 10MB files
+    private const decimal LowConfidenceThreshold = 50.0m;
 
     public DocumentProcessingService(
         PatientAccessDbContext context,
         IPusherService pusherService,
+        IClinicalDataExtractionService extractionService,
         ILogger<DocumentProcessingService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _pusherService = pusherService ?? throw new ArgumentNullException(nameof(pusherService));
+        _extractionService = extractionService ?? throw new ArgumentNullException(nameof(extractionService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
-    /// Processes a clinical document asynchronously (AC2, AC3).
-    /// Updates status: Uploaded → Processing → Completed/Failed.
-    /// Broadcasts Pusher events for real-time status tracking.
+    /// Processes a clinical document asynchronously (US_043, US_045).
+    /// Pipeline: Extract → Persist → Flag → Notify
+    /// Updates status: Uploaded → Processing → ProcessingComplete/Failed.
     /// </summary>
     public async Task ProcessDocumentAsync(Guid documentId)
     {
         var stopwatch = Stopwatch.StartNew();
 
-        try
+        // Use execution strategy to handle retries with transactions (task_003)
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            _logger.LogInformation("Starting document processing for {DocumentId}", documentId);
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                _logger.LogInformation("Starting document processing for {DocumentId}", documentId);
 
             // Load document entity
             var document = await _context.ClinicalDocuments
@@ -63,36 +75,60 @@ public class DocumentProcessingService : IDocumentProcessingService
             // Trigger Pusher event: processing-started (AC2)
             await TriggerProcessingStartedEventAsync(documentId, document.PatientId, document.FileName);
 
-            // Execute placeholder processing logic (EP-006-II will add AI extraction)
-            // Simulate processing delay for testing
-            await Task.Delay(100); // Simulate minimal processing time
+            // Execute AI extraction pipeline (task_002)
+            _logger.LogInformation("Invoking ClinicalDataExtractionService for document {DocumentId}", documentId);
+            var extractionResult = await _extractionService.ExtractClinicalDataAsync(documentId);
 
-            // Placeholder: In EP-006-II, this will invoke AI extraction service
-            _logger.LogInformation("Document {DocumentId} processing placeholder executed (AI extraction pending EP-006-II)", documentId);
+            // Persist extracted data points (task_003)
+            _logger.LogInformation("Persisting {DataPointCount} extracted data points", extractionResult.TotalDataPoints);
+            await PersistExtractedDataAsync(document, extractionResult);
 
-            // Update status to Completed (AC3)
+            // Flag for manual review if low confidence (task_003 AC7)
+            document.RequiresManualReview = extractionResult.RequiresManualReview;
+            if (extractionResult.RequiresManualReview)
+            {
+                _logger.LogInformation("Document {DocumentId} flagged for manual review: {Count} data points below {Threshold}% confidence", 
+                    documentId, extractionResult.FlaggedForReviewCount, LowConfidenceThreshold);
+            }
+
+            // Update status to Completed (task_003 AC6)
             document.ProcessingStatus = ProcessingStatus.Completed;
             document.ProcessedAt = DateTime.UtcNow;
             document.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
+            // Commit transaction
+            await transaction.CommitAsync();
+
             stopwatch.Stop();
             var processingTimeMs = stopwatch.ElapsedMilliseconds;
 
-            _logger.LogInformation("Document {DocumentId} processing completed in {ProcessingTimeMs}ms", documentId, processingTimeMs);
+            _logger.LogInformation("Document {DocumentId} processing completed in {ProcessingTimeMs}ms. Extracted {TotalDataPoints} data points, {FlaggedCount} flagged for review",
+                documentId, processingTimeMs, extractionResult.TotalDataPoints, extractionResult.FlaggedForReviewCount);
 
-            // Log warning if processing exceeds 60-second target (NFR-010)
-            if (processingTimeMs > ProcessingTimeoutSeconds * 1000)
+            // Log warning if processing exceeds 30-second target (task_003)
+            if (processingTimeMs > 30000)
             {
-                _logger.LogWarning("Document {DocumentId} processing exceeded {TimeoutSeconds}s target: {ProcessingTimeMs}ms",
-                    documentId, ProcessingTimeoutSeconds, processingTimeMs);
+                _logger.LogWarning("Document {DocumentId} processing exceeded 30s target: {ProcessingTimeMs}ms",
+                    documentId, processingTimeMs);
             }
 
-            // Trigger Pusher event: processing-completed (AC3)
-            await TriggerProcessingCompletedEventAsync(documentId, document.PatientId, document.FileName, processingTimeMs);
+            // Trigger Pusher event: extraction-complete (task_003)
+            var summary = new ExtractionSummaryDto
+            {
+                DocumentId = documentId,
+                TotalDataPoints = extractionResult.TotalDataPoints,
+                FlaggedForReview = extractionResult.FlaggedForReviewCount,
+                DataTypeBreakdown = extractionResult.DataTypeBreakdown,
+                RequiresManualReview = extractionResult.RequiresManualReview,
+                ExtractedAt = extractionResult.ExtractedAt
+            };
+
+            await TriggerExtractionCompleteEventAsync(document.PatientId, documentId, summary);
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             stopwatch.Stop();
 
             _logger.LogError(ex, "Document {DocumentId} processing failed after {ProcessingTimeMs}ms. Error: {ErrorMessage}",
@@ -112,6 +148,7 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             throw; // Re-throw to trigger Hangfire retry
         }
+        }); // End of ExecuteAsync
     }
 
     /// <summary>
@@ -178,6 +215,90 @@ public class DocumentProcessingService : IDocumentProcessingService
         Hangfire.BackgroundJob.Enqueue<BackgroundJobs.DocumentProcessingJob>(job => job.Execute(documentId));
 
         _logger.LogInformation("Document {DocumentId} retry job enqueued in Hangfire", documentId);
+    }
+
+    /// <summary>
+    /// Persists extracted clinical data to database with duplicate detection (task_003).
+    /// </summary>
+    private async Task PersistExtractedDataAsync(ClinicalDocument document, ExtractionResultDto extractionResult)
+    {
+        var entitiesToAdd = new List<ExtractedClinicalData>();
+
+        foreach (var dataPoint in extractionResult.DataPoints)
+        {
+            // Duplicate detection (task_003 edge case)
+            var exists = await _context.ExtractedClinicalData
+                .AnyAsync(e => e.DocumentId == document.DocumentId
+                    && e.DataType == dataPoint.DataType
+                    && e.DataValue == dataPoint.DataValue
+                    && e.SourcePageNumber == dataPoint.SourcePageNumber);
+
+            if (exists)
+            {
+                _logger.LogWarning("Duplicate data point detected: {DataType} - {DataValue} on page {PageNumber}",
+                    dataPoint.DataType, dataPoint.DataValue, dataPoint.SourcePageNumber);
+                continue;
+            }
+
+            // Create entity
+            var entity = new ExtractedClinicalData
+            {
+                ExtractedDataId = Guid.NewGuid(),
+                DocumentId = document.DocumentId,
+                PatientId = document.PatientId,
+                DataType = dataPoint.DataType,
+                DataKey = dataPoint.DataKey,
+                DataValue = dataPoint.DataValue,
+                ConfidenceScore = dataPoint.ConfidenceScore,
+                VerificationStatus = VerificationStatus.AISuggested,
+                SourcePageNumber = dataPoint.SourcePageNumber,
+                SourceTextExcerpt = dataPoint.SourceTextExcerpt,
+                ExtractedAt = DateTime.UtcNow,
+                StructuredData = dataPoint.StructuredData != null ? JsonSerializer.Serialize(dataPoint.StructuredData) : null,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            entitiesToAdd.Add(entity);
+        }
+
+        // Batch insert
+        if (entitiesToAdd.Any())
+        {
+            await _context.ExtractedClinicalData.AddRangeAsync(entitiesToAdd);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Persisted {Count} extracted clinical data entities", entitiesToAdd.Count);
+        }
+    }
+
+    /// <summary>
+    /// Triggers Pusher event for extraction complete with summary (task_003).
+    /// </summary>
+    private async Task TriggerExtractionCompleteEventAsync(Guid patientId, Guid documentId, ExtractionSummaryDto summary)
+    {
+        var channel = $"private-patient-{patientId}";
+        var eventName = "document-extraction-complete";
+        var data = new
+        {
+            documentId = summary.DocumentId,
+            status = "ProcessingComplete",
+            totalDataPoints = summary.TotalDataPoints,
+            flaggedForReview = summary.FlaggedForReview,
+            dataTypeBreakdown = summary.DataTypeBreakdown,
+            requiresManualReview = summary.RequiresManualReview,
+            extractionTimestamp = summary.ExtractedAt
+        };
+
+        var success = await _pusherService.TriggerEventAsync(channel, eventName, data);
+
+        if (success)
+        {
+            _logger.LogInformation("Pusher extraction-complete event triggered for document {DocumentId}", documentId);
+        }
+        else
+        {
+            _logger.LogWarning("Failed to trigger Pusher extraction-complete event for document {DocumentId}", documentId);
+        }
     }
 
     /// <summary>

@@ -25,6 +25,7 @@ export default function DocumentStatusList() {
 
   // Fetch documents on mount
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dispatch(fetchUserDocuments() as any);
   }, [dispatch]);
 
@@ -94,6 +95,7 @@ export default function DocumentStatusList() {
             <p className="text-sm text-neutral-600">{documentsError}</p>
           </div>
           <button
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onClick={() => dispatch(fetchUserDocuments() as any)}
             className="mt-2 px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
           >
