@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Services;
+using System.Security.Claims;
 
 namespace PatientAccess.Web.Controllers;
 
@@ -63,7 +64,7 @@ public class AuthController : ControllerBase
         catch (InvalidOperationException ex) when (ex.Message.Contains("already registered"))
         {
             _logger.LogWarning("Registration attempt with duplicate email: {Email}", request.Email);
-            
+
             return Conflict(new
             {
                 error = "Email already registered",
@@ -74,7 +75,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Registration failed for email: {Email}", request.Email);
-            
+
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 new { error = "Registration failed", message = "An error occurred during registration. Please try again." });
@@ -117,7 +118,7 @@ public class AuthController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning("Login failed for email: {Email}. Reason: {Reason}", 
+            _logger.LogWarning("Login failed for email: {Email}. Reason: {Reason}",
                 request.Email, ex.Message);
 
             return Unauthorized(new
@@ -165,7 +166,7 @@ public class AuthController : ControllerBase
             if (result)
             {
                 _logger.LogInformation("Email verification successful for token");
-                
+
                 return Ok(new
                 {
                     success = true,
@@ -175,7 +176,7 @@ public class AuthController : ControllerBase
             else
             {
                 _logger.LogWarning("Email verification failed: Invalid or expired token");
-                
+
                 return BadRequest(new
                 {
                     error = "Verification failed",
@@ -186,7 +187,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during email verification");
-            
+
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 new { error = "Verification failed", message = "An error occurred during verification. Please try again." });
@@ -211,4 +212,209 @@ public class AuthController : ControllerBase
 
         return Ok(new { exists });
     }
+
+    /// <summary>
+    /// Initiates password reset workflow by sending reset link to email.
+    /// Returns success message regardless of email existence to prevent enumeration.
+    /// Rate limited: 3 requests per 5 minutes per email address.
+    /// </summary>
+    /// <param name="request">Forgot password request with email</param>
+    /// <returns>Success message</returns>
+    /// <response code="200">Password reset email sent (if account exists)</response>
+    /// <response code="400">Invalid input or validation error</response>
+    /// <response code="429">Rate limit exceeded</response>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ForgotPasswordResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // Extract IP address and User Agent for audit logging
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        try
+        {
+            var response = await _authService.ForgotPasswordAsync(request, ipAddress, userAgent);
+
+            _logger.LogInformation("Password reset requested for email: {Email}", request.Email);
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing password reset request for email: {Email}", request.Email);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Password reset failed", message = "An error occurred. Please try again." });
+        }
+    }
+
+    /// <summary>
+    /// Resets user password using valid reset token from email link.
+    /// Token expires after 1 hour and can only be used once.
+    /// </summary>
+    /// <param name="request">Reset password request with token and new password</param>
+    /// <returns>Success or error message</returns>
+    /// <response code="200">Password reset successful</response>
+    /// <response code="400">Invalid or expired token, or validation error</response>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // Extract IP address and User Agent for audit logging
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        try
+        {
+            var result = await _authService.ResetPasswordAsync(request, ipAddress, userAgent);
+
+            if (result)
+            {
+                _logger.LogInformation("Password reset successful");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Password has been reset successfully. You can now log in with your new password."
+                });
+            }
+            else
+            {
+                _logger.LogWarning("Password reset failed");
+
+                return BadRequest(new
+                {
+                    error = "Password reset failed",
+                    message = "Unable to reset password. Please try again."
+                });
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Password reset failed: {Reason}", ex.Message);
+
+            return BadRequest(new
+            {
+                error = "Invalid request",
+                message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during password reset");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Password reset failed", message = "An error occurred. Please try again." });
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the session TTL for the authenticated user (US_022, AC5).
+    /// Resets the 15-minute Redis TTL and returns new expiration time.
+    /// </summary>
+    /// <response code="200">Session refreshed successfully</response>
+    /// <response code="401">User not authenticated</response>
+    [HttpPost("refresh")]
+    [Authorize]
+    [ProducesResponseType(typeof(SessionRefreshResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshSession()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { error = "User not authenticated" });
+        }
+
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        try
+        {
+            var response = await _authService.RefreshSessionAsync(userId, ipAddress, userAgent);
+
+            _logger.LogDebug("Session refreshed for user {UserId}", userId);
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Session refresh failed for user {UserId}", userId);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Session refresh failed", message = "An error occurred while refreshing the session." });
+        }
+    }
+
+    /// <summary>
+    /// Logs a session timeout event when the frontend detects auto-logout (US_022, AC3).
+    /// Called by the client just before performing auto-logout due to inactivity.
+    /// </summary>
+    /// <response code="200">Session timeout logged</response>
+    [HttpPost("session-timeout")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> LogSessionTimeout([FromBody] SessionTimeoutRequest? request)
+    {
+        var userId = request?.UserId;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest(new { error = "UserId is required" });
+        }
+
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        DateTime? lastActivity = null;
+        if (request?.LastActivityTimestamp != null)
+        {
+            lastActivity = request.LastActivityTimestamp;
+        }
+
+        try
+        {
+            await _authService.LogSessionTimeoutAsync(userId, ipAddress, userAgent, lastActivity);
+
+            _logger.LogInformation("Session timeout logged for user {UserId}", userId);
+
+            return Ok(new { message = "Session timeout logged" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to log session timeout for user {UserId}", userId);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Failed to log session timeout" });
+        }
+    }
+}
+
+/// <summary>
+/// Request body for session timeout logging endpoint.
+/// </summary>
+public class SessionTimeoutRequest
+{
+    public string? UserId { get; set; }
+    public DateTime? LastActivityTimestamp { get; set; }
 }

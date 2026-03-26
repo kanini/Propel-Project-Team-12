@@ -32,31 +32,31 @@ const navigationConfig: NavigationItem[] = [
     name: "Staff Dashboard",
     path: "/staff/dashboard",
     icon: "🏥",
-    roles: ["Staff", "Admin"],
+    roles: ["Staff"],
   },
   {
     name: "Patient Queue",
     path: "/staff/queue",
     icon: "👥",
-    roles: ["Staff", "Admin"],
+    roles: ["Staff"],
   },
   {
     name: "Arrival Management",
     path: "/staff/arrivals",
     icon: "✓",
-    roles: ["Staff", "Admin"],
+    roles: ["Staff"],
   },
   {
     name: "Walk-in Registration",
     path: "/staff/walk-in",
     icon: "🚶",
-    roles: ["Staff", "Admin"],
+    roles: ["Staff"],
   },
   {
     name: "Verification",
     path: "/staff/verification",
     icon: "✅",
-    roles: ["Staff", "Admin"],
+    roles: ["Staff"],
   },
 
   // Admin navigation
