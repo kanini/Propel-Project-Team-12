@@ -1,5 +1,9 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import type { RootState } from '../../store';
+import {
+  createSlice,
+  createAsyncThunk,
+  type PayloadAction,
+} from "@reduxjs/toolkit";
+import type { RootState } from "../../store";
 
 /**
  * Registration request payload (matches backend RegisterUserRequestDto).
@@ -84,36 +88,36 @@ export const registerUser = createAsyncThunk<
   RegisterResponse,
   RegisterRequest,
   { rejectValue: string }
->(
-  'auth/register',
-  async (registerData, { rejectWithValue }) => {
-    try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+>("auth/register", async (registerData, { rejectWithValue }) => {
+  try {
+    const apiBaseUrl =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-      const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registerData),
-      });
+    const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(registerData),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok) {
-        // Extract error message from response
-        const errorMessage = data.message || data.error || 'Registration failed';
-        return rejectWithValue(errorMessage);
-      }
-
-      return data as RegisterResponse;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : 'Network error. Please try again.'
-      );
+    if (!response.ok) {
+      // Extract error message from response
+      const errorMessage = data.message || data.error || "Registration failed";
+      return rejectWithValue(errorMessage);
     }
+
+    return data as RegisterResponse;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error
+        ? error.message
+        : "Network error. Please try again.",
+    );
   }
-);
+});
 
 /**
  * Async thunk for user login (FR-002, AC1).
@@ -123,42 +127,42 @@ export const loginUser = createAsyncThunk<
   LoginResponse,
   LoginRequest,
   { rejectValue: string }
->(
-  'auth/login',
-  async (loginData, { rejectWithValue }) => {
-    try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+>("auth/login", async (loginData, { rejectWithValue }) => {
+  try {
+    const apiBaseUrl =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(loginData),
-      });
+    const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(loginData),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok) {
-        const errorMessage = data.message || data.error || 'Login failed';
-        return rejectWithValue(errorMessage);
-      }
-
-      // Store token and user data in localStorage for persistence (AC1)
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('userId', data.userId);
-      localStorage.setItem('userEmail', data.email);
-      localStorage.setItem('userName', data.name);
-      localStorage.setItem('userRole', data.role);
-
-      return data as LoginResponse;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : 'Network error. Please try again.'
-      );
+    if (!response.ok) {
+      const errorMessage = data.message || data.error || "Login failed";
+      return rejectWithValue(errorMessage);
     }
+
+    // Store token and user data in localStorage for persistence (AC1)
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("userId", data.userId);
+    localStorage.setItem("userEmail", data.email);
+    localStorage.setItem("userName", data.name);
+    localStorage.setItem("userRole", data.role);
+
+    return data as LoginResponse;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error
+        ? error.message
+        : "Network error. Please try again.",
+    );
   }
-);
+});
 
 /**
  * Async thunk for refreshing session (US_022, AC5).
@@ -169,37 +173,41 @@ export const refreshSession = createAsyncThunk<
   void,
   void,
   { rejectValue: string }
->(
-  'auth/refreshSession',
-  async (_, { rejectWithValue }) => {
-    try {
-      // TODO: When backend refresh endpoint is available, call it here
-      // const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      // const token = localStorage.getItem('token');
-      // const response = await fetch(`${apiBaseUrl}/api/auth/refresh`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${token}`,
-      //   },
-      // });
-      // const data = await response.json();
-      // localStorage.setItem('token', data.token);
+>("auth/refreshSession", async (_, { rejectWithValue }) => {
+  try {
+    const apiBaseUrl =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const token = localStorage.getItem("token");
 
-      // For now, session extension is handled client-side via activity timestamp
+    if (!token) {
       return;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : 'Failed to refresh session.'
-      );
     }
+
+    const response = await fetch(`${apiBaseUrl}/api/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      // Non-blocking: continue with client-side extension if backend fails
+      return;
+    }
+
+    return;
+  } catch {
+    // Non-blocking: session extension continues client-side
+    return;
   }
-);
+});
 
 /**
  * Auth slice with registration and login reducers.
  */
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     // Clear error message
@@ -216,14 +224,17 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
       // Clear all user data from localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userRole');
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("userRole");
     },
     // Restore session from localStorage (on app startup)
-    restoreSession: (state, action: PayloadAction<{ token: string; user: User }>) => {
+    restoreSession: (
+      state,
+      action: PayloadAction<{ token: string; user: User }>,
+    ) => {
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.isAuthenticated = true;
@@ -249,7 +260,8 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || 'Registration failed. Please try again.';
+        state.error =
+          action.payload || "Registration failed. Please try again.";
         state.registrationSuccess = false;
       });
 
@@ -273,7 +285,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || 'Login failed. Please try again.';
+        state.error = action.payload || "Login failed. Please try again.";
       });
 
     // Refresh session reducers
@@ -291,26 +303,35 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
-        state.error = action.payload || 'Session refresh failed.';
+        state.error = action.payload || "Session refresh failed.";
         // Clear all user data from localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('userRole');
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userName");
+        localStorage.removeItem("userRole");
       });
   },
 });
 
-export const { clearError, resetRegistrationSuccess, logout, restoreSession, completeInitialization } = authSlice.actions;
+export const {
+  clearError,
+  resetRegistrationSuccess,
+  logout,
+  restoreSession,
+  completeInitialization,
+} = authSlice.actions;
 
 // Selectors
 export const selectAuth = (state: RootState) => state.auth;
-export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
-export const selectIsInitializing = (state: RootState) => state.auth.isInitializing;
+export const selectIsAuthenticated = (state: RootState) =>
+  state.auth.isAuthenticated;
+export const selectIsInitializing = (state: RootState) =>
+  state.auth.isInitializing;
 export const selectUser = (state: RootState) => state.auth.user;
 export const selectAuthLoading = (state: RootState) => state.auth.isLoading;
 export const selectAuthError = (state: RootState) => state.auth.error;
-export const selectRegistrationSuccess = (state: RootState) => state.auth.registrationSuccess;
+export const selectRegistrationSuccess = (state: RootState) =>
+  state.auth.registrationSuccess;
 
 export default authSlice.reducer;

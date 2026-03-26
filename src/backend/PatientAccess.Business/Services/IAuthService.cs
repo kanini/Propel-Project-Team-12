@@ -49,21 +49,42 @@ public interface IAuthService
     Task<LoginResponseDto> LoginAsync(LoginRequestDto request, string? ipAddress = null, string? userAgent = null);
 
     /// <summary>
-    /// Initiates password reset workflow by generating reset token and sending email.
+    /// Refreshes the session TTL for an authenticated user (US_022, AC5).
+    /// Resets the 15-minute Redis TTL and returns a new token expiration time.
     /// </summary>
-    /// <param name="request">Forgot password request with email</param>
+    /// <param name="userId">Authenticated user's ID.</param>
+    /// <param name="ipAddress">Client IP address for audit context.</param>
+    /// <param name="userAgent">Client user agent for audit context.</param>
+    /// <returns>New token expiration timestamp.</returns>
+    Task<SessionRefreshResponseDto> RefreshSessionAsync(string userId, string? ipAddress = null, string? userAgent = null);
+
+    /// <summary>
+    /// Logs a session timeout event when the frontend detects auto-logout (US_022, AC3).
+    /// </summary>
+    /// <param name="userId">User whose session timed out.</param>
+    /// <param name="ipAddress">Client IP address.</param>
+    /// <param name="userAgent">Client user agent.</param>
+    /// <param name="lastActivityTimestamp">Last recorded activity timestamp from the client.</param>
+    Task LogSessionTimeoutAsync(string userId, string? ipAddress = null, string? userAgent = null, DateTime? lastActivityTimestamp = null);
+
+    /// <summary>
+    /// Initiates password reset workflow by generating reset token and sending email.
+    /// Returns success message regardless of email existence to prevent email enumeration.
+    /// </summary>
+    /// <param name="request">Forgot password request containing user email</param>
     /// <param name="ipAddress">Client IP address for audit logging</param>
     /// <param name="userAgent">Client user agent for audit logging</param>
-    /// <returns>Forgot password response with confirmation message</returns>
+    /// <returns>Response with generic success message</returns>
     Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request, string? ipAddress = null, string? userAgent = null);
 
     /// <summary>
     /// Resets user password using valid reset token.
+    /// Validates token, checks expiration, and updates password.
     /// </summary>
-    /// <param name="request">Reset password request with token and new password</param>
+    /// <param name="request">Reset password request containing token and new password</param>
     /// <param name="ipAddress">Client IP address for audit logging</param>
     /// <param name="userAgent">Client user agent for audit logging</param>
-    /// <returns>True if password reset successful, false otherwise</returns>
+    /// <returns>True if password reset successful</returns>
     /// <exception cref="InvalidOperationException">Thrown when token is invalid or expired</exception>
     Task<bool> ResetPasswordAsync(ResetPasswordRequestDto request, string? ipAddress = null, string? userAgent = null);
 }

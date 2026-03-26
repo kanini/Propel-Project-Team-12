@@ -1,13 +1,15 @@
-import { combineReducers } from '@reduxjs/toolkit';
-import authReducer from '../features/auth/authSlice';
-import usersReducer from './usersSlice';
-import providerReducer from './slices/providerSlice';
-import appointmentReducer from './slices/appointmentSlice';
-import waitlistReducer from './slices/waitlistSlice';
-import documentsReducer from './documentsSlice';
-import intakeAppointmentReducer from './slices/intakeAppointmentSlice';
-import intakeReducer from './slices/intakeSlice';
+import { combineReducers } from "@reduxjs/toolkit";
+import authReducer from "../features/auth/authSlice";
+import usersReducer from "./usersSlice";
+import providerReducer from "./slices/providerSlice";
+import appointmentReducer from "./slices/appointmentSlice";
+import waitlistReducer from "./slices/waitlistSlice";
+import documentsReducer from "./documentsSlice";
+import intakeAppointmentReducer from "./slices/intakeAppointmentSlice";
+import intakeReducer from "./slices/intakeSlice";
+import auditLogsReducer from "./slices/auditLogsSlice";
 import staffDashboardReducer from './slices/staffDashboardSlice';
+
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -19,6 +21,7 @@ const rootReducer = combineReducers({
   intakeAppointments: intakeAppointmentReducer,
   intake: intakeReducer,
   staffDashboard: staffDashboardReducer,
+  auditLogs: auditLogsReducer,
 });
 
 export default rootReducer;

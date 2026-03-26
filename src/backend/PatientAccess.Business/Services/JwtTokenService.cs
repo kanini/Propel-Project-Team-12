@@ -37,13 +37,13 @@ public class JwtTokenService : IJwtTokenService
         var privateKeyXml = File.ReadAllText(privateKeyPath);
         var privateRsa = RSA.Create();
         privateRsa.FromXmlString(privateKeyXml);
-        _signingKey = new RsaSecurityKey(privateRsa);
+        _signingKey = new RsaSecurityKey(privateRsa) { KeyId = "patient-access-rsa-key-1" };
 
         // Load public key for validation
         var publicKeyXml = File.ReadAllText(publicKeyPath);
         var publicRsa = RSA.Create();
         publicRsa.FromXmlString(publicKeyXml);
-        _validationKey = new RsaSecurityKey(publicRsa);
+        _validationKey = new RsaSecurityKey(publicRsa) { KeyId = "patient-access-rsa-key-1" };
     }
 
     /// <summary>

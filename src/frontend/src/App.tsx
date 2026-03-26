@@ -13,7 +13,7 @@ import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
-import {PatientDashboard} from "./pages/PatientDashboard";
+import { PatientDashboard } from "./pages/PatientDashboard";
 import MyAppointments from "./pages/MyAppointments";
 import { WalkinBooking } from "./features/staff/pages/WalkinBooking";
 import { StaffDashboard } from "./features/staff/dashboard/StaffDashboard";
@@ -23,6 +23,7 @@ import { DocumentUploadPage } from "./pages/DocumentUploadPage";
 import DocumentStatusPage from "./pages/DocumentStatusPage";
 import AppointmentSelectionPage from "./features/intake/pages/AppointmentSelectionPage";
 import IntakePage from "./features/intake/pages/IntakePage";
+import AuditLogsPage from "./pages/AuditLogsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -282,10 +283,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Audit Logs</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <AuditLogsPage />
                 </MainLayout>
               </ProtectedRoute>
             }
