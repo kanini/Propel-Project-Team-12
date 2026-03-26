@@ -3,8 +3,7 @@
  * Handles HTTP requests to audit log and session endpoints.
  */
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem("token");
