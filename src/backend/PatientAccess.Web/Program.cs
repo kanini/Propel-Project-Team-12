@@ -281,20 +281,17 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
             logging.AddDebug();
         });
 
-        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("Redis session caching enabled. Session tokens will be cached with 15-minute TTL.");
+        Console.WriteLine("Redis session caching enabled. Session tokens will be cached with 15-minute TTL.");
     }
     catch (Exception ex)
     {
-        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Redis initialization failed. Application will use database-only session management. Error: {ErrorMessage}", ex.Message);
+        Console.WriteLine($"Redis initialization failed. Application will use database-only session management. Error: {ex.Message}");
         // Continue without Redis - application will fall back to database session storage
     }
 }
 else
 {
-    var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("Redis caching disabled in configuration. Application will use in-memory distributed cache fallback.");
+    Console.WriteLine("Redis caching disabled in configuration. Application will use in-memory distributed cache fallback.");
 
     // Register in-memory distributed cache as fallback (US_067)
     builder.Services.AddDistributedMemoryCache();
