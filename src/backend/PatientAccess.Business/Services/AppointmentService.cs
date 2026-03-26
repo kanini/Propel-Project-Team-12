@@ -65,9 +65,13 @@ public class AppointmentService : IAppointmentService
                 })
                 .ToListAsync();
 
-            // Group by date and build response
+            // Get current date to filter out past dates
+            var currentDate = DateTime.UtcNow.Date;
+            
+            // Group by date and build response, filtering out past dates
             var availabilityByDate = timeSlots
                 .GroupBy(ts => ts.StartTime.Date)
+                .Where(group => group.Key >= currentDate) // Only show today and future dates
                 .Select(group => new AvailabilityResponseDto
                 {
                     Date = group.Key,
@@ -112,9 +116,12 @@ public class AppointmentService : IAppointmentService
 
             var startDate = date.Date.ToUniversalTime();
             var endDate = startDate.AddDays(1);
+            var now = DateTime.UtcNow;
+            var currentDate = DateTime.UtcNow.Date;
+            var isToday = date.Date == currentDate;
 
             // Query time slots for specific date
-            var timeSlots = await _context.TimeSlots
+            var allTimeSlots = await _context.TimeSlots
                 .AsNoTracking() // Read-only performance optimization
                 .Where(ts => ts.ProviderId == providerId &&
                             ts.StartTime >= startDate &&
@@ -128,6 +135,11 @@ public class AppointmentService : IAppointmentService
                     IsBooked = ts.IsBooked
                 })
                 .ToListAsync();
+            
+            // Filter out past time slots for today
+            var timeSlots = isToday 
+                ? allTimeSlots.Where(ts => ts.StartTime > now).ToList()
+                : allTimeSlots;
 
             _logger.LogInformation(
                 "Retrieved {Count} time slots for Provider {ProviderId}, Date {Date}",

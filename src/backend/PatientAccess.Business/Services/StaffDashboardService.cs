@@ -97,8 +97,7 @@ public class StaffDashboardService : IStaffDashboardService
 
             var queueItems = await _context.Appointments
                 .Where(a => a.ScheduledDateTime >= today 
-                    && a.ScheduledDateTime < tomorrow
-                    && (a.Status == AppointmentStatus.Scheduled || a.Status == AppointmentStatus.Confirmed))
+                    && a.ScheduledDateTime < tomorrow)                    
                 .OrderBy(a => a.ScheduledDateTime)
                 .Take(count)
                 .Include(a => a.Patient)
@@ -112,7 +111,8 @@ public class StaffDashboardService : IStaffDashboardService
                 PatientName = a.Patient.Name,
                 ProviderName = a.Provider.Name,
                 AppointmentTime = a.ScheduledDateTime,
-                EstimatedWait = CalculateWaitTime(a.ScheduledDateTime),
+                ArrivalTime = a.ArrivalTime,
+                EstimatedWait = CalculateWaitTime(a.ArrivalTime),
                 RiskLevel = "low", // MVP: placeholder until FR-023 implemented
                 Status = a.Status.ToString()
             }).ToList();
@@ -129,19 +129,27 @@ public class StaffDashboardService : IStaffDashboardService
     }
 
     /// <summary>
-    /// Calculates estimated wait time from now until scheduled appointment time.
-    /// Returns "Now" if appointment time has passed or is current.
+    /// Calculates wait time based on patient arrival.
+    /// If patient has not arrived (ArrivalTime is null), returns "-".
+    /// If patient has arrived, calculates actual waiting time from arrival to now.
     /// </summary>
-    private string CalculateWaitTime(DateTime scheduledTime)
+    private string CalculateWaitTime(DateTime? arrivalTime)
     {
-        var now = DateTime.UtcNow;
-        if (scheduledTime > now)
+        // If patient hasn't arrived yet, show dash
+        if (!arrivalTime.HasValue)
         {
-            var diff = scheduledTime - now;
-            if (diff.TotalMinutes < 60)
-                return $"{(int)diff.TotalMinutes} mins";
-            return $"{(int)diff.TotalHours}h {diff.Minutes}m";
+            return "-";
         }
-        return "Now";
+        
+        var now = DateTime.UtcNow;
+        
+        // Calculate actual waiting time from arrival to now
+        var waitTime = now - arrivalTime.Value;
+        
+        if (waitTime.TotalMinutes < 1)
+            return "< 1 min";
+        if (waitTime.TotalMinutes < 60)
+            return $"{(int)waitTime.TotalMinutes} mins";
+        return $"{(int)waitTime.TotalHours}h {waitTime.Minutes}m";
     }
 }
