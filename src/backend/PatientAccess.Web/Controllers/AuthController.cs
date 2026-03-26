@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Services;
+using System.Security.Claims;
 
 namespace PatientAccess.Web.Controllers;
 
@@ -63,7 +64,7 @@ public class AuthController : ControllerBase
         catch (InvalidOperationException ex) when (ex.Message.Contains("already registered"))
         {
             _logger.LogWarning("Registration attempt with duplicate email: {Email}", request.Email);
-            
+
             return Conflict(new
             {
                 error = "Email already registered",
@@ -74,7 +75,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Registration failed for email: {Email}", request.Email);
-            
+
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 new { error = "Registration failed", message = "An error occurred during registration. Please try again." });
@@ -117,7 +118,7 @@ public class AuthController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning("Login failed for email: {Email}. Reason: {Reason}", 
+            _logger.LogWarning("Login failed for email: {Email}. Reason: {Reason}",
                 request.Email, ex.Message);
 
             return Unauthorized(new
@@ -165,7 +166,7 @@ public class AuthController : ControllerBase
             if (result)
             {
                 _logger.LogInformation("Email verification successful for token");
-                
+
                 return Ok(new
                 {
                     success = true,
@@ -175,7 +176,7 @@ public class AuthController : ControllerBase
             else
             {
                 _logger.LogWarning("Email verification failed: Invalid or expired token");
-                
+
                 return BadRequest(new
                 {
                     error = "Verification failed",
@@ -186,7 +187,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during email verification");
-            
+
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 new { error = "Verification failed", message = "An error occurred during verification. Please try again." });
@@ -211,4 +212,97 @@ public class AuthController : ControllerBase
 
         return Ok(new { exists });
     }
+
+    /// <summary>
+    /// Refreshes the session TTL for the authenticated user (US_022, AC5).
+    /// Resets the 15-minute Redis TTL and returns new expiration time.
+    /// </summary>
+    /// <response code="200">Session refreshed successfully</response>
+    /// <response code="401">User not authenticated</response>
+    [HttpPost("refresh")]
+    [Authorize]
+    [ProducesResponseType(typeof(SessionRefreshResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshSession()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { error = "User not authenticated" });
+        }
+
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        try
+        {
+            var response = await _authService.RefreshSessionAsync(userId, ipAddress, userAgent);
+
+            _logger.LogDebug("Session refreshed for user {UserId}", userId);
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Session refresh failed for user {UserId}", userId);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Session refresh failed", message = "An error occurred while refreshing the session." });
+        }
+    }
+
+    /// <summary>
+    /// Logs a session timeout event when the frontend detects auto-logout (US_022, AC3).
+    /// Called by the client just before performing auto-logout due to inactivity.
+    /// </summary>
+    /// <response code="200">Session timeout logged</response>
+    [HttpPost("session-timeout")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> LogSessionTimeout([FromBody] SessionTimeoutRequest? request)
+    {
+        var userId = request?.UserId;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest(new { error = "UserId is required" });
+        }
+
+        var ipAddress = HttpContext.Items["AuditContext:IpAddress"] as string;
+        var userAgent = HttpContext.Items["AuditContext:UserAgent"] as string;
+
+        DateTime? lastActivity = null;
+        if (request?.LastActivityTimestamp != null)
+        {
+            lastActivity = request.LastActivityTimestamp;
+        }
+
+        try
+        {
+            await _authService.LogSessionTimeoutAsync(userId, ipAddress, userAgent, lastActivity);
+
+            _logger.LogInformation("Session timeout logged for user {UserId}", userId);
+
+            return Ok(new { message = "Session timeout logged" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to log session timeout for user {UserId}", userId);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Failed to log session timeout" });
+        }
+    }
+}
+
+/// <summary>
+/// Request body for session timeout logging endpoint.
+/// </summary>
+public class SessionTimeoutRequest
+{
+    public string? UserId { get; set; }
+    public DateTime? LastActivityTimestamp { get; set; }
 }

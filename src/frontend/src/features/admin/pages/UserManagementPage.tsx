@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useAuth } from '../../../hooks/useAuth';
-import type { AppDispatch } from '../../../store';
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useAuth } from "../../../hooks/useAuth";
+import type { AppDispatch } from "../../../store";
 import {
   fetchUsers,
   createUser,
@@ -13,10 +13,11 @@ import {
   selectError,
   selectSearchTerm,
   type User,
-} from '../../../store/usersSlice';
-import { UserTable } from '../components/UserTable';
-import { UserFormModal } from '../components/UserFormModal';
-import { DeactivateConfirmDialog } from '../components/DeactivateConfirmDialog';
+  type CreateUserRequest,
+} from "../../../store/usersSlice";
+import { UserTable } from "../components/UserTable";
+import { UserFormModal } from "../components/UserFormModal";
+import { DeactivateConfirmDialog } from "../components/DeactivateConfirmDialog";
 
 /**
  * User management page for Admin (US_021).
@@ -25,7 +26,7 @@ import { DeactivateConfirmDialog } from '../components/DeactivateConfirmDialog';
 export const UserManagementPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { userId: currentUserId } = useAuth();
-  
+
   const users = useSelector(selectUsers);
   const isLoading = useSelector(selectIsLoading);
   const error = useSelector(selectError);
@@ -34,7 +35,7 @@ export const UserManagementPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
 
   useEffect(() => {
     dispatch(fetchUsers({ searchTerm }));
@@ -45,13 +46,13 @@ export const UserManagementPage = () => {
   };
 
   const handleCreateUser = () => {
-    setFormMode('create');
+    setFormMode("create");
     setSelectedUser(null);
     setIsFormOpen(true);
   };
 
   const handleEditUser = (user: User) => {
-    setFormMode('edit');
+    setFormMode("edit");
     setSelectedUser(user);
     setIsFormOpen(true);
   };
@@ -61,13 +62,15 @@ export const UserManagementPage = () => {
     setIsDeactivateDialogOpen(true);
   };
 
-  const handleFormSubmit = async (userData: any) => {
+  const handleFormSubmit = async (
+    userData: CreateUserRequest | Partial<CreateUserRequest>,
+  ) => {
     try {
-      if (formMode === 'create') {
-        await dispatch(createUser(userData)).unwrap();
+      if (formMode === "create") {
+        await dispatch(createUser(userData as CreateUserRequest)).unwrap();
       } else if (selectedUser) {
         await dispatch(
-          updateUser({ userId: selectedUser.userId, userData })
+          updateUser({ userId: selectedUser.userId, userData }),
         ).unwrap();
       }
       setIsFormOpen(false);
@@ -75,7 +78,7 @@ export const UserManagementPage = () => {
       // Refresh user list
       dispatch(fetchUsers({ searchTerm }));
     } catch (error) {
-      console.error('Failed to save user:', error);
+      console.error("Failed to save user:", error);
     }
   };
 
@@ -87,7 +90,7 @@ export const UserManagementPage = () => {
         // Refresh user list
         dispatch(fetchUsers({ searchTerm }));
       } catch (error) {
-        console.error('Failed to deactivate user:', error);
+        console.error("Failed to deactivate user:", error);
       }
     }
   };
@@ -193,7 +196,7 @@ export const UserManagementPage = () => {
         }}
         onSubmit={handleFormSubmit}
         user={selectedUser}
-        title={formMode === 'create' ? 'Create New User' : 'Edit User'}
+        title={formMode === "create" ? "Create New User" : "Edit User"}
       />
 
       {/* Deactivate Confirmation Dialog */}

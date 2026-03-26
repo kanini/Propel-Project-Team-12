@@ -47,4 +47,23 @@ public interface IAuthService
     /// <returns>Login response with JWT token and user information</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when credentials are invalid or account is locked</exception>
     Task<LoginResponseDto> LoginAsync(LoginRequestDto request, string? ipAddress = null, string? userAgent = null);
+
+    /// <summary>
+    /// Refreshes the session TTL for an authenticated user (US_022, AC5).
+    /// Resets the 15-minute Redis TTL and returns a new token expiration time.
+    /// </summary>
+    /// <param name="userId">Authenticated user's ID.</param>
+    /// <param name="ipAddress">Client IP address for audit context.</param>
+    /// <param name="userAgent">Client user agent for audit context.</param>
+    /// <returns>New token expiration timestamp.</returns>
+    Task<SessionRefreshResponseDto> RefreshSessionAsync(string userId, string? ipAddress = null, string? userAgent = null);
+
+    /// <summary>
+    /// Logs a session timeout event when the frontend detects auto-logout (US_022, AC3).
+    /// </summary>
+    /// <param name="userId">User whose session timed out.</param>
+    /// <param name="ipAddress">Client IP address.</param>
+    /// <param name="userAgent">Client user agent.</param>
+    /// <param name="lastActivityTimestamp">Last recorded activity timestamp from the client.</param>
+    Task LogSessionTimeoutAsync(string userId, string? ipAddress = null, string? userAgent = null, DateTime? lastActivityTimestamp = null);
 }

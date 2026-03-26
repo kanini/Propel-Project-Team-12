@@ -83,7 +83,7 @@ public class AuthService : IAuthService
         _dbContext.Users.Add(user);
         await _dbContext.SaveChangesAsync();
 
-        _logger.LogInformation("User registered with email {Email}, UserId {UserId}, Status: Pending", 
+        _logger.LogInformation("User registered with email {Email}, UserId {UserId}, Status: Pending",
             user.Email, user.UserId);
 
         // Log registration event (US_022, AC1)
@@ -101,8 +101,8 @@ public class AuthService : IAuthService
 
         // Send verification email asynchronously (FR-001, AC1)
         var emailSent = await _emailService.SendVerificationEmailAsync(
-            user.Email, 
-            user.Name, 
+            user.Email,
+            user.Name,
             verificationToken);
 
         if (!emailSent)
@@ -162,7 +162,7 @@ public class AuthService : IAuthService
 
         await _dbContext.SaveChangesAsync();
 
-        _logger.LogInformation("Email verified successfully for user {Email}, UserId {UserId}", 
+        _logger.LogInformation("Email verified successfully for user {Email}, UserId {UserId}",
             user.Email, user.UserId);
 
         // Log email verification event (US_022, AC1)
@@ -212,14 +212,14 @@ public class AuthService : IAuthService
         if (isLocked)
         {
             _logger.LogWarning("Login attempt for locked account: {Email}", email);
-            
+
             // Log failed login for locked account (US_022, AC2)
             await _auditLogService.LogFailedLoginAsync(
                 email: email,
                 ipAddress: ipAddress,
                 userAgent: userAgent,
                 failureReason: "Account locked due to multiple failed login attempts");
-            
+
             throw new UnauthorizedAccessException("Account is locked due to multiple failed login attempts. Please try again later or contact support.");
         }
 
@@ -248,39 +248,39 @@ public class AuthService : IAuthService
         if (user.Status == UserStatus.Pending)
         {
             _logger.LogWarning("Login attempt for unverified account: {Email}", email);
-            
+
             await _auditLogService.LogFailedLoginAsync(
                 email: email,
                 ipAddress: ipAddress,
                 userAgent: userAgent,
                 failureReason: "Account not verified");
-            
+
             throw new UnauthorizedAccessException("Account not verified. Please check your email to verify your account.");
         }
 
         if (user.Status == UserStatus.Inactive)
         {
             _logger.LogWarning("Login attempt for inactive account: {Email}", email);
-            
+
             await _auditLogService.LogFailedLoginAsync(
                 email: email,
                 ipAddress: ipAddress,
                 userAgent: userAgent,
                 failureReason: "Account is inactive");
-            
+
             throw new UnauthorizedAccessException("Account is inactive. Please contact support.");
         }
 
         if (user.Status == UserStatus.Locked)
         {
             _logger.LogWarning("Login attempt for locked account: {Email}", email);
-            
+
             await _auditLogService.LogFailedLoginAsync(
                 email: email,
                 ipAddress: ipAddress,
                 userAgent: userAgent,
                 failureReason: "Account is locked");
-            
+
             throw new UnauthorizedAccessException("Account is locked. Please contact support.");
         }
 
@@ -305,7 +305,7 @@ public class AuthService : IAuthService
             _logger.LogDebug("Session cache service unavailable. Using token-only authentication for user {UserId}", user.UserId);
         }
 
-        _logger.LogInformation("User logged in successfully: {Email}, UserId: {UserId}, Role: {Role}", 
+        _logger.LogInformation("User logged in successfully: {Email}, UserId: {UserId}, Role: {Role}",
             user.Email, user.UserId, user.Role);
 
         // Log successful login event (US_022, AC1)
@@ -399,12 +399,12 @@ public class AuthService : IAuthService
 
             if (newAttempts >= MaxFailedLoginAttempts)
             {
-                _logger.LogWarning("Account temporarily locked due to {Count} failed login attempts: {Email}", 
+                _logger.LogWarning("Account temporarily locked due to {Count} failed login attempts: {Email}",
                     newAttempts, email);
             }
             else
             {
-                _logger.LogDebug("Failed login attempt {Count}/{Max} for {Email}", 
+                _logger.LogDebug("Failed login attempt {Count}/{Max} for {Email}",
                     newAttempts, MaxFailedLoginAttempts, email);
             }
         }
@@ -447,5 +447,63 @@ public class AuthService : IAuthService
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(tokenBytes);
         return Convert.ToBase64String(tokenBytes);
+    }
+
+    /// <summary>
+    /// Refreshes session TTL in Redis for an authenticated user (US_022, AC5).
+    /// </summary>
+    public async Task<SessionRefreshResponseDto> RefreshSessionAsync(string userId, string? ipAddress = null, string? userAgent = null)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentNullException(nameof(userId));
+        }
+
+        if (_sessionCacheService != null)
+        {
+            var refreshed = await _sessionCacheService.RefreshSessionAsync(userId);
+
+            if (!refreshed)
+            {
+                _logger.LogWarning("Session refresh failed for user {UserId}: session not found in cache", userId);
+            }
+            else
+            {
+                _logger.LogDebug("Session TTL refreshed for user {UserId}", userId);
+            }
+        }
+
+        var expiresAt = DateTime.UtcNow.AddMinutes(15);
+
+        return new SessionRefreshResponseDto
+        {
+            ExpiresAt = expiresAt,
+            Message = "Session refreshed successfully"
+        };
+    }
+
+    /// <summary>
+    /// Logs a session timeout event (US_022, AC3).
+    /// Called by the frontend when auto-logout triggers due to inactivity.
+    /// </summary>
+    public async Task LogSessionTimeoutAsync(string userId, string? ipAddress = null, string? userAgent = null, DateTime? lastActivityTimestamp = null)
+    {
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            _logger.LogWarning("Invalid userId format for session timeout logging: {UserId}", userId);
+            return;
+        }
+
+        await _auditLogService.LogSessionTimeoutAsync(
+            userGuid,
+            ipAddress,
+            userAgent,
+            lastActivityTimestamp);
+
+        // Clean up session from cache
+        if (_sessionCacheService != null)
+        {
+            await _sessionCacheService.RemoveSessionAsync(userId);
+        }
     }
 }
