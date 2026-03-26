@@ -355,20 +355,20 @@ dotnet build
 - **Edge Case**: ✅ Re-indexing strategy documented with REINDEX CONCURRENTLY
 
 ## Success Criteria Checklist
-- [MANDATORY] pgvector extension enabled and verified (SELECT * FROM pg_extension WHERE extname = 'vector')
-- [MANDATORY] ICD10Code entity created with vector(1536) embedding column
-- [MANDATORY] CPTCode entity created with vector(1536) embedding column
-- [MANDATORY] ClinicalTerminology entity created with vector(1536) embedding column
-- [MANDATORY] Vector indexes created using HNSW with vector_cosine_ops
-- [MANDATORY] GIN indexes created on Metadata JSONB columns
-- [MANDATORY] ApplicationDbContext configured for pgvector (HasColumnType("vector(1536)"))
-- [MANDATORY] EF Core migration generated and applied successfully
-- [MANDATORY] Cosine similarity query returns results (ORDER BY Embedding <-> query_vector)
-- [MANDATORY] Integration test: Vector search returns top-5 results in <100ms
-- [MANDATORY] Integration test: EXPLAIN ANALYZE confirms index usage
-- [MANDATORY] DATABASE_SETUP.md updated with pgvector installation steps
-- [RECOMMENDED] Partition strategy documented for datasets >1M entries
-- [RECOMMENDED] Re-indexing procedure documented (REINDEX CONCURRENTLY)
+- [x] [MANDATORY] pgvector extension enabled and verified (SELECT * FROM pg_extension WHERE extname = 'vector')
+- [x] [MANDATORY] ICD10Code entity created with vector(1536) embedding column
+- [x] [MANDATORY] CPTCode entity created with vector(1536) embedding column
+- [x] [MANDATORY] ClinicalTerminology entity created with vector(1536) embedding column
+- [x] [MANDATORY] Vector indexes created using HNSW with vector_cosine_ops
+- [x] [MANDATORY] GIN indexes created on Metadata JSONB columns
+- [x] [MANDATORY] ApplicationDbContext configured for pgvector (HasColumnType("vector(1536)"))
+- [x] [MANDATORY] EF Core migration generated and applied successfully
+- [x] [MANDATORY] Cosine similarity query returns results (ORDER BY Embedding <-> query_vector)
+- [x] [MANDATORY] Integration test: Vector search returns top-5 results in <100ms
+- [x] [MANDATORY] Integration test: EXPLAIN ANALYZE confirms index usage
+- [x] [MANDATORY] DATABASE_SETUP.md updated with pgvector installation steps
+- [x] [RECOMMENDED] Partition strategy documented for datasets >1M entries
+- [x] [RECOMMENDED] Re-indexing procedure documented (REINDEX CONCURRENTLY)
 
 ## Estimated Effort
 **3 hours** (Database schema + pgvector configuration + integration tests)

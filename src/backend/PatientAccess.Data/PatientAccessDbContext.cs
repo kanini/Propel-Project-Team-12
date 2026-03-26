@@ -32,6 +32,11 @@ public class PatientAccessDbContext : DbContext
     public DbSet<InsuranceRecord> InsuranceRecords => Set<InsuranceRecord>();
     public DbSet<NoShowHistory> NoShowHistory => Set<NoShowHistory>();
 
+    // EP-008-US-050 Knowledge Base Entity DbSets (AIR-R04, DR-010)
+    public DbSet<ICD10Code> ICD10Codes => Set<ICD10Code>();
+    public DbSet<CPTCode> CPTCodes => Set<CPTCode>();
+    public DbSet<ClinicalTerminology> ClinicalTerminology => Set<ClinicalTerminology>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -55,5 +60,10 @@ public class PatientAccessDbContext : DbContext
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
         modelBuilder.ApplyConfiguration(new InsuranceRecordConfiguration());
         modelBuilder.ApplyConfiguration(new NoShowHistoryConfiguration());
+
+        // EP-008-US-050 Knowledge Base configurations (AIR-R04)
+        modelBuilder.ApplyConfiguration(new ICD10CodeConfiguration());
+        modelBuilder.ApplyConfiguration(new CPTCodeConfiguration());
+        modelBuilder.ApplyConfiguration(new ClinicalTerminologyConfiguration());
     }
 }
