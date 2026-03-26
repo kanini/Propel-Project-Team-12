@@ -106,6 +106,7 @@ export function usePatientSearch(query: string): UsePatientSearchResult {
         window.clearTimeout(debounceTimerRef.current);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- performSearch is stable, adding it would cause infinite re-renders
   }, [query]);
 
   return { results, isLoading, error, clearResults };

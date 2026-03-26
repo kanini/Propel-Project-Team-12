@@ -4,7 +4,7 @@
  * Implements AC-1, AC-2, AC-3 with WCAG 2.2 AA compliance (UXR-201)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
     joinWaitlist,
@@ -56,8 +56,17 @@ export const WaitlistEnrollmentModal: React.FC = () => {
             : 'Provider';
 
     /**
+     * Handle modal close
+     */
+    const handleClose = useCallback(() => {
+        dispatch(closeEnrollmentModal());
+        setValidationErrors({});
+    }, [dispatch]);
+
+    /**
      * Initialize form with existing entry data when editing
      */
+    /* eslint-disable react-hooks/set-state-in-effect -- Syncing form state from props is intentional */
     useEffect(() => {
         if (selectedEntry) {
             setPreferredStartDate(selectedEntry.preferredStartDate);
@@ -74,6 +83,7 @@ export const WaitlistEnrollmentModal: React.FC = () => {
         }
         setValidationErrors({});
     }, [selectedEntry, isOpen]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     /**
      * Handle modal close with escape key (UXR-201)
@@ -87,7 +97,7 @@ export const WaitlistEnrollmentModal: React.FC = () => {
 
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
-    }, [isOpen]);
+    }, [isOpen, handleClose]);
 
     /**
      * Focus trap: Focus first input when modal opens (UXR-201)
@@ -159,16 +169,9 @@ export const WaitlistEnrollmentModal: React.FC = () => {
     };
 
     /**
-     * Handle modal close
-     */
-    const handleClose = () => {
-        dispatch(closeEnrollmentModal());
-        setValidationErrors({});
-    };
-
-    /**
      * Handle conflict error: switch to editing mode (AC-3)
      */
+    /* eslint-disable react-hooks/set-state-in-effect -- Responding to error state change is intentional */
     useEffect(() => {
         if (error?.code === 'conflict' && error.existingEntry) {
             // Pre-populate form with existing entry data
@@ -177,6 +180,7 @@ export const WaitlistEnrollmentModal: React.FC = () => {
             setNotificationPreference(error.existingEntry.notificationPreference);
         }
     }, [error]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (!isOpen) return null;
 

@@ -36,8 +36,6 @@ public class StaffDashboardService : IStaffDashboardService
     /// </summary>
     public async Task<StaffDashboardMetricsDto> GetDashboardMetricsAsync()
     {
-        var cacheKey = "staff_dashboard_metrics";
-
         try
         {
 

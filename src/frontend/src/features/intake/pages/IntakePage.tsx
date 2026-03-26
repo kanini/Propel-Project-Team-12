@@ -65,7 +65,7 @@ export default function IntakePage() {
   // Check if ready for summary (progress = 100)
   useEffect(() => {
     if (progress >= 100 && mode === 'ai') {
-      setShowSummary(true);
+      setShowSummary(true); // eslint-disable-line react-hooks/set-state-in-effect -- Derived state transition is intentional
     }
   }, [progress, mode]);
 

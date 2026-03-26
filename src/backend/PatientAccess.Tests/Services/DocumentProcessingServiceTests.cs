@@ -31,6 +31,7 @@ public class DocumentProcessingServiceTests
     [Fact]
     public async Task ProcessDocumentAsync_ShouldPersistExtractedData_WhenExtractionSucceeds()
     {
+        await Task.CompletedTask;
         // Arrange
         // TODO: Setup in-memory database and mock extraction service
         // Verify extracted data points are persisted with correct fields
@@ -44,6 +45,7 @@ public class DocumentProcessingServiceTests
     [Fact]
     public async Task ProcessDocumentAsync_ShouldFlagForManualReview_WhenConfidenceBelow50Percent()
     {
+        await Task.CompletedTask;
         // Arrange
         // Setup extraction result with data points below 50% confidence
 
@@ -59,6 +61,7 @@ public class DocumentProcessingServiceTests
     [Fact]
     public async Task ProcessDocumentAsync_ShouldSkipDuplicates_WhenDataPointAlreadyExists()
     {
+        await Task.CompletedTask;
         // Arrange
         // Insert existing extracted data point in database
         // Setup extraction service to return duplicate data point
@@ -76,6 +79,7 @@ public class DocumentProcessingServiceTests
     [Fact]
     public async Task ProcessDocumentAsync_ShouldRollbackTransaction_WhenExtractionFails()
     {
+        await Task.CompletedTask;
         // Arrange
         // Setup extraction service to throw exception
 
@@ -92,6 +96,7 @@ public class DocumentProcessingServiceTests
     [Fact]
     public async Task ProcessDocumentAsync_ShouldSendPusherEvent_AfterSuccessfulExtraction()
     {
+        await Task.CompletedTask;
         // Arrange
         // Setup successful extraction
 
@@ -108,6 +113,7 @@ public class DocumentProcessingServiceTests
     [Fact]
     public async Task ProcessDocumentAsync_ShouldLogWarning_WhenProcessingExceeds30Seconds()
     {
+        await Task.CompletedTask;
         // Arrange
         // Setup extraction service with artificial delay
 

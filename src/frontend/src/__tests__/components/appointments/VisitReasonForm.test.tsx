@@ -74,7 +74,7 @@ describe('VisitReasonForm', () => {
 
         fireEvent.change(input, { target: { value: 'Annual checkup' } });
 
-        expect(screen.getByText('15/200')).toBeInTheDocument();
+        expect(screen.getByText('14/200')).toBeInTheDocument();
     });
 
     it('shows error when exceeding max length', () => {
@@ -108,7 +108,7 @@ describe('VisitReasonForm', () => {
         );
 
         expect(
-            screen.getByLabelText(/Notify me if an earlier slot becomes available/i)
+            screen.getByLabelText(/Enable preferred slot swap/i)
         ).toBeInTheDocument();
     });
 
@@ -122,13 +122,14 @@ describe('VisitReasonForm', () => {
         );
 
         const checkbox = screen.getByLabelText(
-            /Notify me if an earlier slot becomes available/i
+            /Enable preferred slot swap/i
         );
 
         fireEvent.click(checkbox);
 
-        expect(screen.getByText(/Preferred Slot Swap/i)).toBeInTheDocument();
-        expect(screen.getByText(/Coming soon/i)).toBeInTheDocument();
+        // When swap is enabled but no time slot is selected, the PreferredSlotSelector
+        // renders a prompt to select a time slot first
+        expect(screen.getByText(/select your appointment time first/i)).toBeInTheDocument();
     });
 
     it('has proper ARIA attributes for validation', () => {

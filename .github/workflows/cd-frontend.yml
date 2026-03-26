@@ -1,0 +1,79 @@
+# CD - Deploy Frontend via FTP
+# Implements: CICD-050 (Frontend deployment to InfinityFree)
+#
+# Replaces the existing frontend.yml with secrets-based credential management.
+# All FTP credentials MUST be stored in GitHub Secrets (not hardcoded).
+#
+# Required GitHub Secrets:
+#   FTP_FRONTEND_SERVER   - FTP server hostname (e.g., ftpupload.net)
+#   FTP_FRONTEND_USERNAME - FTP username
+#   FTP_FRONTEND_PASSWORD - FTP password
+#
+# Trigger: Manual dispatch, or after CI passes on main branch
+
+name: CD - Deploy Frontend
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy Frontend to FTP
+    runs-on: ubuntu-latest
+    # Only deploy if triggered manually or CI passed on main
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    defaults:
+      run:
+        working-directory: src/frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: src/frontend/package-lock.json
+
+      # CICD-002: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # CICD-001, CICD-005: Build production bundle
+      - name: Build
+        run: npm run build
+
+      # CICD-050: Deploy frontend to InfinityFree via FTP
+      - name: Deploy to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_FRONTEND_SERVER }}
+          username: ${{ secrets.FTP_FRONTEND_USERNAME }}
+          password: ${{ secrets.FTP_FRONTEND_PASSWORD }}
+          port: 21
+          local-dir: src/frontend/dist/
+          server-dir: /htdocs/
+
+      # CICD-055: Tag deployment with commit SHA
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "### Frontend Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target:** InfinityFree FTP" >> $GITHUB_STEP_SUMMARY

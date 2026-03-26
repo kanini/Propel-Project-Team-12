@@ -26,6 +26,7 @@ export default function DocumentStatusRow({ document }: DocumentStatusRowProps) 
   // Handle retry button click
   const handleRetry = async () => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await dispatch(retryDocumentProcessing(document.id) as any);
     } catch (error) {
       console.error('Failed to retry document processing:', error);

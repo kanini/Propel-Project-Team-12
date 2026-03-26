@@ -17,7 +17,7 @@ interface UsePusherUploadOptions {
 export function usePusherUpload({ uploadId, pusherChannel, enabled }: UsePusherUploadOptions) {
   const dispatch = useDispatch();
   const pusherRef = useRef<Pusher | null>(null);
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<ReturnType<Pusher['subscribe']> | null>(null);
 
   useEffect(() => {
     if (!enabled || !pusherChannel) return;

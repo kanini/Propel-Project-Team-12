@@ -159,7 +159,7 @@ export const PatientDashboard = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {appointments.map((apt: any) => (
+                            {appointments.map((apt: UpcomingAppointmentDto) => (
                               <tr key={apt.appointmentId} className="border-b border-neutral-100 hover:bg-neutral-50">
                                 <td className="py-3 px-4 text-sm text-neutral-900">
                                   {new Date(apt.scheduledDateTime).toLocaleDateString('en-US', {

@@ -11,10 +11,11 @@ describe('ProgressIndicator', () => {
     it('renders all 4 steps', () => {
         render(<ProgressIndicator currentStep={1} />);
 
-        expect(screen.getByText('Provider')).toBeInTheDocument();
-        expect(screen.getByText('Date & Time')).toBeInTheDocument();
-        expect(screen.getByText('Details')).toBeInTheDocument();
-        expect(screen.getByText('Confirm')).toBeInTheDocument();
+        // Each label appears twice (desktop + mobile views)
+        expect(screen.getAllByText('Provider').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Date & Time').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Details').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Confirm').length).toBeGreaterThanOrEqual(1);
     });
 
     it('highlights current step correctly', () => {
