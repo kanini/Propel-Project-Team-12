@@ -182,7 +182,7 @@ export default function ResetPasswordPage() {
             >
               +
             </div>
-            <span className="text-2xl font-semibold text-neutral-900">PatientAccess</span>
+            <span className="text-2xl font-semibold text-neutral-900">CareSync AI</span>
           </div>
 
           {/* Success Card */}
@@ -255,7 +255,7 @@ export default function ResetPasswordPage() {
           >
             +
           </div>
-          <span className="text-2xl font-semibold text-neutral-900">PatientAccess</span>
+          <span className="text-2xl font-semibold text-neutral-900">CareSync AI</span>
         </div>
 
         {/* Reset Password Card */}
