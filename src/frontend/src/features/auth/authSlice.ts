@@ -173,7 +173,7 @@ export const refreshSession = createAsyncThunk<
   void,
   void,
   { rejectValue: string }
->("auth/refreshSession", async (_, { rejectWithValue }) => {
+>("auth/refreshSession", async (_) => {
   try {
     const apiBaseUrl =
       import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
