@@ -60,7 +60,7 @@ public class GenerateEmbeddingsJob
             _logger.LogError(ex, "Embedding generation job failed due to invalid arguments for {CodeSystem}", codeSystem);
             throw;
         }
-        catch (OperationCanceledException ex)
+        catch (OperationCanceledException)
         {
             // Job cancelled - do not retry
             _logger.LogWarning("Embedding generation job cancelled for {CodeSystem}", codeSystem);
