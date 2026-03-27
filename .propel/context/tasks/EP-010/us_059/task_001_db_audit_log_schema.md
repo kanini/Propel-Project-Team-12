@@ -1,8 +1,8 @@
-# Task - task_001_db_audit_log_schema
+﻿# Task - task_001_db_audit_log_schema
 
 ## Requirement Reference
-- User Story: US_055
-- Story Location: .propel/context/tasks/EP-010/us_055/us_055.md
+- User Story: US_059
+- Story Location: .propel/context/tasks/EP-010/US_059/US_059.md
 - Acceptance Criteria:
     - **AC1**: Given any user performs an auditable action (FR-040), When the action completes, Then an audit record is created within 200ms containing actor ID, action type, target resource, timestamp (UTC), IP address, and result (success/failure).
     - **AC2**: Given the immutability requirement, When an audit record is written, Then it is append-only with no UPDATE or DELETE operations permitted at the database level (enforced via PostgreSQL row-level security policies).
@@ -493,13 +493,13 @@ Create immutable audit log database schema with PostgreSQL row-level security (R
 
 ```
 src/backend/
-├── PatientAccess.Data/
-│   ├── Context/
-│   │   └── PatientAccessDbContext.cs
-│   ├── Entities/
-│   └── Configurations/
-└── scripts/
-    └── migrations/
+â”œâ”€â”€ PatientAccess.Data/
+â”‚   â”œâ”€â”€ Context/
+â”‚   â”‚   â””â”€â”€ PatientAccessDbContext.cs
+â”‚   â”œâ”€â”€ Entities/
+â”‚   â””â”€â”€ Configurations/
+â””â”€â”€ scripts/
+    â””â”€â”€ migrations/
 ```
 
 ## Expected Changes
@@ -583,9 +583,9 @@ psql -U postgres -d patient_access -f scripts/migrations/create_audit_archive_fu
      - Assert: Query execution time < 2s (NFR-007)
 
 ### Acceptance Criteria Validation
-- **AC1**: ✅ Audit record created with actor ID, action type, resource, timestamp, IP address, result
-- **AC2**: ✅ Append-only enforced via PostgreSQL RLS policies + trigger preventing UPDATE/DELETE
-- **Edge Case**: ✅ Archive function moves logs to cold storage without deletion (DR-007)
+- **AC1**: âœ… Audit record created with actor ID, action type, resource, timestamp, IP address, result
+- **AC2**: âœ… Append-only enforced via PostgreSQL RLS policies + trigger preventing UPDATE/DELETE
+- **Edge Case**: âœ… Archive function moves logs to cold storage without deletion (DR-007)
 
 ## Success Criteria Checklist
 - [MANDATORY] AuditLog table created with all required fields (AC1)
