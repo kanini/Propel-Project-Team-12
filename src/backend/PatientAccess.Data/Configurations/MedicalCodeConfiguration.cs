@@ -34,6 +34,19 @@ public class MedicalCodeConfiguration : IEntityTypeConfiguration<MedicalCode>
             .IsRequired()
             .HasColumnType("decimal(5,2)");
 
+        builder.Property(m => m.Rationale)
+            .IsRequired()
+            .HasMaxLength(2000);
+
+        builder.Property(m => m.Rank)
+            .IsRequired();
+
+        builder.Property(m => m.IsTopSuggestion)
+            .IsRequired();
+
+        builder.Property(m => m.RetrievedContext)
+            .HasMaxLength(5000);
+
         builder.Property(m => m.VerificationStatus)
             .IsRequired()
             .HasConversion<int>();
@@ -74,6 +87,9 @@ public class MedicalCodeConfiguration : IEntityTypeConfiguration<MedicalCode>
 
         builder.HasIndex(m => m.VerificationStatus)
             .HasDatabaseName("IX_MedicalCodes_VerificationStatus");
+
+        builder.HasIndex(m => m.IsTopSuggestion)
+            .HasDatabaseName("IX_MedicalCodes_IsTopSuggestion");
 
         // Composite unique: prevent duplicate codes per extraction
         builder.HasIndex(m => new { m.ExtractedDataId, m.CodeSystem, m.CodeValue })

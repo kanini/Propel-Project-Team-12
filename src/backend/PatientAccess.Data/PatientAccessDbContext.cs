@@ -31,6 +31,7 @@ public class PatientAccessDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<InsuranceRecord> InsuranceRecords => Set<InsuranceRecord>();
     public DbSet<NoShowHistory> NoShowHistory => Set<NoShowHistory>();
+    public DbSet<QualityMetric> QualityMetrics => Set<QualityMetric>();
 
     // EP-008-US-050 Knowledge Base Entity DbSets (AIR-R04, DR-010)
     public DbSet<ICD10Code> ICD10Codes => Set<ICD10Code>();
@@ -61,6 +62,7 @@ public class PatientAccessDbContext : DbContext
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
         modelBuilder.ApplyConfiguration(new InsuranceRecordConfiguration());
         modelBuilder.ApplyConfiguration(new NoShowHistoryConfiguration());
+        modelBuilder.ApplyConfiguration(new QualityMetricConfiguration());
 
         // EP-008-US-050 Knowledge Base configurations (AIR-R04)
         modelBuilder.ApplyConfiguration(new ICD10CodeConfiguration());

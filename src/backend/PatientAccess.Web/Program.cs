@@ -10,6 +10,8 @@ using PatientAccess.Business.Services;
 using PatientAccess.Business.Interfaces;
 using PatientAccess.Business.Configuration;
 using PatientAccess.Business.BackgroundJobs;
+using PatientAccess.Business.DTOs;
+using PatientAccess.Business.Validators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -53,7 +55,11 @@ if (File.Exists(envFile))
 }
 
 // Add services to the container
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+{
+    // Register exception filter for medical code mapping endpoints (EP-008-US-051)
+    options.Filters.Add<CodeMappingExceptionFilter>();
+})
     .AddJsonOptions(options =>
     {
         // Configure camelCase naming for JSON serialization/deserialization (standard for web APIs)
@@ -271,6 +277,18 @@ builder.Services.AddScoped<GenerateEmbeddingsJob>(); // Hangfire background job 
 
 // EP-008-US-050 - Hybrid retrieval services (AIR-R02, AIR-R03, AIR-R04)
 builder.Services.AddScoped<IHybridRetrievalService, HybridRetrievalService>(); // Semantic + keyword search with Redis caching
+
+// EP-008-US-051 - Code mapping services (AIR-003, AIR-004, AIR-Q01, AIR-Q03)
+builder.Services.Configure<CodeMappingSettings>(
+    builder.Configuration.GetSection("CodeMapping"));
+builder.Services.AddScoped<FluentValidation.IValidator<CodeMappingResponseDto>, CodeMappingResponseValidator>();
+builder.Services.AddScoped<ICodeMappingService, CodeMappingService>(); // ICD-10 and CPT code mapping with RAG
+
+// EP-008-US-051 - Quality metrics tracking (AIR-Q01, AIR-Q03)
+builder.Services.AddScoped<IQualityMetricsService, QualityMetricsService>(); // AI-Human Agreement Rate and Schema Validity tracking
+builder.Services.AddScoped<IAlertingService, AlertingService>(); // Quality threshold alerting
+builder.Services.AddScoped<DailyQualityMetricsJob>(); // Daily metrics calculation job
+builder.Services.AddScoped<WeeklyQualityMetricsJob>(); // Weekly metrics calculation job
 
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
 
@@ -508,6 +526,22 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         // Schedule upload session cleanup job (US_042) - runs every 30 minutes
         PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob.Schedule();
         app.Logger.LogInformation("Scheduled upload session cleanup job to run every 30 minutes");
+
+        // Schedule daily quality metrics job (EP-008-US-051) - runs daily at 2:00 AM UTC
+        RecurringJob.AddOrUpdate<DailyQualityMetricsJob>(
+            "daily-quality-metrics",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 2 * * *", // Daily at 2:00 AM UTC
+            TimeZoneInfo.Utc);
+        app.Logger.LogInformation("Scheduled daily quality metrics job to run at 2:00 AM UTC");
+
+        // Schedule weekly quality metrics job (EP-008-US-051) - runs weekly on Mondays at 3:00 AM UTC
+        RecurringJob.AddOrUpdate<WeeklyQualityMetricsJob>(
+            "weekly-quality-metrics",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 3 * * MON", // Weekly on Mondays at 3:00 AM UTC
+            TimeZoneInfo.Utc);
+        app.Logger.LogInformation("Scheduled weekly quality metrics job to run on Mondays at 3:00 AM UTC");
     }
 }
 

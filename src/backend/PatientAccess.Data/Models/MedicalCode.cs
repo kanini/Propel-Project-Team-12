@@ -20,6 +20,26 @@ public class MedicalCode
     /// </summary>
     public decimal ConfidenceScore { get; set; }
 
+    /// <summary>
+    /// LLM explanation for code selection (rationale for mapping).
+    /// </summary>
+    public string Rationale { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Rank of this suggestion (1 = top suggestion).
+    /// </summary>
+    public int Rank { get; set; }
+
+    /// <summary>
+    /// True if this is the top-ranked suggestion (Rank == 1).
+    /// </summary>
+    public bool IsTopSuggestion { get; set; }
+
+    /// <summary>
+    /// RAG context chunks used for code mapping (for auditing).
+    /// </summary>
+    public string? RetrievedContext { get; set; }
+
     public MedicalCodeVerificationStatus VerificationStatus { get; set; }
 
     public Guid? VerifiedBy { get; set; }

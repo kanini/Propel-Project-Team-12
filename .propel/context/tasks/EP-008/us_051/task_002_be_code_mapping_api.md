@@ -480,23 +480,23 @@ dotnet run
 - **Edge Case 2**: ✅ Unmappable data returns "No matching code found" message
 
 ## Success Criteria Checklist
-- [MANDATORY] MedicalCodesController created with [Authorize(Roles = "Staff,Admin")]
-- [MANDATORY] POST /api/medical-codes/map-icd10 endpoint implemented
-- [MANDATORY] POST /api/medical-codes/map-cpt endpoint implemented
-- [MANDATORY] GET /api/medical-codes/{extractedDataId}/suggestions endpoint implemented
-- [MANDATORY] GET /api/medical-codes/{extractedDataId}/top-suggestion endpoint implemented
-- [MANDATORY] PATCH /api/medical-codes/{codeId}/verify endpoint implemented (staff verification workflow)
-- [MANDATORY] ModelState validation for all POST/PATCH endpoints
-- [MANDATORY] 404 Not Found returned for invalid ExtractedClinicalDataId
-- [MANDATORY] CodeMappingExceptionFilter handles Azure OpenAI failures (503 Service Unavailable)
-- [MANDATORY] CodeMappingExceptionFilter handles validation failures (422 Unprocessable Entity)
+- [X] [MANDATORY] MedicalCodesController created with [Authorize(Roles = "Staff,Admin")]
+- [X] [MANDATORY] POST /api/medical-codes/map-icd10 endpoint implemented
+- [X] [MANDATORY] POST /api/medical-codes/map-cpt endpoint implemented
+- [X] [MANDATORY] GET /api/medical-codes/{extractedDataId}/suggestions endpoint implemented
+- [X] [MANDATORY] GET /api/medical-codes/{extractedDataId}/top-suggestion endpoint implemented
+- [X] [MANDATORY] PATCH /api/medical-codes/{codeId}/verify endpoint implemented (staff verification workflow)
+- [X] [MANDATORY] ModelState validation for all POST/PATCH endpoints
+- [X] [MANDATORY] 404 Not Found returned for invalid ExtractedClinicalDataId
+- [X] [MANDATORY] CodeMappingExceptionFilter handles Azure OpenAI failures (503 Service Unavailable)
+- [X] [MANDATORY] CodeMappingExceptionFilter handles validation failures (422 Unprocessable Entity)
 - [MANDATORY] Unit test: Valid request returns 200 OK
 - [MANDATORY] Unit test: Invalid ModelState returns 400 Bad Request
 - [MANDATORY] Unit test: Invalid ExtractedDataId returns 404 Not Found
 - [MANDATORY] Integration test: POST persists MedicalCode records to database
 - [MANDATORY] Integration test: PATCH updates VerificationStatus in database
-- [RECOMMENDED] Swagger documentation with example requests/responses
-- [RECOMMENDED] Request/response logging for audit trails
+- [X] [RECOMMENDED] Swagger documentation with example requests/responses
+- [X] [RECOMMENDED] Request/response logging for audit trails
 
 ## Estimated Effort
 **3 hours** (Controller implementation + exception handling + unit tests)

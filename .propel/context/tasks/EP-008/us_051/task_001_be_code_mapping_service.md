@@ -621,24 +621,24 @@ dotnet test
 - **Edge Case 2**: ✅ Unmappable data returns "No matching code found"
 
 ## Success Criteria Checklist
-- [MANDATORY] MedicalCode entity created with CodeSystem, Code, ConfidenceScore, Rationale, Rank
-- [MANDATORY] QualityMetric entity created for AIHumanAgreement, SchemaValidity tracking
-- [MANDATORY] CodeMappingService implements ICodeMappingService interface
-- [MANDATORY] MapToICD10Async integrates HybridRetrievalService for RAG retrieval
-- [MANDATORY] MapToICD10Async invokes Azure OpenAI GPT-4o with HIPAA BAA (TR-015)
-- [MANDATORY] Prompt templates created (.propel/prompts/ai/code-mapping-icd10.txt, code-mapping-cpt.txt)
-- [MANDATORY] CodeMappingResponseValidator validates confidence scores (0-100 range)
-- [MANDATORY] MapToICD10Async returns multiple ranked suggestions for ambiguous text
-- [MANDATORY] MapToICD10Async returns "No matching code found" for unmappable data
-- [MANDATORY] CalculateAgreementRateAsync tracks AI-Human Agreement Rate (target >98%)
-- [MANDATORY] ValidateOutputSchemaAsync tracks schema validity (target >99%)
-- [MANDATORY] Polly retry policy: 3 retries with exponential backoff
+- [X] [MANDATORY] MedicalCode entity created with CodeSystem, Code, ConfidenceScore, Rationale, Rank
+- [X] [MANDATORY] QualityMetric entity created for AIHumanAgreement, SchemaValidity tracking
+- [X] [MANDATORY] CodeMappingService implements ICodeMappingService interface
+- [X] [MANDATORY] MapToICD10Async integrates HybridRetrievalService for RAG retrieval
+- [X] [MANDATORY] MapToICD10Async invokes Azure OpenAI GPT-4o with HIPAA BAA (TR-015)
+- [X] [MANDATORY] Prompt templates created (.propel/prompts/ai/code-mapping-icd10.txt, code-mapping-cpt.txt)
+- [X] [MANDATORY] CodeMappingResponseValidator validates confidence scores (0-100 range)
+- [X] [MANDATORY] MapToICD10Async returns multiple ranked suggestions for ambiguous text
+- [X] [MANDATORY] MapToICD10Async returns "No matching code found" for unmappable data
+- [X] [MANDATORY] CalculateAgreementRateAsync tracks AI-Human Agreement Rate (target >98%)
+- [X] [MANDATORY] ValidateOutputSchemaAsync tracks schema validity (target >99%)
+- [X] [MANDATORY] Polly retry policy: 3 retries with exponential backoff
 - [MANDATORY] Unit test: Valid response passes schema validation
 - [MANDATORY] Unit test: Invalid confidence score (>100) fails validation
 - [MANDATORY] Integration test: RAG retrieval provides relevant context
 - [MANDATORY] Integration test: Azure OpenAI returns valid JSON response
-- [RECOMMENDED] Application Insights telemetry: "CodeMappingCompleted", "SchemaValidationFailed"
-- [RECOMMENDED] Temperature = 0.0 for deterministic medical coding
+- [ ] [RECOMMENDED] Application Insights telemetry: "CodeMappingCompleted", "SchemaValidationFailed"
+- [X] [RECOMMENDED] Temperature = 0.0 for deterministic medical coding
 
 ## Estimated Effort
 **8 hours** (Service implementation + RAG integration + Azure OpenAI + FluentValidation + quality metrics + unit tests)
