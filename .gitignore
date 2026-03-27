@@ -23,3 +23,4 @@ src/backend/PatientAccess.Web/rsa-keys/*.xml
 src/backend/PatientAccess.Web/rsa-keys/*.pem
 security/rsa-keys/*.xml
 security/rsa-keys/*.pem
+src/backend/PatientAccess.Tests/TestResults/*

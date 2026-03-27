@@ -23,6 +23,9 @@ tr.selected-row{background:var(--color-primary-50);border-left:3px solid var(--c
 .data-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-neutral-100)}.data-row:last-child{border-bottom:none}.data-label{font:var(--font-body-sm);color:var(--color-neutral-500)}.data-value{font:var(--font-body);font-weight:500}
 .highlight-box{background:var(--color-warning-light);border:1px solid var(--color-warning);border-radius:var(--radius-md);padding:12px 16px;font:var(--font-body-sm);color:var(--color-warning-dark);margin-top:16px}
 .action-bar{display:flex;gap:8px;margin-top:16px}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--color-neutral-200);margin-bottom:20px}.tab-btn{padding:12px 24px;border:none;background:transparent;font:var(--font-body);font-weight:500;color:var(--color-neutral-600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--transition-fast)}.tab-btn:hover{color:var(--color-primary-500);background:var(--color-neutral-50)}.tab-btn.active{color:var(--color-primary-500);border-bottom-color:var(--color-primary-500)}.tab-btn:focus-visible{outline:2px solid var(--color-primary-500);outline-offset:-2px}
+.tab-content{display:none}.tab-content.active{display:block}
+.code-chip{display:inline-block;background:var(--color-neutral-50);border:1px solid var(--color-neutral-200);padding:2px 8px;border-radius:var(--radius-sm);font:var(--font-caption);font-weight:600;color:var(--color-neutral-700)}
 @media(max-width:1023px){.shell{grid-template-columns:1fr}aside{display:none}main{grid-template-columns:1fr}.side-panel{border-left:none;border-top:1px solid var(--color-neutral-200)}.stat-row{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:767px){.main-content{padding:16px}.stat-row{grid-template-columns:1fr}}
 </style>
@@ -44,38 +47,92 @@ tr.selected-row{background:var(--color-primary-50);border-left:3px solid var(--c
         <div class="stat-mini"><span class="val" style="color:var(--color-info)">2</span><span class="lbl">Conflicts</span></div>
       </div>
 
-      <div class="card" style="padding:0">
-        <div style="overflow-x:auto">
-        <table aria-label="AI-extracted clinical data for verification">
-          <thead><tr><th>Field</th><th>AI Value</th><th>Confidence</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            <tr><td>Condition</td><td>Hypertension</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:95%"></span></div>95%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
-            <tr><td>Condition</td><td>Seasonal Allergies</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:91%"></span></div>91%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
-            <tr class="selected-row"><td>Condition</td><td>Vitamin D Deficiency</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-med" style="width:82%"></span></div>82%</div></td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Verify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button><button class="btn btn-outline btn-sm">&#9998; Correct</button></div></td></tr>
-            <tr><td>Medication</td><td>Lisinopril 10mg</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:97%"></span></div>97%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
-            <tr><td>Medication</td><td>Vitamin D3 2000 IU</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-med" style="width:78%"></span></div>78%</div></td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Verify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button><button class="btn btn-outline btn-sm">&#9998; Correct</button></div></td></tr>
-            <tr><td>Allergy</td><td>Penicillin — Hives</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:94%"></span></div>94%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
-            <tr><td>Vital</td><td>BP 142/88 mmHg</td><td><div class="confidence-bar"><div class="conf-low" style="width:65%"></span></div>65%</div></td><td><span class="badge badge-error">Conflict</span></td><td><a href="wireframe-SCR-024-conflict-resolution.html" class="btn btn-outline btn-sm">Resolve</a></td></tr>
-            <tr><td>Lab Result</td><td>Vitamin D: 18 ng/mL</td><td><div class="confidence-bar"><div class="conf-med" style="width:82%"></span></div>82%</div></td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Verify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button><button class="btn btn-outline btn-sm">&#9998; Correct</button></div></td></tr>
-          </tbody>
-        </table>
+      <div class="tabs" role="tablist">
+        <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="clinical-data-tab" id="tab-clinical-data">Clinical Data</button>
+        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="medical-codes-tab" id="tab-medical-codes">Medical Codes (ICD-10/CPT)</button>
+      </div>
+
+      <div id="clinical-data-tab" class="tab-content active" role="tabpanel" aria-labelledby="tab-clinical-data">
+        <div class="card" style="padding:0">
+          <div style="overflow-x:auto">
+          <table aria-label="AI-extracted clinical data for verification">
+            <thead><tr><th>Field</th><th>AI Value</th><th>Confidence</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td>Condition</td><td>Hypertension</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:95%"></span></div>95%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
+              <tr><td>Condition</td><td>Seasonal Allergies</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:91%"></span></div>91%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
+              <tr class="selected-row"><td>Condition</td><td>Vitamin D Deficiency</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-med" style="width:82%"></span></div>82%</div></td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Verify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button><button class="btn btn-outline btn-sm">&#9998; Correct</button></div></td></tr>
+              <tr><td>Medication</td><td>Lisinopril 10mg</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:97%"></span></div>97%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
+              <tr><td>Medication</td><td>Vitamin D3 2000 IU</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-med" style="width:78%"></span></div>78%</div></td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Verify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button><button class="btn btn-outline btn-sm">&#9998; Correct</button></div></td></tr>
+              <tr><td>Allergy</td><td>Penicillin — Hives</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:94%"></span></div>94%</div></td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
+              <tr><td>Vital</td><td>BP 142/88 mmHg</td><td><div class="confidence-bar"><div class="conf-low" style="width:65%"></span></div>65%</div></td><td><span class="badge badge-error">Conflict</span></td><td><a href="wireframe-SCR-024-conflict-resolution.html" class="btn btn-outline btn-sm">Resolve</a></td></tr>
+              <tr><td>Lab Result</td><td>Vitamin D: 18 ng/mL</td><td><div class="confidence-bar"><div class="conf-med" style="width:82%"></span></div>82%</div></td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Verify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button><button class="btn btn-outline btn-sm">&#9998; Correct</button></div></td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="medical-codes-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-medical-codes">
+        <div class="card" style="padding:0">
+          <div style="overflow-x:auto">
+          <table aria-label="AI-suggested medical codes for verification">
+            <thead><tr><th style="width:100px">Code System</th><th style="width:100px">Code</th><th>Description</th><th style="width:80px">Confidence</th><th style="width:200px">Source Data</th><th style="width:100px">Status</th><th style="width:280px">Actions</th></tr></thead>
+            <tbody>
+              <tr><td><span class="code-chip">ICD-10</span></td><td><strong>I10</strong></td><td>Essential (primary) hypertension</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:92%"></span></div>92%</div></td><td style="font:var(--font-body-sm);color:var(--color-neutral-500)">Condition: Hypertension</td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
+              <tr><td><span class="code-chip">ICD-10</span></td><td><strong>J30.9</strong></td><td>Allergic rhinitis, unspecified</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:89%"></span></div>89%</div></td><td style="font:var(--font-body-sm);color:var(--color-neutral-500)">Condition: Seasonal Allergies</td><td><span class="badge badge-success">Verified</span></td><td style="color:var(--color-neutral-400)">—</td></tr>
+              <tr class="selected-row"><td><span class="code-chip">ICD-10</span></td><td><strong>E55.9</strong></td><td>Vitamin D deficiency, unspecified</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-med" style="width:82%"></span></div>82%</div></td><td style="font:var(--font-body-sm);color:var(--color-neutral-500)">Condition: Vitamin D Deficiency<br>Lab: Vitamin D 18 ng/mL</td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Accept</button><button class="btn btn-primary btn-sm">&#9998; Modify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button></div></td></tr>
+              <tr><td><span class="code-chip">CPT</span></td><td><strong>99213</strong></td><td>Office/outpatient visit, estab patient, 20-29 min</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-high" style="width:88%"></span></div>88%</div></td><td style="font:var(--font-body-sm);color:var(--color-neutral-500)">Encounter: Follow-up visit</td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Accept</button><button class="btn btn-primary btn-sm">&#9998; Modify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button></div></td></tr>
+              <tr><td><span class="code-chip">CPT</span></td><td><strong>80053</strong></td><td>Comprehensive metabolic panel</td><td><div class="confidence-bar"><div class="conf-fill"><span class="conf-med" style="width:75%"></span></div>75%</div></td><td style="font:var(--font-body-sm);color:var(--color-neutral-500)">Lab Results: Metabolic panel</td><td><span class="badge badge-warning">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-success btn-sm">&#10003; Accept</button><button class="btn btn-primary btn-sm">&#9998; Modify</button><button class="btn btn-danger btn-sm">&#10007; Reject</button></div></td></tr>
+              <tr><td><span class="code-chip">ICD-10</span></td><td><strong>Z79.4</strong></td><td>Long term (current) use of insulin</td><td><div class="confidence-bar"><div class="conf-low" style="width:62%"></span></div>62%</div></td><td style="font:var(--font-body-sm);color:var(--color-neutral-500)">Medication: Insulin (suggested)</td><td><span class="badge badge-error">Rejected</span></td><td style="color:var(--color-neutral-400);font:var(--font-body-sm)">Rejected by SM on Mar 15, 2026<br>Reason: Patient not on insulin</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:12px 16px;background:var(--color-info-light);border-radius:var(--radius-md);font:var(--font-body-sm);color:var(--color-info)">
+          <strong>ℹ️ Note:</strong> Medical codes are automatically suggested by AI based on extracted clinical data. All codes must be verified by staff before being used in billing or clinical records.
         </div>
       </div>
     </div>
 
     <div class="side-panel" aria-label="Source document viewer">
-      <h3 style="font:var(--font-h4);margin-bottom:16px">Source Document</h3>
-      <div class="doc-preview"><span aria-hidden="true">&#128196;</span><p style="font:var(--font-body-sm)">Lab_Results_2026_Q1.pdf</p><p style="font:var(--font-caption)">Page 2 of 4</p></div>
+      <h3 style="font:var(--font-h4);margin-bottom:16px">Code Details</h3>
       <div style="margin-top:16px">
-        <div class="data-row"><span class="data-label">Extracted by</span><span class="data-value">AI Engine v2.1</span></div>
-        <div class="data-row"><span class="data-label">Extraction date</span><span class="data-value">Mar 5, 2026</span></div>
-        <div class="data-row"><span class="data-label">Selected field</span><span class="data-value">Vitamin D Deficiency</span></div>
+        <div class="data-row"><span class="data-label">Code System</span><span class="data-value"><span class="code-chip">ICD-10</span></span></div>
+        <div class="data-row"><span class="data-label">Code</span><span class="data-value" style="font-weight:600">E55.9</span></div>
+        <div class="data-row"><span class="data-label">Description</span><span class="data-value">Vitamin D deficiency, unspecified</span></div>
         <div class="data-row"><span class="data-label">Confidence</span><span class="data-value">82%</span></div>
+        <div class="data-row"><span class="data-label">AI Suggestion Date</span><span class="data-value">Mar 15, 2026</span></div>
       </div>
-      <div class="highlight-box"><strong>Extracted text:</strong> "Vitamin D, 25-Hydroxy: 18 ng/mL (Reference: 30-100 ng/mL). Result is below normal range. Clinical correlation recommended."</div>
-      <div class="action-bar"><button class="btn btn-outline" style="flex:1">View Full Document</button><button class="btn btn-outline" style="flex:1">Download PDF</button></div>
+      <div style="margin-top:20px">
+        <h4 style="font:var(--font-h5);margin-bottom:12px">Source Clinical Data</h4>
+        <div style="padding:12px;background:var(--color-neutral-50);border:1px solid var(--color-neutral-200);border-radius:var(--radius-md);font:var(--font-body-sm)">
+          <strong>Condition:</strong> Vitamin D Deficiency (82% confidence)<br><br>
+          <strong>Lab Result:</strong> Vitamin D: 18 ng/mL<br>
+          Reference range: 30-100 ng/mL
+        </div>
+      </div>
+      <div class="highlight-box"><strong>AI Rationale:</strong> "Patient's lab results show Vitamin D level of 18 ng/mL, which is below the normal reference range. ICD-10 code E55.9 is appropriate for documenting vitamin D deficiency when the specific type is unspecified."</div>
+      <div style="margin-top:16px">
+        <h4 style="font:var(--font-h5);margin-bottom:12px">Source Document</h4>
+        <div class="doc-preview" style="min-height:160px"><span aria-hidden="true">&#128196;</span><p style="font:var(--font-body-sm)">Lab_Results_2026_Q1.pdf</p><p style="font:var(--font-caption)">Page 2 of 4</p></div>
+      </div>
+      <div class="action-bar"><button class="btn btn-outline" style="flex:1">View Document</button><button class="btn btn-outline" style="flex:1">Download PDF</button></div>
     </div>
   </main>
 </div>
-</body>
-</html>
+<script>
+// Tab switching functionality
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    // Remove active class from all tabs and panels
+    document.querySelectorAll('.tab-btn').forEach(function(t){t.classList.remove('active');t.setAttribute('aria-selected','false')});
+    document.querySelectorAll('.tab-content').forEach(function(p){p.classList.remove('active')});
+    
+    // Add active class to clicked tab and corresponding panel
+    this.classList.add('active');
+    this.setAttribute('aria-selected','true');
+    var panelId = this.getAttribute('aria-controls');
+    document.getElementById(panelId).classList.add('active');
+  })
+});
+</script>

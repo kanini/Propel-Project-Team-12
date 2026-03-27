@@ -79,15 +79,15 @@ export const fetchUsers = createAsyncThunk(
       if (params.status) queryParams.append("status", params.status);
 
       const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/admin/users`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
+      const queryString = queryParams.toString();
+      const url = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/admin/users${queryString ? `?${queryString}` : ""}`;
+
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
-      );
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -179,13 +179,16 @@ export const deactivateUser = createAsyncThunk(
   async (userId: string, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/admin/users/${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         const errorData = await response.json();

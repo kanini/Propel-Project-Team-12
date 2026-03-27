@@ -1,4 +1,7 @@
+import { useState, useEffect, useRef } from 'react';
 import { type User } from '../../../store/usersSlice';
+
+const PAGE_SIZE = 10;
 
 interface UserTableProps {
   users: User[];
@@ -19,6 +22,37 @@ export const UserTable = ({
   onDeactivate,
   currentUserId,
 }: UserTableProps) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const prevUsersLengthRef = useRef(users.length);
+
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  
+  // Reset to page 1 when users list length changes
+  // Using ref to track previous length and avoid setState in render
+  useEffect(() => {
+    const handler = () => {
+      if (prevUsersLengthRef.current !== users.length) {
+        prevUsersLengthRef.current = users.length;
+        setCurrentPage(1);
+      }
+    };
+    // Use setTimeout to defer state update
+    const timeoutId = setTimeout(handler, 0);
+    return () => clearTimeout(timeoutId);
+  }, [users.length]);
+
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const paginatedUsers = users.slice(startIndex, startIndex + PAGE_SIZE);
+
+  // Reset to page 1 when the users list changes and current page exceeds max
+  useEffect(() => {
+    const maxPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+    if (currentPage > maxPages) {
+      setCurrentPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users.length]);
+  
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'Active':
@@ -139,7 +173,7 @@ export const UserTable = ({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {users.map((user) => {
+          {paginatedUsers.map((user) => {
             const isSelf = user.userId === currentUserId;
             return (
               <tr key={user.userId}>
@@ -215,6 +249,96 @@ export const UserTable = ({
           })}
         </tbody>
       </table>
+
+      {/* Pagination Controls */}
+      {users.length > PAGE_SIZE && (
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-700">
+              Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+              <span className="font-medium">
+                {Math.min(startIndex + PAGE_SIZE, users.length)}
+              </span>{' '}
+              of <span className="font-medium">{users.length}</span> users
+            </p>
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="sr-only">Previous</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {(() => {
+                const pages: (number | string)[] = [];
+                const start = Math.max(2, currentPage - 2);
+                const end = Math.min(totalPages - 1, currentPage + 2);
+                pages.push(1);
+                if (start > 2) pages.push('start-ellipsis');
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (end < totalPages - 1) pages.push('end-ellipsis');
+                if (totalPages > 1) pages.push(totalPages);
+                return pages.map((pg) =>
+                  typeof pg === 'string' ? (
+                    <span
+                      key={pg}
+                      className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300"
+                    >
+                      &hellip;
+                    </span>
+                  ) : (
+                    <button
+                      key={pg}
+                      onClick={() => setCurrentPage(pg)}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 ${
+                        pg === currentPage
+                          ? 'z-10 bg-blue-600 text-white focus-visible:outline-blue-600'
+                          : 'text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pg}
+                    </button>
+                  ),
+                );
+              })()}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="sr-only">Next</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </nav>
+          </div>
+
+          {/* Mobile pagination */}
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="inline-flex items-center text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

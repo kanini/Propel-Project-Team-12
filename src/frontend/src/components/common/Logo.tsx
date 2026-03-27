@@ -1,0 +1,79 @@
+interface LogoProps {
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+/**
+ * Application logo component matching the favicon design.
+ * Features medical cross with gradient background.
+ */
+export const Logo = ({ size = 'md', className = '' }: LogoProps) => {
+  const sizeClasses = {
+    sm: 'w-6 h-6',
+    md: 'w-8 h-8',
+    lg: 'w-12 h-12',
+  };
+
+  return (
+    <svg
+      viewBox="0 0 512 512"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`${sizeClasses[size]} ${className}`}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#0f62fe', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#0c50d4', stopOpacity: 1 }} />
+        </linearGradient>
+        <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#3d9bff', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#0f62fe', stopOpacity: 1 }} />
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Background Circle */}
+      <circle cx="256" cy="256" r="240" fill="url(#bgGrad)" />
+
+      {/* Subtle pattern overlay */}
+      <circle cx="350" cy="180" r="120" fill="#ffffff" opacity="0.05" />
+      <circle cx="180" cy="350" r="90" fill="#ffffff" opacity="0.03" />
+
+      {/* Medical cross symbol with modern twist */}
+      <g filter="url(#glow)">
+        {/* Vertical bar */}
+        <rect x="226" y="140" width="60" height="232" rx="12" fill="#ffffff" opacity="0.95" />
+        {/* Horizontal bar */}
+        <rect x="140" y="226" width="232" height="60" rx="12" fill="#ffffff" opacity="0.95" />
+
+        {/* Center accent circle */}
+        <circle cx="256" cy="256" r="45" fill="url(#accentGrad)" />
+
+        {/* Plus symbol details */}
+        <circle cx="256" cy="170" r="18" fill="#ebf5ff" />
+        <circle cx="256" cy="342" r="18" fill="#ebf5ff" />
+        <circle cx="170" cy="256" r="18" fill="#ebf5ff" />
+        <circle cx="342" cy="256" r="18" fill="#ebf5ff" />
+      </g>
+
+      {/* Heartbeat line accent */}
+      <path
+        d="M 120 256 L 160 256 L 180 236 L 200 276 L 220 256 L 392 256"
+        stroke="#ebf5ff"
+        strokeWidth="3"
+        fill="none"
+        opacity="0.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
