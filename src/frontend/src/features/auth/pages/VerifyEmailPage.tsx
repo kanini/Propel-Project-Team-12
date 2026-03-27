@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Logo } from '../../../components/common/Logo';
 
 type VerificationStatus = 'loading' | 'success' | 'error';
 
@@ -65,14 +66,8 @@ export default function VerifyEmailPage() {
       <main id="main-content" className="w-full max-w-md" role="main">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div
-            className="w-8 h-8 bg-primary-500 rounded-md flex items-center justify-center
-              text-white font-bold text-lg"
-            aria-hidden="true"
-          >
-            +
-          </div>
-          <span className="text-2xl font-semibold text-neutral-900">PatientAccess</span>
+          <Logo size="md" />
+          <span className="text-2xl font-semibold text-neutral-900">CareSync AI</span>
         </div>
 
         {/* Verification Card */}

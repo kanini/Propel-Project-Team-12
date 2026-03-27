@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { Logo } from "../common/Logo";
 
 interface NavigationItem {
   name: string;
@@ -96,7 +97,10 @@ export const Sidebar = () => {
     <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r border-neutral-200 h-screen sticky top-0">
       {/* Logo and User Info */}
       <div className="flex-shrink-0 p-6 border-b border-neutral-200">
-        <h1 className="text-xl font-bold text-primary-500">CareSync AI</h1>
+        <div className="flex items-center gap-2 mb-4">
+          <Logo size="sm" />
+          <h1 className="text-xl font-bold text-primary-500">CareSync AI</h1>
+        </div>
         {user && (
           <div className="mt-4">
             <p className="text-sm font-medium text-neutral-900">{user.name}</p>

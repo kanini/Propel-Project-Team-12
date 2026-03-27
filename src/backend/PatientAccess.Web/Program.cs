@@ -251,8 +251,9 @@ builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
 
 // US_045 - AI Document Intelligence (task_002: Supabase + Tesseract + Gemini pipeline)
-builder.Services.AddHttpClient(); // Required for Gemini API calls
-builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase document download
+builder.Services.AddHttpClient(); // Required for Gemini API calls and Supabase Storage REST API
+
+builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase Storage REST API
 builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction
 builder.Services.AddScoped<IGeminiAiService, GeminiAiService>(); // Gemini AI data extraction
 builder.Services.AddScoped<IClinicalDataExtractionService, ClinicalDataExtractionService>(); // Extraction orchestration
