@@ -102,11 +102,15 @@ public class ProvidersController : ControllerBase
     {
         try
         {
-            // TODO: Implement GetProviderByIdAsync in IProviderService
-            // This is a placeholder for future US_024 (Appointment Booking) where detailed provider view is needed
+            var provider = await _providerService.GetProviderByIdAsync(id);
 
-            _logger.LogWarning("GetProviderById not yet implemented");
-            return StatusCode(501, new { message = "Provider detail view not yet implemented" });
+            if (provider == null)
+            {
+                _logger.LogWarning("Provider not found: {ProviderId}", id);
+                return NotFound(new { message = $"Provider with ID {id} not found" });
+            }
+
+            return Ok(provider);
         }
         catch (Exception ex)
         {

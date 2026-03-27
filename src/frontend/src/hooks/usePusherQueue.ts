@@ -59,8 +59,29 @@ export function usePusherQueue(options: UsePusherQueueOptions) {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   const pusherRef = useRef<Pusher | null>(null);
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<ReturnType<Pusher['subscribe']> | null>(null);
   const fallbackIntervalRef = useRef<number | null>(null);
+
+  /**
+   * Start fallback polling (30-second interval)
+   */
+  const startFallbackPolling = useCallback(() => {
+    // Prevent duplicate intervals
+    if (fallbackIntervalRef.current) {
+      return;
+    }
+
+    console.log("Starting fallback polling (30s interval)");
+
+    // Initial fetch
+    fetchQueueFallback();
+
+    // Set up 30-second interval
+    fallbackIntervalRef.current = setInterval(() => {
+      console.log("Fallback polling: fetching queue data");
+      fetchQueueFallback();
+    }, 30000); // 30 seconds
+  }, [fetchQueueFallback]);
 
   /**
    * Initialize Pusher connection
@@ -119,7 +140,7 @@ export function usePusherQueue(options: UsePusherQueueOptions) {
         startFallbackPolling();
       });
 
-      pusher.connection.bind("error", (error: any) => {
+      pusher.connection.bind("error", (error: unknown) => {
         console.error("Pusher connection error:", error);
         setConnectionState("disconnected");
         setIsUsingFallback(true);
@@ -152,28 +173,7 @@ export function usePusherQueue(options: UsePusherQueueOptions) {
       setIsUsingFallback(true);
       startFallbackPolling();
     }
-  }, [onPatientAdded, onPatientRemoved, onPriorityChanged]);
-
-  /**
-   * Start fallback polling (30-second interval)
-   */
-  const startFallbackPolling = useCallback(() => {
-    // Prevent duplicate intervals
-    if (fallbackIntervalRef.current) {
-      return;
-    }
-
-    console.log("Starting fallback polling (30s interval)");
-
-    // Initial fetch
-    fetchQueueFallback();
-
-    // Set up 30-second interval
-    fallbackIntervalRef.current = setInterval(() => {
-      console.log("Fallback polling: fetching queue data");
-      fetchQueueFallback();
-    }, 30000); // 30 seconds
-  }, [fetchQueueFallback]);
+  }, [onPatientAdded, onPatientRemoved, onPriorityChanged, startFallbackPolling]);
 
   /**
    * Manual retry connection
@@ -189,7 +189,7 @@ export function usePusherQueue(options: UsePusherQueueOptions) {
    * Initialize Pusher on mount
    */
   useEffect(() => {
-    initializePusher();
+    initializePusher(); // eslint-disable-line react-hooks/set-state-in-effect -- Initializing Pusher connection on mount is intentional
 
     // Cleanup on unmount
     return () => {

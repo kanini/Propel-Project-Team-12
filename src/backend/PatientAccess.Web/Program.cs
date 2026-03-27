@@ -19,6 +19,34 @@ using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load .env file for local development (secrets not committed to git)
+var envFile = Path.Combine(builder.Environment.ContentRootPath, ".env");
+if (File.Exists(envFile))
+{
+    foreach (var line in File.ReadAllLines(envFile))
+    {
+        var trimmed = line.Trim();
+        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#')) continue;
+        var idx = trimmed.IndexOf('=');
+        if (idx <= 0) continue;
+        var key = trimmed[..idx].Trim();
+        var value = trimmed[(idx + 1)..].Trim();
+        Environment.SetEnvironmentVariable(key, value);
+        // Also set in configuration directly (env vars set after builder init aren't picked up)
+        var configKey = key.Replace("__", ":");
+        builder.Configuration[configKey] = value;
+    }
+
+    // Inject DB_PASSWORD into connection string if provided
+    var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+    if (!string.IsNullOrEmpty(dbPassword))
+    {
+        var connStr = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+        connStr = connStr.Replace("Password=SET_VIA_ENV", $"Password={dbPassword}");
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = connStr;
+    }
+}
+
 // Add services to the container
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -94,7 +122,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultCorsPolicy", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -182,7 +210,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<IAuthorizationHandler, SamePatientAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuditingAuthorizationHandler>();
 
-// Register HttpClient for external API calls (Brevo email service)
+// Register HttpClient for external API calls
 builder.Services.AddHttpClient();
 
 // Register Business Layer Services (DI)
@@ -221,6 +249,13 @@ builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCl
 // US_043 - Document processing services (Hangfire background jobs)
 builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>(); // Processing orchestration
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
+
+// US_045 - AI Document Intelligence (task_002: Supabase + Tesseract + Gemini pipeline)
+builder.Services.AddHttpClient(); // Required for Gemini API calls
+builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase document download
+builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction
+builder.Services.AddScoped<IGeminiAiService, GeminiAiService>(); // Gemini AI data extraction
+builder.Services.AddScoped<IClinicalDataExtractionService, ClinicalDataExtractionService>(); // Extraction orchestration
 
 // Register IHttpContextAccessor for audit logging context extraction
 builder.Services.AddHttpContextAccessor();
@@ -274,20 +309,17 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
             logging.AddDebug();
         });
 
-        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("Redis session caching enabled. Session tokens will be cached with 15-minute TTL.");
+        Console.WriteLine("Redis session caching enabled. Session tokens will be cached with 15-minute TTL.");
     }
     catch (Exception ex)
     {
-        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Redis initialization failed. Application will use database-only session management. Error: {ErrorMessage}", ex.Message);
+        Console.WriteLine($"Redis initialization failed. Application will use database-only session management. Error: {ex.Message}");
         // Continue without Redis - application will fall back to database session storage
     }
 }
 else
 {
-    var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("Redis caching disabled in configuration. Application will use in-memory distributed cache fallback.");
+    Console.WriteLine("Redis caching disabled in configuration. Application will use in-memory distributed cache fallback.");
 
     // Register in-memory distributed cache as fallback (US_067)
     builder.Services.AddDistributedMemoryCache();

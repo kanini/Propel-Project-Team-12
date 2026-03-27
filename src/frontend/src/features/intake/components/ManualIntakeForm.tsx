@@ -89,7 +89,7 @@ export default function ManualIntakeForm({ onComplete }: ManualIntakeFormProps) 
     const saved = localStorage.getItem('manual-intake-draft');
     if (saved) {
       try {
-        setFormData(JSON.parse(saved));
+        setFormData(JSON.parse(saved)); // eslint-disable-line react-hooks/set-state-in-effect -- Loading saved draft on mount is intentional
       } catch {
         // Ignore invalid data
       }
@@ -398,7 +398,7 @@ function DemographicsSection({
 // Medical History Section Component
 function MedicalHistorySection({
   data,
-  errors: _errors, // Reserved for future validation
+  errors: _errors, // eslint-disable-line @typescript-eslint/no-unused-vars -- Reserved for future validation
   onChange,
   onNestedChange,
 }: {

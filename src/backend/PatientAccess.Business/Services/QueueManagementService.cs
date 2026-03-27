@@ -220,7 +220,7 @@ public class QueueManagementService : IQueueManagementService
             AppointmentType = appointment.IsWalkIn ? "Walk-in" : "Scheduled",
             ProviderName = appointment.Provider?.Name ?? "Unknown",
             ProviderId = appointment.ProviderId,
-            ArrivalTime = appointment.ArrivalTime ?? DateTime.UtcNow,
+            ArrivalTime = appointment.ArrivalTime, // Keep null if patient hasn't arrived
             EstimatedWaitTime = waitTimeMinutes,
             IsPriority = appointment.IsPriority
         };

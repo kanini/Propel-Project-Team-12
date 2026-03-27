@@ -114,8 +114,8 @@ export const fetchMonthlyAvailability = createAsyncThunk<
             // Backend returns: Array<{ date: DateTime, timeSlots: TimeSlotDto[] }>
             // Frontend expects: { providerId, month, availableDates: string[] }
             const availableDates = data
-                .filter((item: any) => item.timeSlots && item.timeSlots.length > 0)
-                .map((item: any) => {
+                .filter((item: { date: string; timeSlots: unknown[] }) => item.timeSlots && item.timeSlots.length > 0)
+                .map((item: { date: string; timeSlots: unknown[] }) => {
                     // Convert backend DateTime to YYYY-MM-DD format
                     const date = new Date(item.date);
                     return date.toISOString().split('T')[0];
@@ -171,7 +171,7 @@ export const fetchDailyTimeSlots = createAsyncThunk<
             
             return {
                 date: dateString,
-                slots: data.timeSlots.map((slot: any) => ({
+                slots: data.timeSlots.map((slot: { id: string; startTime: string; endTime: string; isBooked: boolean }) => ({
                     id: slot.id,
                     providerId: providerId,
                     startTime: slot.startTime,
@@ -621,25 +621,25 @@ const appointmentSlice = createSlice({
 
         // Cancel appointment (US_027)
         builder
-            .addCase(cancelAppointment.pending, (_state) => {
+            .addCase(cancelAppointment.pending, () => {
                 // Handled in component local state
             })
-            .addCase(cancelAppointment.fulfilled, (_state) => {
+            .addCase(cancelAppointment.fulfilled, () => {
                 // Success handled in component with toast notification
             })
-            .addCase(cancelAppointment.rejected, (_state) => {
+            .addCase(cancelAppointment.rejected, () => {
                 // Error handled in component with toast notification
             });
 
         // Reschedule appointment (US_027)
         builder
-            .addCase(rescheduleAppointment.pending, (_state) => {
+            .addCase(rescheduleAppointment.pending, () => {
                 // Handled in component local state
             })
-            .addCase(rescheduleAppointment.fulfilled, (_state) => {
+            .addCase(rescheduleAppointment.fulfilled, () => {
                 // Success handled in component with toast notification
             })
-            .addCase(rescheduleAppointment.rejected, (_state) => {
+            .addCase(rescheduleAppointment.rejected, () => {
                 // Error handled in component with toast notification
             });
 

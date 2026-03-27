@@ -150,7 +150,7 @@ export async function fetchProviderSlots(
     // Transform backend data structure to match frontend expectations
     // Backend: { id, startTime, endTime, isBooked }
     // Frontend: { id, providerId, startTime, endTime, status }
-    return timeSlots.map((slot: any) => ({
+    return timeSlots.map((slot: { id: string; startTime: string; endTime: string; isBooked: boolean }) => ({
       id: slot.id,
       providerId: providerId,
       startTime: slot.startTime,

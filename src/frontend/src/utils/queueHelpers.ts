@@ -15,21 +15,34 @@ export interface QueuePatient {
   appointmentType: "Walk-in" | "Scheduled";
   providerId: string;
   providerName: string;
-  arrivalTime: string; // ISO datetime string
+  arrivalTime: string | null; // ISO datetime string or null if not arrived
   isPriority: boolean;
   position: number;
 }
 
 /**
  * Calculate wait time from arrival time to now
- * @param arrivalTime ISO datetime string
- * @returns Formatted wait time string (e.g., "15 min", "1 hr 30 min")
+ * @param arrivalTime ISO datetime string or null
+ * @returns Formatted wait time string (e.g., "15 min", "1 hr 30 min") or "-" if not arrived
  */
-export function calculateWaitTime(arrivalTime: string): string {
+export function calculateWaitTime(arrivalTime: string | null): string {
+  // If patient hasn't arrived yet, show dash
+  if (!arrivalTime) {
+    return "-";
+  }
+
   const arrival = new Date(arrivalTime);
   const now = new Date();
   const diffMs = now.getTime() - arrival.getTime();
   const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 0) {
+    return "-"; // Handle future times (shouldn't happen)
+  }
+
+  if (diffMin < 1) {
+    return "< 1 min";
+  }
 
   if (diffMin < 60) {
     return `${diffMin} min`;
@@ -47,10 +60,13 @@ export function calculateWaitTime(arrivalTime: string): string {
 
 /**
  * Format arrival time for display (e.g., "2 minutes ago", "1 hour ago")
- * @param arrivalTime ISO datetime string
- * @returns Formatted relative time string
+ * @param arrivalTime ISO datetime string or null
+ * @returns Formatted relative time string or "-" if not arrived
  */
-export function formatArrivalTime(arrivalTime: string): string {
+export function formatArrivalTime(arrivalTime: string | null): string {
+  if (!arrivalTime) {
+    return "-";
+  }
   return formatDistanceToNow(new Date(arrivalTime), { addSuffix: true });
 }
 
@@ -65,8 +81,12 @@ export function reorderQueue(queue: QueuePatient[]): QueuePatient[] {
   const regularPatients = queue.filter((p) => !p.isPriority);
 
   // Sort both groups by arrival time (earliest first)
-  const sortByArrival = (a: QueuePatient, b: QueuePatient) =>
-    new Date(a.arrivalTime).getTime() - new Date(b.arrivalTime).getTime();
+  // Handle null arrival times by treating them as future dates (lowest priority)
+  const sortByArrival = (a: QueuePatient, b: QueuePatient) => {
+    if (!a.arrivalTime) return 1; // No arrival time goes to end
+    if (!b.arrivalTime) return -1;
+    return new Date(a.arrivalTime).getTime() - new Date(b.arrivalTime).getTime();
+  };
 
   priorityPatients.sort(sortByArrival);
   regularPatients.sort(sortByArrival);

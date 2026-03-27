@@ -397,12 +397,21 @@ export const MyAppointments: React.FC = () => {
                 {/* Intake (only for upcoming) */}
                 {type === 'upcoming' && (
                   <td className="py-3 px-4">
-                    <button
-                      onClick={() => navigate('/intake')}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        appointment.intakeStatus === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : appointment.intakeStatus === 'inProgress'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
                     >
-                      Pending
-                    </button>
+                      {appointment.intakeStatus === 'inProgress'
+                        ? 'In Progress'
+                        : appointment.intakeStatus === 'completed'
+                        ? 'Completed'
+                        : 'Pending'}
+                    </span>
                   </td>
                 )}
 

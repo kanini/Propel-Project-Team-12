@@ -65,9 +65,13 @@ public class AppointmentService : IAppointmentService
                 })
                 .ToListAsync();
 
-            // Group by date and build response
+            // Get current date to filter out past dates
+            var currentDate = DateTime.UtcNow.Date;
+            
+            // Group by date and build response, filtering out past dates
             var availabilityByDate = timeSlots
                 .GroupBy(ts => ts.StartTime.Date)
+                .Where(group => group.Key >= currentDate) // Only show today and future dates
                 .Select(group => new AvailabilityResponseDto
                 {
                     Date = group.Key,
@@ -112,9 +116,12 @@ public class AppointmentService : IAppointmentService
 
             var startDate = date.Date.ToUniversalTime();
             var endDate = startDate.AddDays(1);
+            var now = DateTime.UtcNow;
+            var currentDate = DateTime.UtcNow.Date;
+            var isToday = date.Date == currentDate;
 
             // Query time slots for specific date
-            var timeSlots = await _context.TimeSlots
+            var allTimeSlots = await _context.TimeSlots
                 .AsNoTracking() // Read-only performance optimization
                 .Where(ts => ts.ProviderId == providerId &&
                             ts.StartTime >= startDate &&
@@ -128,6 +135,11 @@ public class AppointmentService : IAppointmentService
                     IsBooked = ts.IsBooked
                 })
                 .ToListAsync();
+            
+            // Filter out past time slots for today
+            var timeSlots = isToday 
+                ? allTimeSlots.Where(ts => ts.StartTime > now).ToList()
+                : allTimeSlots;
 
             _logger.LogInformation(
                 "Retrieved {Count} time slots for Provider {ProviderId}, Date {Date}",
@@ -250,7 +262,9 @@ public class AppointmentService : IAppointmentService
                     Status = appointment.Status.ToString(),
                     ConfirmationNumber = appointment.ConfirmationNumber,
                     PreferredSlotId = appointment.PreferredSlotId,
-                    PreferredSlotStartTime = preferredSlotStartTime
+                    PreferredSlotStartTime = preferredSlotStartTime,
+                    IntakeStatus = "pending",
+                    IntakeSessionId = null
                 };
             }
             catch (ConflictException)
@@ -567,17 +581,27 @@ public class AppointmentService : IAppointmentService
                     // TODO: Send reschedule confirmation notification
                     // await _notificationService.SendRescheduleConfirmationAsync(appointment);
 
+                    // Load intake status for response
+                    var intakeRecord = await _context.IntakeRecords
+                        .AsNoTracking()
+                        .Where(ir => ir.AppointmentId == appointment.AppointmentId)
+                        .FirstOrDefaultAsync();
+
                     // Return updated appointment details
                     return new AppointmentResponseDto
                     {
                         Id = appointment.AppointmentId,
                         ProviderId = appointment.ProviderId,
                         ProviderName = appointment.Provider.Name,
+                        ProviderSpecialty = appointment.Provider.Specialty,
                         ScheduledDateTime = appointment.ScheduledDateTime,
                         VisitReason = appointment.VisitReason,
                         Status = appointment.Status.ToString(),
                         ConfirmationNumber = appointment.ConfirmationNumber,
-                        PreferredSlotId = appointment.PreferredSlotId
+                        PreferredSlotId = appointment.PreferredSlotId,
+                        IntakeStatus = intakeRecord == null ? "pending" : 
+                                       intakeRecord.IsCompleted ? "completed" : "inProgress",
+                        IntakeSessionId = intakeRecord?.IntakeRecordId
                     };
                 }
                 catch (ConflictException)
@@ -627,23 +651,31 @@ public class AppointmentService : IAppointmentService
         {
             _logger.LogInformation("Fetching all appointments for Patient {PatientId}", patientId);
 
-            // Fetch all appointments for the patient with provider details
+            // Fetch all appointments for the patient with provider details and intake status
             var appointments = await _context.Appointments
                 .AsNoTracking()
                 .Include(a => a.Provider)
                 .Where(a => a.PatientId == patientId)
-                .OrderByDescending(a => a.ScheduledDateTime)
-                .Select(a => new AppointmentResponseDto
+                .GroupJoin(
+                    _context.IntakeRecords,
+                    a => a.AppointmentId,
+                    ir => ir.AppointmentId,
+                    (appointment, intakeRecords) => new { appointment, intakeRecord = intakeRecords.FirstOrDefault() })
+                .OrderByDescending(x => x.appointment.ScheduledDateTime)
+                .Select(x => new AppointmentResponseDto
                 {
-                    Id = a.AppointmentId,
-                    ProviderId = a.ProviderId,
-                    ProviderName = a.Provider.Name,
-                    ProviderSpecialty = a.Provider.Specialty,
-                    ScheduledDateTime = a.ScheduledDateTime,
-                    VisitReason = a.VisitReason,
-                    Status = a.Status.ToString(),
-                    ConfirmationNumber = a.ConfirmationNumber,
-                    PreferredSlotId = a.PreferredSlotId
+                    Id = x.appointment.AppointmentId,
+                    ProviderId = x.appointment.ProviderId,
+                    ProviderName = x.appointment.Provider.Name,
+                    ProviderSpecialty = x.appointment.Provider.Specialty,
+                    ScheduledDateTime = x.appointment.ScheduledDateTime,
+                    VisitReason = x.appointment.VisitReason,
+                    Status = x.appointment.Status.ToString(),
+                    ConfirmationNumber = x.appointment.ConfirmationNumber,
+                    PreferredSlotId = x.appointment.PreferredSlotId,
+                    IntakeStatus = x.intakeRecord == null ? "pending" :
+                                   x.intakeRecord.IsCompleted ? "completed" : "inProgress",
+                    IntakeSessionId = x.intakeRecord != null ? x.intakeRecord.IntakeRecordId : null
                 })
                 .ToListAsync();
 
@@ -761,24 +793,27 @@ public class AppointmentService : IAppointmentService
                         "Walk-in appointment {AppointmentId} created successfully with confirmation {ConfirmationNumber}",
                         appointment.AppointmentId, appointment.ConfirmationNumber);
 
-                    // Load provider name for response
+                    // Load provider name and specialty for response
                     var provider = await _context.Providers
                         .AsNoTracking()
                         .Where(p => p.ProviderId == request.ProviderId)
-                        .Select(p => p.Name)
+                        .Select(p => new { p.Name, p.Specialty })
                         .FirstOrDefaultAsync();
 
                     return new AppointmentResponseDto
                     {
                         Id = appointment.AppointmentId,
                         ProviderId = appointment.ProviderId,
-                        ProviderName = provider ?? "Unknown",
+                        ProviderName = provider?.Name ?? "Unknown",
+                        ProviderSpecialty = provider?.Specialty ?? "General Practice",
                         ScheduledDateTime = appointment.ScheduledDateTime,
                         VisitReason = appointment.VisitReason,
                         Status = appointment.Status.ToString(),
                         ConfirmationNumber = appointment.ConfirmationNumber,
                         PreferredSlotId = null,
-                        PreferredSlotStartTime = null
+                        PreferredSlotStartTime = null,
+                        IntakeStatus = "pending",
+                        IntakeSessionId = null
                     };
                 }
                 catch (ConflictException)
@@ -786,7 +821,7 @@ public class AppointmentService : IAppointmentService
                     await transaction.RollbackAsync();
                     throw; // Rethrow conflict exceptions immediately (no retry)
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await transaction.RollbackAsync();
                     throw; // Rethrow all exceptions; deadlock retry handled by outer loop

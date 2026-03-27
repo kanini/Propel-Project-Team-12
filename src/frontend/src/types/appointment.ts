@@ -39,6 +39,7 @@ export interface Appointment {
     preferredSlotId?: string;
     createdAt: string;
     confirmationNumber?: string;
+    intakeStatus?: 'pending' | 'inProgress' | 'completed';
 }
 
 /**

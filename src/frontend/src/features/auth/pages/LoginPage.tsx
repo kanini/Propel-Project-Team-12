@@ -29,7 +29,7 @@ export default function LoginPage() {
           >
             +
           </div>
-          <span className="text-2xl font-semibold text-neutral-900">PatientAccess</span>
+          <span className="text-2xl font-semibold text-neutral-900">CareSync AI</span>
         </div>
 
         {/* Login Card */}
@@ -37,7 +37,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-3xl font-semibold text-neutral-900 mb-1">Sign in</h1>
-            <p className="text-sm text-neutral-500">Welcome back to PatientAccess</p>
+            <p className="text-sm text-neutral-500">Welcome back to CareSync AI</p>
           </div>
 
           {/* Login Form */}

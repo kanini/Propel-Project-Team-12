@@ -25,4 +25,11 @@ public interface IProviderService
         string? gender = null,
         int page = 1,
         int pageSize = 20);
+
+    /// <summary>
+    /// Retrieves a single provider by ID (US_024 - Appointment Booking).
+    /// </summary>
+    /// <param name="providerId">Provider GUID</param>
+    /// <returns>Provider details or null if not found</returns>
+    Task<ProviderDto?> GetProviderByIdAsync(Guid providerId);
 }
