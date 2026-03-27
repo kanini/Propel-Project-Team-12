@@ -43,6 +43,15 @@ export const UserTable = ({
 
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const paginatedUsers = users.slice(startIndex, startIndex + PAGE_SIZE);
+
+  // Reset to page 1 when the users list changes and current page exceeds max
+  useEffect(() => {
+    const maxPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+    if (currentPage > maxPages) {
+      setCurrentPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users.length]);
   
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
