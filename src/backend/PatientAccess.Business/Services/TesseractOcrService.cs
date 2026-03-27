@@ -8,6 +8,7 @@ using Docnet.Core;
 using Docnet.Core.Models;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Runtime.Versioning;
 
 namespace PatientAccess.Business.Services;
 
@@ -15,7 +16,9 @@ namespace PatientAccess.Business.Services;
 /// Service for OCR text extraction using Tesseract.
 /// Uses Docnet.Core for PDF to image conversion and Tesseract for OCR.
 /// Requires tessdata files (eng.traineddata) in the configured DataPath.
+/// Windows-only service due to System.Drawing dependency.
 /// </summary>
+[SupportedOSPlatform("windows")]
 public class TesseractOcrService : ITesseractOcrService
 {
     private readonly IConfiguration _configuration;
