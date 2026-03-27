@@ -249,7 +249,14 @@ builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCl
 
 // US_043 - Document processing services (Hangfire background jobs)
 builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>(); // Processing orchestration
+
+// EP-007 - Patient profile aggregation services (US_047, US_048, US_049)
+builder.Services.AddScoped<IEntityResolutionService, EntityResolutionService>(); // Entity de-duplication and conflict detection
+builder.Services.AddScoped<IConflictDetectionService, ConflictDetectionService>(); // Conflict detection and severity classification (US_048)
+builder.Services.AddScoped<IDataAggregationService, DataAggregationService>(); // Patient profile aggregation orchestration
+builder.Services.AddScoped<IPatientProfileService, PatientProfileService>(); // 360° patient profile retrieval with Redis caching (US_049)
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.PatientProfileAggregationJob>(); // Background profile aggregation job
 
 // US_045 - AI Document Intelligence (task_002: Supabase + Tesseract + Gemini pipeline)
 builder.Services.AddHttpClient(); // Required for Gemini API calls and Supabase Storage REST API

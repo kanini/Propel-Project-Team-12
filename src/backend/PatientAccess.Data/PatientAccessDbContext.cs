@@ -7,10 +7,11 @@ namespace PatientAccess.Data;
 /// <summary>
 /// Entity Framework Core database context for Patient Access Platform.
 /// Manages database connections and entity configurations for PostgreSQL with pgvector support.
+/// Updated: 2026-03-27 - Added EP-007 Patient Profile Aggregation entities
 /// </summary>
 public class PatientAccessDbContext : DbContext
 {
-    public PatientAccessDbContext(DbContextOptions<PatientAccessDbContext> options) 
+    public PatientAccessDbContext(DbContextOptions<PatientAccessDbContext> options)
         : base(options)
     {
     }
@@ -31,6 +32,15 @@ public class PatientAccessDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<InsuranceRecord> InsuranceRecords => Set<InsuranceRecord>();
     public DbSet<NoShowHistory> NoShowHistory => Set<NoShowHistory>();
+
+    // EP-007 Patient Profile Aggregation Entity DbSets
+    public DbSet<PatientProfile> PatientProfiles => Set<PatientProfile>();
+    public DbSet<ConsolidatedCondition> ConsolidatedConditions => Set<ConsolidatedCondition>();
+    public DbSet<ConsolidatedMedication> ConsolidatedMedications => Set<ConsolidatedMedication>();
+    public DbSet<ConsolidatedAllergy> ConsolidatedAllergies => Set<ConsolidatedAllergy>();
+    public DbSet<VitalTrend> VitalTrends => Set<VitalTrend>();
+    public DbSet<ConsolidatedEncounter> ConsolidatedEncounters => Set<ConsolidatedEncounter>();
+    public DbSet<DataConflict> DataConflicts => Set<DataConflict>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,5 +65,14 @@ public class PatientAccessDbContext : DbContext
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
         modelBuilder.ApplyConfiguration(new InsuranceRecordConfiguration());
         modelBuilder.ApplyConfiguration(new NoShowHistoryConfiguration());
+
+        // EP-007 Patient Profile Aggregation configurations
+        modelBuilder.ApplyConfiguration(new PatientProfileConfiguration());
+        modelBuilder.ApplyConfiguration(new ConsolidatedConditionConfiguration());
+        modelBuilder.ApplyConfiguration(new ConsolidatedMedicationConfiguration());
+        modelBuilder.ApplyConfiguration(new ConsolidatedAllergyConfiguration());
+        modelBuilder.ApplyConfiguration(new VitalTrendConfiguration());
+        modelBuilder.ApplyConfiguration(new ConsolidatedEncounterConfiguration());
+        modelBuilder.ApplyConfiguration(new DataConflictConfiguration());
     }
 }

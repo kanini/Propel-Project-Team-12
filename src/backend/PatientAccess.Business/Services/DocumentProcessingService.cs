@@ -18,6 +18,7 @@ public class DocumentProcessingService : IDocumentProcessingService
     private readonly PatientAccessDbContext _context;
     private readonly IPusherService _pusherService;
     private readonly IClinicalDataExtractionService _extractionService;
+    private readonly IDataAggregationService _aggregationService;
     private readonly ILogger<DocumentProcessingService> _logger;
 
     private const int ProcessingTimeoutSeconds = 60; // NFR-010: 60-second target for 10MB files
@@ -27,11 +28,13 @@ public class DocumentProcessingService : IDocumentProcessingService
         PatientAccessDbContext context,
         IPusherService pusherService,
         IClinicalDataExtractionService extractionService,
+        IDataAggregationService aggregationService,
         ILogger<DocumentProcessingService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _pusherService = pusherService ?? throw new ArgumentNullException(nameof(pusherService));
         _extractionService = extractionService ?? throw new ArgumentNullException(nameof(extractionService));
+        _aggregationService = aggregationService ?? throw new ArgumentNullException(nameof(aggregationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -54,100 +57,117 @@ public class DocumentProcessingService : IDocumentProcessingService
             {
                 _logger.LogInformation("Starting document processing for {DocumentId}", documentId);
 
-            // Load document entity
-            var document = await _context.ClinicalDocuments
-                .Include(d => d.Patient)
-                .FirstOrDefaultAsync(d => d.DocumentId == documentId);
+                // Load document entity
+                var document = await _context.ClinicalDocuments
+                    .Include(d => d.Patient)
+                    .FirstOrDefaultAsync(d => d.DocumentId == documentId);
 
-            if (document == null)
-            {
-                _logger.LogError("Document {DocumentId} not found", documentId);
-                throw new InvalidOperationException($"Document {documentId} not found");
+                if (document == null)
+                {
+                    _logger.LogError("Document {DocumentId} not found", documentId);
+                    throw new InvalidOperationException($"Document {documentId} not found");
+                }
+
+                // Update status to Processing (AC2)
+                document.ProcessingStatus = ProcessingStatus.Processing;
+                document.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Document {DocumentId} status updated to Processing", documentId);
+
+                // Trigger Pusher event: processing-started (AC2)
+                await TriggerProcessingStartedEventAsync(documentId, document.PatientId, document.FileName);
+
+                // Execute AI extraction pipeline (task_002)
+                _logger.LogInformation("Invoking ClinicalDataExtractionService for document {DocumentId}", documentId);
+                var extractionResult = await _extractionService.ExtractClinicalDataAsync(documentId);
+
+                // Persist extracted data points (task_003)
+                _logger.LogInformation("Persisting {DataPointCount} extracted data points", extractionResult.TotalDataPoints);
+                await PersistExtractedDataAsync(document, extractionResult);
+
+                // Flag for manual review if low confidence (task_003 AC7)
+                document.RequiresManualReview = extractionResult.RequiresManualReview;
+                if (extractionResult.RequiresManualReview)
+                {
+                    _logger.LogInformation("Document {DocumentId} flagged for manual review: {Count} data points below {Threshold}% confidence",
+                        documentId, extractionResult.FlaggedForReviewCount, LowConfidenceThreshold);
+                }
+
+                // Update status to Completed (task_003 AC6)
+                document.ProcessingStatus = ProcessingStatus.Completed;
+                document.ProcessedAt = DateTime.UtcNow;
+                document.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                // Commit transaction
+                await transaction.CommitAsync();
+
+                stopwatch.Stop();
+                var processingTimeMs = stopwatch.ElapsedMilliseconds;
+
+                _logger.LogInformation("Document {DocumentId} processing completed in {ProcessingTimeMs}ms. Extracted {TotalDataPoints} data points, {FlaggedCount} flagged for review",
+                    documentId, processingTimeMs, extractionResult.TotalDataPoints, extractionResult.FlaggedForReviewCount);
+
+                // Log warning if processing exceeds 30-second target (task_003)
+                if (processingTimeMs > 30000)
+                {
+                    _logger.LogWarning("Document {DocumentId} processing exceeded 30s target: {ProcessingTimeMs}ms",
+                        documentId, processingTimeMs);
+                }
+
+                // Trigger Pusher event: extraction-complete (task_003)
+                var summary = new ExtractionSummaryDto
+                {
+                    DocumentId = documentId,
+                    TotalDataPoints = extractionResult.TotalDataPoints,
+                    FlaggedForReview = extractionResult.FlaggedForReviewCount,
+                    DataTypeBreakdown = extractionResult.DataTypeBreakdown,
+                    RequiresManualReview = extractionResult.RequiresManualReview,
+                    ExtractedAt = extractionResult.ExtractedAt
+                };
+
+                await TriggerExtractionCompleteEventAsync(document.PatientId, documentId, summary);
+
+                // EP-007: Trigger patient profile aggregation (incremental)
+                _logger.LogInformation("Triggering patient profile aggregation for Patient {PatientId} after document {DocumentId} extraction",
+                    document.PatientId, documentId);
+
+                try
+                {
+                    await _aggregationService.IncrementalAggregateAsync(document.PatientId, documentId);
+                    _logger.LogInformation("Patient profile aggregation completed successfully for Patient {PatientId}", document.PatientId);
+                }
+                catch (Exception aggEx)
+                {
+                    // Log error but don't fail document processing (EP-007 requirement: graceful degradation)
+                    _logger.LogError(aggEx,
+                        "Patient profile aggregation failed for Patient {PatientId}, Document {DocumentId}. Error: {ErrorMessage}",
+                        document.PatientId, documentId, aggEx.Message);
+                }
             }
-
-            // Update status to Processing (AC2)
-            document.ProcessingStatus = ProcessingStatus.Processing;
-            document.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Document {DocumentId} status updated to Processing", documentId);
-
-            // Trigger Pusher event: processing-started (AC2)
-            await TriggerProcessingStartedEventAsync(documentId, document.PatientId, document.FileName);
-
-            // Execute AI extraction pipeline (task_002)
-            _logger.LogInformation("Invoking ClinicalDataExtractionService for document {DocumentId}", documentId);
-            var extractionResult = await _extractionService.ExtractClinicalDataAsync(documentId);
-
-            // Persist extracted data points (task_003)
-            _logger.LogInformation("Persisting {DataPointCount} extracted data points", extractionResult.TotalDataPoints);
-            await PersistExtractedDataAsync(document, extractionResult);
-
-            // Flag for manual review if low confidence (task_003 AC7)
-            document.RequiresManualReview = extractionResult.RequiresManualReview;
-            if (extractionResult.RequiresManualReview)
+            catch (Exception ex)
             {
-                _logger.LogInformation("Document {DocumentId} flagged for manual review: {Count} data points below {Threshold}% confidence", 
-                    documentId, extractionResult.FlaggedForReviewCount, LowConfidenceThreshold);
+                await transaction.RollbackAsync();
+                stopwatch.Stop();
+
+                _logger.LogError(ex, "Document {DocumentId} processing failed after {ProcessingTimeMs}ms. Error: {ErrorMessage}",
+                    documentId, stopwatch.ElapsedMilliseconds, ex.Message);
+
+                // Update status to Failed (AC4)
+                await UpdateDocumentStatusAsync(documentId, "Failed", ex.Message);
+
+                // Trigger Pusher event: processing-failed (AC4)
+                var document = await _context.ClinicalDocuments
+                    .FirstOrDefaultAsync(d => d.DocumentId == documentId);
+
+                if (document != null)
+                {
+                    await TriggerProcessingFailedEventAsync(documentId, document.PatientId, document.FileName, ex.Message);
+                }
+
+                throw; // Re-throw to trigger Hangfire retry
             }
-
-            // Update status to Completed (task_003 AC6)
-            document.ProcessingStatus = ProcessingStatus.Completed;
-            document.ProcessedAt = DateTime.UtcNow;
-            document.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            // Commit transaction
-            await transaction.CommitAsync();
-
-            stopwatch.Stop();
-            var processingTimeMs = stopwatch.ElapsedMilliseconds;
-
-            _logger.LogInformation("Document {DocumentId} processing completed in {ProcessingTimeMs}ms. Extracted {TotalDataPoints} data points, {FlaggedCount} flagged for review",
-                documentId, processingTimeMs, extractionResult.TotalDataPoints, extractionResult.FlaggedForReviewCount);
-
-            // Log warning if processing exceeds 30-second target (task_003)
-            if (processingTimeMs > 30000)
-            {
-                _logger.LogWarning("Document {DocumentId} processing exceeded 30s target: {ProcessingTimeMs}ms",
-                    documentId, processingTimeMs);
-            }
-
-            // Trigger Pusher event: extraction-complete (task_003)
-            var summary = new ExtractionSummaryDto
-            {
-                DocumentId = documentId,
-                TotalDataPoints = extractionResult.TotalDataPoints,
-                FlaggedForReview = extractionResult.FlaggedForReviewCount,
-                DataTypeBreakdown = extractionResult.DataTypeBreakdown,
-                RequiresManualReview = extractionResult.RequiresManualReview,
-                ExtractedAt = extractionResult.ExtractedAt
-            };
-
-            await TriggerExtractionCompleteEventAsync(document.PatientId, documentId, summary);
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            stopwatch.Stop();
-
-            _logger.LogError(ex, "Document {DocumentId} processing failed after {ProcessingTimeMs}ms. Error: {ErrorMessage}",
-                documentId, stopwatch.ElapsedMilliseconds, ex.Message);
-
-            // Update status to Failed (AC4)
-            await UpdateDocumentStatusAsync(documentId, "Failed", ex.Message);
-
-            // Trigger Pusher event: processing-failed (AC4)
-            var document = await _context.ClinicalDocuments
-                .FirstOrDefaultAsync(d => d.DocumentId == documentId);
-
-            if (document != null)
-            {
-                await TriggerProcessingFailedEventAsync(documentId, document.PatientId, document.FileName, ex.Message);
-            }
-
-            throw; // Re-throw to trigger Hangfire retry
-        }
         }); // End of ExecuteAsync
     }
 

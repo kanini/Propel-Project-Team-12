@@ -5,6 +5,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
 using PusherServer;
 
@@ -119,5 +120,67 @@ public class PusherService : IPusherService
                                "Event will not be broadcast.", eventName, channel);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Send real-time notification for completed patient profile aggregation (EP-007, FR-032).
+    /// Channel: private-patient-{patientId}
+    /// Event: patient-profile-updated
+    /// </summary>
+    public async Task<bool> SendAggregationCompleteAsync(Guid patientId, AggregationResultDto result)
+    {
+        var channel = $"private-patient-{patientId}";
+        var eventName = "patient-profile-updated";
+
+        var payload = new
+        {
+            patientId = result.PatientId,
+            profileCompleteness = result.ProfileCompleteness,
+            newConditionsCount = result.NewConditionsCount,
+            newMedicationsCount = result.NewMedicationsCount,
+            newAllergiesCount = result.NewAllergiesCount,
+            newVitalsCount = result.NewVitalsCount,
+            newEncountersCount = result.NewEncountersCount,
+            conflictsDetected = result.ConflictsDetected,
+            hasUnresolvedConflicts = result.HasUnresolvedConflicts,
+            aggregatedAt = result.AggregatedAt,
+            isIncremental = result.IsIncremental
+        };
+
+        return await TriggerEventAsync(channel, eventName, payload);
+    }
+
+    /// <summary>
+    /// Send real-time notification for critical conflict detection (US_048, FR-031).
+    /// Channel: private-patient-{patientId}
+    /// Event: critical-conflict-detected
+    /// Only sends for Critical severity conflicts.
+    /// </summary>
+    public async Task<bool> SendConflictDetectedAsync(Guid patientId, DataConflictDto conflict)
+    {
+        // Only send Pusher notifications for Critical conflicts
+        if (conflict.Severity != Data.Models.Enums.ConflictSeverity.Critical)
+        {
+            _logger.LogInformation("Skipping Pusher notification for non-critical conflict {ConflictId}", conflict.Id);
+            return true;
+        }
+
+        var channel = $"private-patient-{patientId}";
+        var eventName = "critical-conflict-detected";
+
+        var payload = new
+        {
+            conflictId = conflict.Id,
+            severity = conflict.Severity.ToString(),
+            entityType = conflict.EntityType,
+            conflictType = conflict.ConflictType,
+            description = conflict.Description,
+            detectedAt = conflict.CreatedAt
+        };
+
+        _logger.LogInformation("Sending critical conflict notification for patient {PatientId}, conflict {ConflictId}",
+            patientId, conflict.Id);
+
+        return await TriggerEventAsync(channel, eventName, payload);
     }
 }

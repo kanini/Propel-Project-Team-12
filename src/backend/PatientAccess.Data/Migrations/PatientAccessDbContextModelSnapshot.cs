@@ -216,6 +216,11 @@ namespace PatientAccess.Data.Migrations
                     b.Property<int>("ProcessingStatus")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("RequiresManualReview")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -278,6 +283,11 @@ namespace PatientAccess.Data.Migrations
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("ExtractedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
@@ -286,6 +296,9 @@ namespace PatientAccess.Data.Migrations
 
                     b.Property<string>("SourceTextExcerpt")
                         .HasColumnType("text");
+
+                    b.Property<string>("StructuredData")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz");

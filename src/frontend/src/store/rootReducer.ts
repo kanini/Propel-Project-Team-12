@@ -8,8 +8,9 @@ import documentsReducer from "./documentsSlice";
 import intakeAppointmentReducer from "./slices/intakeAppointmentSlice";
 import intakeReducer from "./slices/intakeSlice";
 import auditLogsReducer from "./slices/auditLogsSlice";
-import staffDashboardReducer from './slices/staffDashboardSlice';
-
+import staffDashboardReducer from "./slices/staffDashboardSlice";
+import conflictsReducer from "./slices/conflictsSlice";
+import patientProfileReducer from "./slices/patientProfileSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -22,6 +23,8 @@ const rootReducer = combineReducers({
   intake: intakeReducer,
   staffDashboard: staffDashboardReducer,
   auditLogs: auditLogsReducer,
+  conflicts: conflictsReducer,
+  patientProfile: patientProfileReducer,
 });
 
 export default rootReducer;
