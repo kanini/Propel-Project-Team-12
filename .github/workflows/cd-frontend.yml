@@ -55,6 +55,8 @@ jobs:
       # CICD-001, CICD-005: Build production bundle
       - name: Build
         run: npm run build
+        env:
+          VITE_API_BASE_URL: https://bms1091.runasp.net
 
       # CICD-050: Deploy frontend to InfinityFree via FTP
       - name: Deploy to FTP

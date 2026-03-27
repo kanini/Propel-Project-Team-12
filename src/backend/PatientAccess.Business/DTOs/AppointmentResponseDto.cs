@@ -58,4 +58,16 @@ public class AppointmentResponseDto
     /// Only populated when PreferredSlotId is set.
     /// </summary>
     public DateTime? PreferredSlotStartTime { get; set; }
+
+    /// <summary>
+    /// Patient intake completion status for this appointment.
+    /// Values: "pending" (not started), "inProgress" (started but not completed), "completed" (fully completed).
+    /// </summary>
+    public string? IntakeStatus { get; set; }
+
+    /// <summary>
+    /// Intake session/record ID if intake has been started.
+    /// Null if intake not yet started.
+    /// </summary>
+    public Guid? IntakeSessionId { get; set; }
 }
