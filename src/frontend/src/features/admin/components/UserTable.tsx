@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { type User } from '../../../store/usersSlice';
 
 const PAGE_SIZE = 10;
@@ -25,13 +25,12 @@ export const UserTable = ({
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  
+  // Auto-clamp to valid page range (handles filtering that reduces items)
+  const validPage = Math.min(currentPage, Math.max(1, totalPages));
+  const startIndex = (validPage - 1) * PAGE_SIZE;
   const paginatedUsers = users.slice(startIndex, startIndex + PAGE_SIZE);
 
-  // Reset to page 1 when the users list changes (e.g. search/filter)
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [users.length]);
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'Active':
