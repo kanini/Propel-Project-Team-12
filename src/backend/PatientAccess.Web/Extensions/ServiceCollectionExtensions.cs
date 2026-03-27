@@ -34,6 +34,9 @@ public static class ServiceCollectionExtensions
         {
             options.UseNpgsql(connectionString, npgsqlOptions =>
             {
+                // Enable pgvector extension support (DR-010, AIR-R04)
+                npgsqlOptions.UseVector();
+
                 // Enable retry on failure for transient errors
                 npgsqlOptions.EnableRetryOnFailure(
                     maxRetryCount: 3,

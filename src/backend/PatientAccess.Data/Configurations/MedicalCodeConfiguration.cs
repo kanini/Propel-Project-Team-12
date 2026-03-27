@@ -34,6 +34,21 @@ public class MedicalCodeConfiguration : IEntityTypeConfiguration<MedicalCode>
             .IsRequired()
             .HasColumnType("decimal(5,2)");
 
+        // US_051 Task 1: New properties for RAG-based code mapping
+        builder.Property(m => m.Rationale)
+            .HasColumnType("text");
+
+        builder.Property(m => m.Rank)
+            .IsRequired()
+            .HasDefaultValue(1);
+
+        builder.Property(m => m.IsTopSuggestion)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(m => m.RetrievedContext)
+            .HasColumnType("text");
+
         builder.Property(m => m.VerificationStatus)
             .IsRequired()
             .HasConversion<int>();
@@ -74,6 +89,10 @@ public class MedicalCodeConfiguration : IEntityTypeConfiguration<MedicalCode>
 
         builder.HasIndex(m => m.VerificationStatus)
             .HasDatabaseName("IX_MedicalCodes_VerificationStatus");
+
+        // US_051 Task 1: Index for filtering top suggestions in quality metrics
+        builder.HasIndex(m => m.IsTopSuggestion)
+            .HasDatabaseName("IX_MedicalCodes_IsTopSuggestion");
 
         // Composite unique: prevent duplicate codes per extraction
         builder.HasIndex(m => new { m.ExtractedDataId, m.CodeSystem, m.CodeValue })

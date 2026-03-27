@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PatientAccess.Data;
+using Pgvector;
 
 #nullable disable
 
@@ -179,6 +180,90 @@ namespace PatientAccess.Data.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("PatientAccess.Data.Models.CPTCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ChunkText")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Vector>("Embedding")
+                        .HasColumnType("vector(1536)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("Modifier")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_CPTCodes_Category");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CPTCodes_Code");
+
+                    b.HasIndex("Embedding")
+                        .HasDatabaseName("IX_CPTCodes_Embedding_Cosine");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Embedding"), "hnsw");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Embedding"), new[] { "vector_cosine_ops" });
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_CPTCodes_IsActive");
+
+                    b.HasIndex("Metadata")
+                        .HasDatabaseName("IX_CPTCodes_Metadata_Gin");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Metadata"), "gin");
+
+                    b.ToTable("CPTCodes", (string)null);
+                });
+
             modelBuilder.Entity("PatientAccess.Data.Models.ClinicalDocument", b =>
                 {
                     b.Property<Guid>("DocumentId")
@@ -216,6 +301,11 @@ namespace PatientAccess.Data.Migrations
                     b.Property<int>("ProcessingStatus")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("RequiresManualReview")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -248,6 +338,150 @@ namespace PatientAccess.Data.Migrations
                     b.ToTable("ClinicalDocuments", (string)null);
                 });
 
+            modelBuilder.Entity("PatientAccess.Data.Models.ClinicalTerminology", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ChunkText")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Vector>("Embedding")
+                        .HasColumnType("vector(1536)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Synonyms")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
+
+                    b.Property<string>("Term")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_ClinicalTerminology_Category");
+
+                    b.HasIndex("Embedding")
+                        .HasDatabaseName("IX_ClinicalTerminology_Embedding_Cosine");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Embedding"), "hnsw");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Embedding"), new[] { "vector_cosine_ops" });
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_ClinicalTerminology_IsActive");
+
+                    b.HasIndex("Metadata")
+                        .HasDatabaseName("IX_ClinicalTerminology_Metadata_Gin");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Metadata"), "gin");
+
+                    b.HasIndex("Term")
+                        .HasDatabaseName("IX_ClinicalTerminology_Term");
+
+                    b.ToTable("ClinicalTerminology", (string)null);
+                });
+
+            modelBuilder.Entity("PatientAccess.Data.Models.DocumentChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ChunkIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CodeSystem")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EndToken")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsProcessed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("OverlapWithPrevious")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceText")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("StartToken")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("TargetEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TokenCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeSystem")
+                        .HasDatabaseName("IX_DocumentChunks_CodeSystem");
+
+                    b.HasIndex("IsProcessed")
+                        .HasDatabaseName("IX_DocumentChunks_IsProcessed");
+
+                    b.HasIndex("TargetEntityId")
+                        .HasDatabaseName("IX_DocumentChunks_TargetEntityId");
+
+                    b.HasIndex("CodeSystem", "IsProcessed")
+                        .HasDatabaseName("IX_DocumentChunks_CodeSystem_IsProcessed");
+
+                    b.ToTable("DocumentChunks", (string)null);
+                });
+
             modelBuilder.Entity("PatientAccess.Data.Models.ExtractedClinicalData", b =>
                 {
                     b.Property<Guid>("ExtractedDataId")
@@ -278,6 +512,11 @@ namespace PatientAccess.Data.Migrations
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("ExtractedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
@@ -286,6 +525,9 @@ namespace PatientAccess.Data.Migrations
 
                     b.Property<string>("SourceTextExcerpt")
                         .HasColumnType("text");
+
+                    b.Property<string>("StructuredData")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz");
@@ -316,6 +558,91 @@ namespace PatientAccess.Data.Migrations
                     b.HasIndex("VerifiedBy");
 
                     b.ToTable("ExtractedClinicalData", (string)null);
+                });
+
+            modelBuilder.Entity("PatientAccess.Data.Models.ICD10Code", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ChapterCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("ChunkText")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Vector>("Embedding")
+                        .HasColumnType("vector(1536)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_ICD10Codes_Category");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ICD10Codes_Code");
+
+                    b.HasIndex("Embedding")
+                        .HasDatabaseName("IX_ICD10Codes_Embedding_Cosine");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Embedding"), "hnsw");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Embedding"), new[] { "vector_cosine_ops" });
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_ICD10Codes_IsActive");
+
+                    b.HasIndex("Metadata")
+                        .HasDatabaseName("IX_ICD10Codes_Metadata_Gin");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Metadata"), "gin");
+
+                    b.ToTable("ICD10Codes", (string)null);
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.InsuranceRecord", b =>
@@ -461,6 +788,22 @@ namespace PatientAccess.Data.Migrations
                     b.Property<Guid>("ExtractedDataId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsTopSuggestion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("Rank")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("Rationale")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RetrievedContext")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz");
 
@@ -483,6 +826,9 @@ namespace PatientAccess.Data.Migrations
 
                     b.HasIndex("ExtractedDataId")
                         .HasDatabaseName("IX_MedicalCodes_ExtractedDataId");
+
+                    b.HasIndex("IsTopSuggestion")
+                        .HasDatabaseName("IX_MedicalCodes_IsTopSuggestion");
 
                     b.HasIndex("VerificationStatus")
                         .HasDatabaseName("IX_MedicalCodes_VerificationStatus");
@@ -662,6 +1008,66 @@ namespace PatientAccess.Data.Migrations
                         .HasDatabaseName("IX_Providers_Specialty");
 
                     b.ToTable("Providers", (string)null);
+                });
+
+            modelBuilder.Entity("PatientAccess.Data.Models.QualityMetric", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("MeasurementPeriod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("MetricType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("MetricValue")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int>("SampleSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("Target")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MetricType")
+                        .HasDatabaseName("IX_QualityMetrics_MetricType");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_QualityMetrics_Status");
+
+                    b.HasIndex("PeriodStart", "PeriodEnd")
+                        .HasDatabaseName("IX_QualityMetrics_PeriodStartEnd");
+
+                    b.ToTable("QualityMetrics", (string)null);
                 });
 
             modelBuilder.Entity("PatientAccess.Data.Models.TimeSlot", b =>

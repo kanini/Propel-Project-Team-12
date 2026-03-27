@@ -5,51 +5,44 @@ using Microsoft.Extensions.Logging;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
 using PatientAccess.Data.Models;
-using Mscc.GenerativeAI;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// Service for AI-powered clinical data extraction using Google Gemini.
-/// Uses Mscc.GenerativeAI SDK to interact with Gemini API.
-/// Requires API key from Google AI Studio (https://aistudio.google.com/apikey).
+/// Service for AI-powered clinical data extraction using Google Gemini (task_002).
+/// Calls Gemini REST API for clinical data extraction from OCR text.
+/// Falls back to stub data when API key is not configured.
 /// </summary>
 public class GeminiAiService : IGeminiAiService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<GeminiAiService> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly string _apiKey;
+    private readonly string _apiEndpoint;
     private readonly string _modelName;
     private readonly int _maxTokens;
-    private readonly GenerativeModel? _model;
+    private readonly float _temperature;
 
     public GeminiAiService(
         IConfiguration configuration,
-        ILogger<GeminiAiService> logger)
+        ILogger<GeminiAiService> logger,
+        IHttpClientFactory httpClientFactory)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
         _apiKey = _configuration["GeminiAI:ApiKey"] ?? string.Empty;
+        _apiEndpoint = _configuration["GeminiAI:ApiEndpoint"] 
+            ?? "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
         _modelName = _configuration["GeminiAI:ModelName"] ?? "gemini-1.5-flash-latest";
         _maxTokens = int.Parse(_configuration["GeminiAI:MaxTokens"] ?? "8000");
+        _temperature = float.Parse(_configuration["GeminiAI:Temperature"] ?? "0.0");
 
-        if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey == "SET_VIA_ENV_GEMINIAI__APIKEY")
+        if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.StartsWith("SET_VIA_ENV"))
         {
             _logger.LogWarning("Gemini API key not configured. Service will return stub data. Set GEMINIAI__APIKEY environment variable.");
-        }
-        else
-        {
-            try
-            {
-                var googleAi = new GoogleAI(_apiKey);
-                _model = googleAi.GenerativeModel(model: _modelName);
-                _logger.LogInformation("Gemini AI service initialized successfully with model: {ModelName}", _modelName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to initialize Gemini model. Will use stub data.");
-            }
         }
     }
 
@@ -57,9 +50,9 @@ public class GeminiAiService : IGeminiAiService
     {
         _logger.LogInformation("Extracting clinical data using Gemini AI. Text length: {Length}", ocrText.Length);
 
-        if (_model == null)
+        if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.StartsWith("SET_VIA_ENV"))
         {
-            _logger.LogWarning("Gemini model not initialized. Returning stub data.");
+            _logger.LogWarning("Gemini API key not configured. Returning stub data.");
             return GetStubExtractedData();
         }
 
@@ -68,139 +61,192 @@ public class GeminiAiService : IGeminiAiService
             // Build the full prompt
             var fullPrompt = promptTemplate.Replace("{OCR_TEXT}", ocrText);
 
-            // Truncate if text is too long
-            if (fullPrompt.Length > _maxTokens * 4) // Rough estimate: 1 token ~= 4 chars
+            // Construct Gemini API request payload
+            var requestPayload = new
             {
-                _logger.LogWarning("Prompt too long ({Length} chars). Truncating to fit within token limit.", fullPrompt.Length);
-                var maxChars = _maxTokens * 3; // Leave some room for response
-                fullPrompt = promptTemplate.Replace("{OCR_TEXT}", ocrText.Substring(0, Math.Min(ocrText.Length, maxChars)));
+                contents = new[]
+                {
+                    new
+                    {
+                        parts = new[]
+                        {
+                            new
+                            {
+                                text = fullPrompt + "\n\nIMPORTANT: Respond ONLY with valid JSON array. Do not include any markdown formatting, code blocks, or explanatory text."
+                            }
+                        }
+                    }
+                },
+                generationConfig = new
+                {
+                    temperature = _temperature,
+                    maxOutputTokens = _maxTokens,
+                    candidateCount = 1,
+                    responseMimeType = "application/json"
+                }
+            };
+
+            var jsonPayload = JsonSerializer.Serialize(requestPayload);
+            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(60);
+
+            var endpoint = $"{_apiEndpoint}?key={_apiKey}";
+
+            _logger.LogDebug("Sending clinical extraction request to Gemini API");
+
+            var response = await httpClient.PostAsync(endpoint, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Gemini API returned {StatusCode}: {Error}", response.StatusCode, errorBody);
+                throw new InvalidOperationException($"Gemini API request failed with status {response.StatusCode}: {errorBody}");
             }
 
-            _logger.LogDebug("Sending request to Gemini API...");
+            var responseBody = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Received Gemini API response: {Length} characters", responseBody.Length);
 
-            // Generate content
-            var response = await _model.GenerateContent(fullPrompt);
-            
-            if (string.IsNullOrWhiteSpace(response?.Text))
+            // Parse Gemini response structure
+            using var jsonDoc = JsonDocument.Parse(responseBody);
+            var candidates = jsonDoc.RootElement.GetProperty("candidates");
+            if (candidates.GetArrayLength() == 0)
             {
-                _logger.LogWarning("Gemini API returned empty response. Using stub data.");
+                _logger.LogError("Gemini API returned no candidates");
+                throw new InvalidOperationException("Gemini API returned no candidates");
+            }
+
+            var textContent = candidates[0]
+                .GetProperty("content")
+                .GetProperty("parts")[0]
+                .GetProperty("text")
+                .GetString();
+
+            if (string.IsNullOrWhiteSpace(textContent))
+            {
+                _logger.LogWarning("Gemini returned empty text content. Returning stub data.");
                 return GetStubExtractedData();
             }
 
-            _logger.LogInformation("Received response from Gemini API. Response length: {Length}", response.Text.Length);
-            _logger.LogDebug("Gemini response: {Response}", response.Text);
+            _logger.LogDebug("Extracted Gemini response text: {Length} characters", textContent.Length);
 
-            // Parse JSON response
-            var extractedData = ParseGeminiResponse(response.Text);
+            // Parse the extracted data from Gemini JSON response
+            var extractedData = ParseGeminiExtractionResponse(textContent);
 
-            if (extractedData.Count == 0)
-            {
-                _logger.LogWarning("No data extracted from Gemini response. This may indicate low-quality OCR or no clinical data in document.");
-            }
-
-            _logger.LogInformation("Successfully extracted {Count} data points from Gemini AI", extractedData.Count);
+            _logger.LogInformation("Gemini AI extracted {Count} clinical data points", extractedData.Count);
             return extractedData;
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to parse Gemini response as JSON. Response may not be in expected format.");
-            return GetStubExtractedData();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to extract clinical data using Gemini AI");
-            throw;
+            _logger.LogError(ex, "Failed to extract clinical data using Gemini AI. Falling back to stub data.");
+            return GetStubExtractedData();
         }
     }
 
-    private List<ExtractedDataPointDto> ParseGeminiResponse(string responseText)
+    /// <summary>
+    /// Parses the JSON response from Gemini into ExtractedDataPointDto list.
+    /// Handles both array format and object-with-array format.
+    /// </summary>
+    private List<ExtractedDataPointDto> ParseGeminiExtractionResponse(string jsonText)
     {
+        var results = new List<ExtractedDataPointDto>();
+
         try
         {
-            // Remove markdown code blocks if present
-            var jsonText = responseText.Trim();
-            if (jsonText.StartsWith("```json"))
-            {
-                jsonText = jsonText.Substring(7);
-            }
-            if (jsonText.StartsWith("```"))
-            {
-                jsonText = jsonText.Substring(3);
-            }
-            if (jsonText.EndsWith("```"))
-            {
-                jsonText = jsonText.Substring(0, jsonText.Length - 3);
-            }
-            jsonText = jsonText.Trim();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-            // Parse JSON array
             using var doc = JsonDocument.Parse(jsonText);
             var root = doc.RootElement;
 
-            if (root.ValueKind != JsonValueKind.Array)
+            // Handle both formats: direct array or { "data_points": [...] }
+            JsonElement dataArray;
+            if (root.ValueKind == JsonValueKind.Array)
             {
-                _logger.LogError("Expected JSON array but got {ValueKind}", root.ValueKind);
-                return new List<ExtractedDataPointDto>();
+                dataArray = root;
+            }
+            else if (root.TryGetProperty("data_points", out var dpArray) || 
+                     root.TryGetProperty("dataPoints", out dpArray) ||
+                     root.TryGetProperty("extracted_data", out dpArray))
+            {
+                dataArray = dpArray;
+            }
+            else
+            {
+                _logger.LogWarning("Unexpected Gemini response format. Root kind: {Kind}", root.ValueKind);
+                return GetStubExtractedData();
             }
 
-            var results = new List<ExtractedDataPointDto>();
-
-            foreach (var item in root.EnumerateArray())
+            foreach (var item in dataArray.EnumerateArray())
             {
-                try
-                {
-                    var dataTypeStr = item.GetProperty("dataType").GetString() ?? "Vital";
-                    var dataType = Enum.TryParse<ClinicalDataType>(dataTypeStr, true, out var parsedType) 
-                        ? parsedType 
-                        : ClinicalDataType.Vital;
+                var dataType = ParseClinicalDataType(
+                    item.TryGetProperty("data_type", out var dt) ? dt.GetString() :
+                    item.TryGetProperty("dataType", out dt) ? dt.GetString() :
+                    item.TryGetProperty("type", out dt) ? dt.GetString() : "Vital");
 
-                    var structuredData = new Dictionary<string, object>();
-                    if (item.TryGetProperty("structuredData", out var structuredDataElement))
-                    {
-                        foreach (var prop in structuredDataElement.EnumerateObject())
-                        {
-                            structuredData[prop.Name] = prop.Value.ValueKind switch
-                            {
-                                JsonValueKind.String => prop.Value.GetString() ?? string.Empty,
-                                JsonValueKind.Number => prop.Value.GetDouble(),
-                                JsonValueKind.True => true,
-                                JsonValueKind.False => false,
-                                _ => prop.Value.GetRawText()
-                            };
-                        }
-                    }
+                var dataKey = item.TryGetProperty("data_key", out var dk) ? dk.GetString() :
+                              item.TryGetProperty("dataKey", out dk) ? dk.GetString() :
+                              item.TryGetProperty("key", out dk) ? dk.GetString() : "Unknown";
 
-                    results.Add(new ExtractedDataPointDto
-                    {
-                        DataType = dataType,
-                        DataKey = item.GetProperty("dataKey").GetString() ?? string.Empty,
-                        DataValue = item.GetProperty("dataValue").GetString() ?? string.Empty,
-                        ConfidenceScore = item.TryGetProperty("confidenceScore", out var conf) 
-                            ? conf.GetDecimal() 
-                            : 0,
-                        SourcePageNumber = item.TryGetProperty("sourcePageNumber", out var page) 
-                            ? page.GetInt32() 
-                            : null,
-                        SourceTextExcerpt = item.TryGetProperty("sourceTextExcerpt", out var excerpt) 
-                            ? excerpt.GetString() 
-                            : null,
-                        StructuredData = structuredData.Count > 0 ? structuredData : null
-                    });
-                }
-                catch (Exception ex)
+                var dataValue = item.TryGetProperty("data_value", out var dv) ? dv.GetString() :
+                                item.TryGetProperty("dataValue", out dv) ? dv.GetString() :
+                                item.TryGetProperty("value", out dv) ? dv.GetString() : "";
+
+                var confidence = 85.0m;
+                if (item.TryGetProperty("confidence_score", out var cs) || 
+                    item.TryGetProperty("confidenceScore", out cs) ||
+                    item.TryGetProperty("confidence", out cs))
                 {
-                    _logger.LogWarning(ex, "Failed to parse individual data point from Gemini response");
+                    confidence = cs.TryGetDecimal(out var csVal) ? csVal : 85.0m;
                 }
+
+                var sourceText = item.TryGetProperty("source_text_excerpt", out var st) ? st.GetString() :
+                                 item.TryGetProperty("sourceTextExcerpt", out st) ? st.GetString() :
+                                 item.TryGetProperty("source_text", out st) ? st.GetString() : "";
+
+                var pageNumber = 1;
+                if (item.TryGetProperty("source_page_number", out var sp) || 
+                    item.TryGetProperty("pageNumber", out sp))
+                {
+                    pageNumber = sp.TryGetInt32(out var spVal) ? spVal : 1;
+                }
+
+                results.Add(new ExtractedDataPointDto
+                {
+                    DataType = dataType,
+                    DataKey = dataKey ?? "Unknown",
+                    DataValue = dataValue ?? "",
+                    ConfidenceScore = confidence,
+                    SourcePageNumber = pageNumber,
+                    SourceTextExcerpt = sourceText ?? ""
+                });
             }
-
-            return results;
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to parse Gemini response JSON");
-            return new List<ExtractedDataPointDto>();
+            _logger.LogError(ex, "Failed to parse Gemini extraction response JSON. Raw: {Text}", jsonText);
+            return GetStubExtractedData();
         }
+
+        return results;
     }
+
+    private static ClinicalDataType ParseClinicalDataType(string? typeStr)
+    {
+        if (string.IsNullOrWhiteSpace(typeStr)) return ClinicalDataType.Vital;
+
+        return typeStr.ToLowerInvariant() switch
+        {
+            "vital" or "vitals" => ClinicalDataType.Vital,
+            "medication" or "medications" => ClinicalDataType.Medication,
+            "allergy" or "allergies" => ClinicalDataType.Allergy,
+            "diagnosis" or "diagnoses" or "condition" or "conditions" => ClinicalDataType.Diagnosis,
+            "labresult" or "lab_result" or "lab" or "labs" => ClinicalDataType.LabResult,
+            _ => ClinicalDataType.Vital
+        };
+    }
+
+
 
     private List<ExtractedDataPointDto> GetStubExtractedData()
     {

@@ -25,6 +25,7 @@ import DocumentStatusPage from "./pages/DocumentStatusPage";
 import AppointmentSelectionPage from "./features/intake/pages/AppointmentSelectionPage";
 import IntakePage from "./features/intake/pages/IntakePage";
 import AuditLogsPage from "./pages/AuditLogsPage";
+import { MedicalCodeVerificationPage } from "./pages/MedicalCodeVerificationPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -240,15 +241,13 @@ function App() {
             }
           />
 
+          {/* Medical Code Verification Route - US_052 */}
           <Route
-            path="/staff/verification"
+            path="/staff/verification/:extractedDataId"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Verification</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <MedicalCodeVerificationPage />
                 </MainLayout>
               </ProtectedRoute>
             }

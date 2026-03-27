@@ -25,7 +25,13 @@ public class PatientAccessDbContextFactory : IDesignTimeDbContextFactory<Patient
 
             "Host=aws-1-ap-northeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.dhbgcoscqujsfycytvns;Password=SET_VIA_ENV;SSL Mode=Require;Trust Server Certificate=true;Timeout=140;Command Timeout=300;Keepalive=30;",
 
-            npgsqlOptions => npgsqlOptions.CommandTimeout(300)); // 5 minute timeout for migrations
+            npgsqlOptions =>
+            {
+                // Enable pgvector extension support (DR-010, AIR-R04)
+                npgsqlOptions.UseVector();
+                // 5 minute timeout for migrations
+                npgsqlOptions.CommandTimeout(300);
+            });
  
         return new PatientAccessDbContext(optionsBuilder.Options);
 

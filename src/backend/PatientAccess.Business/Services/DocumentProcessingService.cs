@@ -81,7 +81,10 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             // Persist extracted data points (task_003)
             _logger.LogInformation("Persisting {DataPointCount} extracted data points", extractionResult.TotalDataPoints);
-            await PersistExtractedDataAsync(document, extractionResult);
+            var persistedEntities = await PersistExtractedDataAsync(document, extractionResult);
+
+            // Enqueue code mapping jobs for diagnoses (US_051 auto-trigger)
+            await EnqueueCodeMappingJobsAsync(persistedEntities);
 
             // Flag for manual review if low confidence (task_003 AC7)
             document.RequiresManualReview = extractionResult.RequiresManualReview;
@@ -219,8 +222,9 @@ public class DocumentProcessingService : IDocumentProcessingService
 
     /// <summary>
     /// Persists extracted clinical data to database with duplicate detection (task_003).
+    /// Returns list of persisted entities for downstream processing (code mapping, etc.).
     /// </summary>
-    private async Task PersistExtractedDataAsync(ClinicalDocument document, ExtractionResultDto extractionResult)
+    private async Task<List<ExtractedClinicalData>> PersistExtractedDataAsync(ClinicalDocument document, ExtractionResultDto extractionResult)
     {
         var entitiesToAdd = new List<ExtractedClinicalData>();
 
@@ -269,6 +273,50 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             _logger.LogInformation("Persisted {Count} extracted clinical data entities", entitiesToAdd.Count);
         }
+
+        return entitiesToAdd;
+    }
+
+    /// <summary>
+    /// Enqueues code mapping background jobs for extracted diagnoses (US_051 auto-trigger).
+    /// Diagnoses → ICD-10 mapping via RAG pipeline.
+    /// </summary>
+    private async Task EnqueueCodeMappingJobsAsync(List<ExtractedClinicalData> extractedEntities)
+    {
+        var diagnosisEntities = extractedEntities
+            .Where(e => e.DataType == ClinicalDataType.Diagnosis)
+            .ToList();
+
+        if (!diagnosisEntities.Any())
+        {
+            _logger.LogInformation("No diagnosis entities found for code mapping");
+            return;
+        }
+
+        _logger.LogInformation("Enqueuing ICD-10 code mapping jobs for {Count} diagnoses", diagnosisEntities.Count);
+
+        foreach (var entity in diagnosisEntities)
+        {
+            try
+            {
+                Hangfire.BackgroundJob.Enqueue<BackgroundJobs.CodeMappingJob>(
+                    job => job.MapToICD10Async(entity.ExtractedDataId, entity.DataValue));
+
+                _logger.LogDebug("ICD-10 mapping job enqueued for ExtractedDataId: {ExtractedDataId}, Text: {ClinicalText}",
+                    entity.ExtractedDataId, entity.DataValue);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail document processing if job enqueue fails
+                _logger.LogError(ex, 
+                    "Failed to enqueue ICD-10 mapping job for ExtractedDataId: {ExtractedDataId}",
+                    entity.ExtractedDataId);
+            }
+        }
+
+        // Note: CPT mapping not auto-triggered yet (requires procedure extraction)
+        // Future enhancement: Add CPT mapping when ClinicalDataType.Procedure is extracted
+        await Task.CompletedTask;
     }
 
     /// <summary>

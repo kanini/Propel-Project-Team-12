@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -49,7 +50,11 @@ if (File.Exists(envFile))
 }
 
 // Add services to the container
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // US_051 Task 2: Register exception filter for code mapping API
+        options.Filters.Add<PatientAccess.Web.Filters.CodeMappingExceptionFilter>();
+    })
     .AddJsonOptions(options =>
     {
         // Configure camelCase naming for JSON serialization/deserialization (standard for web APIs)
@@ -241,6 +246,44 @@ builder.Services.AddScoped<IIntakeService, IntakeService>(); // US_033 - Intake 
 builder.Services.AddScoped<IAiIntakeService, StubAiIntakeService>(); // US_033 - AI intake (stub until task_003)
 builder.Services.AddScoped<IInsurancePrecheckService, InsurancePrecheckService>(); // US_036 - Insurance precheck verification
 
+// US_050 - Medical Coding RAG Knowledge Base
+builder.Services.AddScoped<IDocumentChunkingService, DocumentChunkingService>(); // US_050 Task 2 - Document chunking with AIR-R01 (512-token chunks)
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ChunkDocumentsJob>(); // US_050 Task 2 - Background chunking job
+
+// US_050 Task 3 - Embedding Generation with Azure OpenAI
+builder.Services.Configure<PatientAccess.Business.Configuration.AzureOpenAISettings>(
+    builder.Configuration.GetSection("AzureOpenAI"));
+builder.Services.AddSingleton(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<PatientAccess.Business.Configuration.AzureOpenAISettings>>().Value;
+    return new Azure.AI.OpenAI.OpenAIClient(
+        new Uri(settings.Endpoint),
+        new Azure.AzureKeyCredential(settings.ApiKey));
+});
+builder.Services.AddScoped<IEmbeddingGenerationService, EmbeddingGenerationService>(); // US_050 Task 3 - Azure OpenAI embeddings (DR-010: 1536-dim vectors)
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.GenerateEmbeddingsJob>(); // US_050 Task 3 - Background embedding job
+builder.Services.AddScoped<IHybridRetrievalService, HybridRetrievalService>(); // US_050 Task 4 - Hybrid retrieval (AIR-R02: top-5, cosine >0.75; AIR-R03: semantic + keyword)
+
+// US_051 Task 1 - Code Mapping Service (ICD-10/CPT mapping via RAG with LLM: Gemini or GPT-4o)
+builder.Services.Configure<PatientAccess.Business.Configuration.CodeMappingSettings>(
+    builder.Configuration.GetSection("CodeMapping"));
+builder.Services.Configure<PatientAccess.Business.Configuration.GeminiAISettings>(
+    builder.Configuration.GetSection("GeminiAI")); // EP-008 Gemini AI configuration (free tier: 15 RPM, 1M TPM)
+builder.Services.AddScoped<FluentValidation.IValidator<PatientAccess.Business.DTOs.CodeMappingResponseDto>, 
+    PatientAccess.Business.Validators.CodeMappingResponseValidator>(); // AIR-Q03: Schema validation (>99% validity)
+builder.Services.AddScoped<ICodeMappingService, CodeMappingService>(); // FR-034 (ICD-10), FR-035 (CPT), AIR-Q01 (>98% agreement)
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.CodeMappingJob>(); // US_051 - Background code mapping job (auto-triggered after extraction)
+
+// US_052 Task 2 - Code Modification Service (staff-initiated code modifications with audit trail)
+builder.Services.AddScoped<FluentValidation.IValidator<PatientAccess.Business.DTOs.ModifyCodeDto>,
+    PatientAccess.Business.Validators.ModifyCodeDtoValidator>(); // Validates ICD-10/CPT format and rationale requirements
+
+// US_051 Task 3 - Quality Metrics Tracking (AIR-Q01: >98%, AIR-Q03: >99%)
+builder.Services.AddScoped<IAlertingService, AlertingService>(); // Quality metric alerting (email/logging)
+builder.Services.AddScoped<IQualityMetricsService, QualityMetricsService>(); // Metric calculation and trend analysis
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DailyQualityMetricsJob>(); // Daily metrics calculation (2:00 AM UTC)
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.WeeklyQualityMetricsJob>(); // Weekly metrics calculation (Monday 3:00 AM UTC)
+
 // US_042 - Document upload services (chunked upload with real-time progress)
 builder.Services.AddMemoryCache(); // Required for upload session tracking
 builder.Services.AddSingleton<ChunkedUploadManager>(); // Singleton for session management
@@ -341,6 +384,9 @@ builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsqlOptions =>
         {
+            // Enable pgvector extension support (DR-010, AIR-R04)
+            npgsqlOptions.UseVector();
+
             // Enable connection resiliency for transient failures
             npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
@@ -381,6 +427,7 @@ builder.Services.AddHangfire(configuration => configuration
 builder.Services.AddHangfireServer(options =>
 {
     options.WorkerCount = 2;
+    options.Queues = new[] { "default", "document-processing", "code-mapping" };
     options.SchedulePollingInterval = TimeSpan.FromSeconds(30);
 });
 
@@ -502,6 +549,20 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         // Schedule upload session cleanup job (US_042) - runs every 30 minutes
         PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob.Schedule();
         app.Logger.LogInformation("Scheduled upload session cleanup job to run every 30 minutes");
+
+        // Schedule daily quality metrics job (US_051 Task 3) - runs daily at 2:00 AM UTC
+        Hangfire.RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.DailyQualityMetricsJob>(
+            "daily-quality-metrics",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 2 * * *"); // Daily at 2:00 AM UTC (cron: minute hour day month dayOfWeek)
+        app.Logger.LogInformation("Scheduled daily quality metrics job to run at 2:00 AM UTC");
+
+        // Schedule weekly quality metrics job (US_051 Task 3) - runs Monday at 3:00 AM UTC
+        Hangfire.RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.WeeklyQualityMetricsJob>(
+            "weekly-quality-metrics",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 3 * * 1"); // Monday at 3:00 AM UTC (cron: 1 = Monday)
+        app.Logger.LogInformation("Scheduled weekly quality metrics job to run on Mondays at 3:00 AM UTC");
     }
 }
 
