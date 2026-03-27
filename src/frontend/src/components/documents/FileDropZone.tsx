@@ -7,10 +7,12 @@ import { useState, useRef } from 'react';
 
 interface FileDropZoneProps {
   onFileSelected: (file: File) => void;
+  onFilesSelected?: (files: File[]) => void;
   disabled?: boolean;
+  multiple?: boolean;
 }
 
-export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
+export function FileDropZone({ onFileSelected, onFilesSelected, disabled, multiple = false }: FileDropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,14 +30,32 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
     return null;
   };
 
-  const handleFile = (file: File) => {
-    const error = validateFile(file);
-    if (error) {
-      setValidationError(error);
-      return;
+  const handleFiles = (files: File[]) => {
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of files) {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+      } else {
+        validFiles.push(file);
+      }
     }
-    setValidationError(null);
-    onFileSelected(file);
+
+    if (errors.length > 0) {
+      setValidationError(errors.join(', '));
+    } else {
+      setValidationError(null);
+    }
+
+    if (validFiles.length > 0) {
+      if (multiple && onFilesSelected) {
+        onFilesSelected(validFiles);
+      } else if (!multiple && validFiles[0]) {
+        onFileSelected(validFiles[0]);
+      }
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -46,8 +66,8 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
     if (disabled) return;
 
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0 && files[0]) {
-      handleFile(files[0]);
+    if (files.length > 0) {
+      handleFiles(files);
     }
   };
 
@@ -73,8 +93,12 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0 && files[0]) {
-      handleFile(files[0]);
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+    // Reset input to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -133,6 +157,7 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
         type="file"
         accept=".pdf,application/pdf"
         onChange={handleFileInput}
+        multiple={multiple}
         className="hidden"
         aria-label="File input"
       />
