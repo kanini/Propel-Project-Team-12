@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { selectRegistrationSuccess, resetRegistrationSuccess } from '../authSlice';
 import RegistrationForm from '../components/RegistrationForm';
+import { Logo } from '../../../components/common/Logo';
 
 /**
  * Registration page component (FR-001, SCR-001).
@@ -42,13 +43,7 @@ export default function RegisterPage() {
       <main id="main-content" className="w-full max-w-lg" role="main">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div
-            className="w-8 h-8 bg-primary-500 rounded-md flex items-center justify-center
-              text-white font-bold text-lg"
-            aria-hidden="true"
-          >
-            +
-          </div>
+          <Logo size="md" />
           <span className="text-2xl font-semibold text-neutral-900">CareSync AI</span>
         </div>
 

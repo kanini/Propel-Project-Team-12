@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { type User } from '../../../store/usersSlice';
 
 const PAGE_SIZE = 10;
@@ -23,8 +23,24 @@ export const UserTable = ({
   currentUserId,
 }: UserTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const prevUsersLengthRef = useRef(users.length);
 
   const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  
+  // Reset to page 1 when users list length changes
+  // Using ref to track previous length and avoid setState in render
+  useEffect(() => {
+    const handler = () => {
+      if (prevUsersLengthRef.current !== users.length) {
+        prevUsersLengthRef.current = users.length;
+        setCurrentPage(1);
+      }
+    };
+    // Use setTimeout to defer state update
+    const timeoutId = setTimeout(handler, 0);
+    return () => clearTimeout(timeoutId);
+  }, [users.length]);
+
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const paginatedUsers = users.slice(startIndex, startIndex + PAGE_SIZE);
 
