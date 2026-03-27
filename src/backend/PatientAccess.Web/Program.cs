@@ -284,6 +284,9 @@ builder.Services.Configure<CodeMappingSettings>(
 builder.Services.AddScoped<FluentValidation.IValidator<CodeMappingResponseDto>, CodeMappingResponseValidator>();
 builder.Services.AddScoped<ICodeMappingService, CodeMappingService>(); // ICD-10 and CPT code mapping with RAG
 
+// EP-008-US-052 - Code modification service (AC3)
+builder.Services.AddScoped<FluentValidation.IValidator<ModifyCodeDto>, ModifyCodeDtoValidator>(); // Modification validation
+
 // EP-008-US-051 - Quality metrics tracking (AIR-Q01, AIR-Q03)
 builder.Services.AddScoped<IQualityMetricsService, QualityMetricsService>(); // AI-Human Agreement Rate and Schema Validity tracking
 builder.Services.AddScoped<IAlertingService, AlertingService>(); // Quality threshold alerting

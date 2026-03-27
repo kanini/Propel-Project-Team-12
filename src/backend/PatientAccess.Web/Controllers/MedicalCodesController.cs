@@ -1,9 +1,11 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
+using PatientAccess.Business.Validators;
 using PatientAccess.Data;
 using PatientAccess.Data.Models;
 
@@ -364,6 +366,187 @@ public class MedicalCodesController : ControllerBase
             codeId = codeId,
             verificationStatus = request.VerificationStatus,
             verifiedAt = medicalCode.VerifiedAt
+        });
+    }
+
+    /// <summary>
+    /// Modify an AI-suggested medical code with an alternative code (EP-008-US-052, AC3).
+    /// Staff can replace the suggested code with a more accurate one with rationale.
+    /// Most recent action takes precedence (edge case handling).
+    /// </summary>
+    /// <param name="codeId">Medical code ID to modify</param>
+    /// <param name="dto">Modification request with new code, description, and rationale</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>200 OK with modified code details</returns>
+    /// <response code="200">Medical code modified successfully</response>
+    /// <response code="400">Invalid request (validation errors)</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="403">User not authorized (requires Staff or Admin role)</response>
+    /// <response code="404">Medical code not found</response>
+    [HttpPatch("{codeId}/modify")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ModifyCode(
+        Guid codeId,
+        [FromBody] ModifyCodeDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Validate DTO using FluentValidation
+        var validator = new ModifyCodeDtoValidator();
+        var validationResult = await validator.ValidateAsync(dto, cancellationToken);
+        
+        if (!validationResult.IsValid)
+        {
+            _logger.LogWarning("ModifyCodeDto validation failed for CodeId={CodeId}: {Errors}",
+                codeId, string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+            
+            return BadRequest(new
+            {
+                errors = validationResult.Errors.Select(e => new
+                {
+                    field = e.PropertyName,
+                    message = e.ErrorMessage
+                })
+            });
+        }
+
+        // 2. Find existing medical code
+        var medicalCode = await _context.MedicalCodes
+            .FindAsync(new object[] { codeId }, cancellationToken);
+
+        if (medicalCode == null)
+        {
+            _logger.LogWarning("Medical code not found for modification: {CodeId}", codeId);
+            return NotFound(new { error = $"Medical code with ID {codeId} not found" });
+        }
+
+        // 3. Get current user from JWT claims
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            _logger.LogError("Invalid or missing user ID in JWT claims");
+            return BadRequest(new { error = "Invalid user authentication" });
+        }
+
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
+        // 4. Create audit log entry (before modification)
+        var previousValue = new
+        {
+            Code = medicalCode.CodeValue,
+            Description = medicalCode.CodeDescription,
+            VerificationStatus = medicalCode.VerificationStatus.ToString()
+        };
+
+        var newValue = new
+        {
+            Code = dto.NewCode,
+            Description = dto.NewDescription,
+            VerificationStatus = "Accepted" // Staff modification = implicit verification
+        };
+
+        var auditLog = new AuditLog
+        {
+            AuditLogId = Guid.NewGuid(),
+            UserId = userId,
+            Timestamp = DateTime.UtcNow,
+            ActionType = "Modified",
+            ResourceType = "MedicalCode",
+            ResourceId = codeId,
+            ActionDetails = JsonSerializer.Serialize(new
+            {
+                PreviousValue = previousValue,
+                NewValue = newValue,
+                Rationale = dto.Rationale
+            }),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers["User-Agent"].ToString()
+        };
+
+        // 5. Update medical code (most recent action takes precedence - edge case)
+        medicalCode.CodeValue = dto.NewCode;
+        medicalCode.CodeDescription = dto.NewDescription;
+        medicalCode.VerificationStatus = MedicalCodeVerificationStatus.Accepted; // Staff modification = verification
+        medicalCode.VerifiedBy = userId;
+        medicalCode.VerifiedAt = DateTime.UtcNow;
+        medicalCode.UpdatedAt = DateTime.UtcNow;
+
+        // 6. Save changes
+        await _context.AuditLogs.AddAsync(auditLog, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Medical code modified: CodeId={CodeId}, UserId={UserId}, OldCode={OldCode}, NewCode={NewCode}",
+            codeId, userId, previousValue.Code, dto.NewCode);
+
+        return Ok(new
+        {
+            message = "Medical code modified successfully",
+            codeId = codeId,
+            code = medicalCode.CodeValue,
+            description = medicalCode.CodeDescription,
+            verificationStatus = medicalCode.VerificationStatus.ToString(),
+            verifiedBy = medicalCode.VerifiedBy,
+            verifiedAt = medicalCode.VerifiedAt
+        });
+    }
+
+    /// <summary>
+    /// Retrieve audit trail for a specific medical code (EP-008-US-052, Edge Case).
+    /// Shows full history of all verification actions including modifications and rejections.
+    /// Most recent action determines current status.
+    /// </summary>
+    /// <param name="codeId">Medical code ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>200 OK with ordered audit history</returns>
+    /// <response code="200">Audit trail retrieved successfully</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="403">User not authorized (requires Staff or Admin role)</response>
+    /// <response code="404">No audit trail found for medical code</response>
+    [HttpGet("{codeId}/audit-trail")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAuditTrail(
+        Guid codeId,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving audit trail for medical code: {CodeId}", codeId);
+
+        var auditLogs = await _context.AuditLogs
+            .Where(al => al.ResourceType == "MedicalCode" && al.ResourceId == codeId)
+            .OrderByDescending(al => al.Timestamp)
+            .Select(al => new
+            {
+                action = al.ActionType,
+                userId = al.UserId,
+                timestamp = al.Timestamp,
+                actionDetails = al.ActionDetails,
+                ipAddress = al.IpAddress,
+                userAgent = al.UserAgent
+            })
+            .ToListAsync(cancellationToken);
+
+        if (!auditLogs.Any())
+        {
+            _logger.LogWarning("No audit trail found for medical code: {CodeId}", codeId);
+            return NotFound(new
+            {
+                error = $"No audit trail found for medical code {codeId}"
+            });
+        }
+
+        _logger.LogInformation("Retrieved {Count} audit entries for medical code: {CodeId}",
+            auditLogs.Count, codeId);
+
+        return Ok(new
+        {
+            codeId = codeId,
+            entryCount = auditLogs.Count,
+            auditTrail = auditLogs
         });
     }
 }
