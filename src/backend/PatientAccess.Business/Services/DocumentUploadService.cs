@@ -9,11 +9,12 @@ namespace PatientAccess.Business.Services;
 
 /// <summary>
 /// Document upload service for chunked uploads with real-time progress tracking (US_042).
-/// Orchestrates upload lifecycle: initialization → chunk upload → finalization → database persistence.
+/// Orchestrates upload lifecycle: initialization → chunk upload → finalization → S3 upload → database persistence.
 /// </summary>
 public class DocumentUploadService
 {
     private readonly ChunkedUploadManager _uploadManager;
+    private readonly ISupabaseStorageService _storageService;
     private readonly IPusherService _pusherService;
     private readonly PatientAccessDbContext _context;
     private readonly ILogger<DocumentUploadService> _logger;
@@ -23,11 +24,13 @@ public class DocumentUploadService
 
     public DocumentUploadService(
         ChunkedUploadManager uploadManager,
+        ISupabaseStorageService storageService,
         IPusherService pusherService,
         PatientAccessDbContext context,
         ILogger<DocumentUploadService> logger)
     {
         _uploadManager = uploadManager ?? throw new ArgumentNullException(nameof(uploadManager));
+        _storageService = storageService ?? throw new ArgumentNullException(nameof(storageService));
         _pusherService = pusherService ?? throw new ArgumentNullException(nameof(pusherService));
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -125,10 +128,29 @@ public class DocumentUploadService
             // Generate document ID (used for both filename and database)
             var documentId = Guid.NewGuid();
 
-            // Assemble chunks into final file
+            // Assemble chunks into final file (locally)
             var (filePath, returnedDocId, session) = await _uploadManager.FinalizeSessionAsync(request.UploadSessionId, documentId);
 
-            // Create database record
+            // Upload assembled file to S3
+            _logger.LogInformation("Uploading assembled document {DocumentId} to S3", documentId);
+            var s3Key = await _storageService.UploadDocumentAsync(
+                filePath, session.PatientId, documentId, session.MimeType);
+
+            // Clean up local assembled file after successful S3 upload
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    _logger.LogDebug("Deleted local file {FilePath} after S3 upload", filePath);
+                }
+            }
+            catch (Exception cleanupEx)
+            {
+                _logger.LogWarning(cleanupEx, "Failed to delete local file {FilePath} after S3 upload", filePath);
+            }
+
+            // Create database record with S3 key as StoragePath
             var document = new ClinicalDocument
             {
                 DocumentId = documentId,
@@ -137,7 +159,7 @@ public class DocumentUploadService
                 FileName = session.FileName,
                 FileSize = session.FileSize,
                 FileType = session.MimeType,
-                StoragePath = filePath,
+                StoragePath = s3Key,
                 ProcessingStatus = ProcessingStatus.Uploaded,
                 UploadedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
