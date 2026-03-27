@@ -281,7 +281,7 @@ public class DocumentsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finalizing upload session {SessionId}", request.UploadSessionId);
-            return StatusCode(500, new { message = "An error occurred while finalizing upload" });
+            return StatusCode(500, new { message = "An error occurred while finalizing upload", detail = ex.Message });
         }
     }
 
