@@ -256,7 +256,11 @@ builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcess
 builder.Services.AddHttpClient(); // Required for Gemini API calls and Supabase Storage REST API
 
 builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase Storage REST API
-builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction (legacy, kept for fallback)
+
+#pragma warning disable CA1416 // Validate platform compatibility - TesseractOcrService is Windows-only
+builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction (Windows-only)
+#pragma warning restore CA1416
+
 builder.Services.AddScoped<IGeminiAiService, GeminiAiService>(); // Gemini AI data extraction
 builder.Services.AddScoped<IClinicalDataExtractionService, ClinicalDataExtractionService>(); // Extraction orchestration
 

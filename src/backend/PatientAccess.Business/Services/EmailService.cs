@@ -1,12 +1,13 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Resend;
+using System.Net;
+using System.Net.Mail;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
 /// Email service implementation for sending transactional emails.
-/// Uses Resend API for email delivery.
+/// Uses SMTP (Gmail) for email delivery.
 /// Implements FR-001 verification email and US_028 appointment confirmation email.
 /// </summary>
 public class EmailService : IEmailService
@@ -15,21 +16,26 @@ public class EmailService : IEmailService
     private readonly string _frontendUrl;
     private readonly string _senderEmail;
     private readonly string _senderName;
-    private readonly IResend _resendClient;
+    private readonly string _smtpHost;
+    private readonly int _smtpPort;
+    private readonly bool _enableSsl;
+    private readonly string _smtpUsername;
+    private readonly string _smtpPassword;
 
     public EmailService(
         IConfiguration configuration,
-        ILogger<EmailService> logger,
-        IHttpClientFactory httpClientFactory)
+        ILogger<EmailService> logger)
     {
         _logger = logger;
-        _frontendUrl = configuration["FrontendUrl"] ?? "http://localhost:5173";
+        _frontendUrl = configuration["FrontendUrl"] ?? "https://propeliq.infinityfree.me";
 
-        var apiKey = configuration["ResendSettings:ApiKey"] ?? throw new InvalidOperationException("Resend API key not configured");
-        _senderEmail = configuration["ResendSettings:SenderEmail"] ?? "onboarding@resend.dev";
-        _senderName = configuration["ResendSettings:SenderName"] ?? "Patient Access Platform";
-
-        _resendClient = ResendClient.Create(apiKey);
+        _smtpHost = configuration["SmtpSettings:Host"] ?? throw new InvalidOperationException("SMTP host not configured");
+        _smtpPort = int.Parse(configuration["SmtpSettings:Port"] ?? "587");
+        _enableSsl = bool.Parse(configuration["SmtpSettings:EnableSsl"] ?? "true");
+        _smtpUsername = configuration["SmtpSettings:Username"] ?? throw new InvalidOperationException("SMTP username not configured");
+        _smtpPassword = configuration["SmtpSettings:Password"] ?? throw new InvalidOperationException("SMTP password not configured");
+        _senderEmail = configuration["SmtpSettings:SenderEmail"] ?? _smtpUsername;
+        _senderName = configuration["SmtpSettings:SenderName"] ?? "CareSync AI";
     }
 
     public async Task<bool> SendVerificationEmailAsync(string toEmail, string toName, string verificationToken)
@@ -209,12 +215,30 @@ public class EmailService : IEmailService
     <div class='email-container'>
         <div class='header'>
             <div class='logo-icon'>
-                <svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-                    <path d='M12 2L2 7L12 12L22 7L12 2Z' fill='#0f62fe' opacity='0.3'/>
-                    <path d='M2 17L12 22L22 17V12L12 17L2 12V17Z' fill='#0f62fe'/>
+                <svg viewBox='0 0 512 512' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                    <defs>
+                        <linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'>
+                            <stop offset='0%' style='stop-color:#0f62fe;stop-opacity:1' />
+                            <stop offset='100%' style='stop-color:#0c50d4;stop-opacity:1' />
+                        </linearGradient>
+                        <linearGradient id='accentGrad' x1='0%' y1='0%' x2='100%' y2='100%'>
+                            <stop offset='0%' style='stop-color:#3d9bff;stop-opacity:1' />
+                            <stop offset='100%' style='stop-color:#0f62fe;stop-opacity:1' />
+                        </linearGradient>
+                    </defs>
+                    <circle cx='256' cy='256' r='240' fill='url(#bgGrad)'/>
+                    <circle cx='350' cy='180' r='120' fill='#ffffff' opacity='0.05'/>
+                    <circle cx='180' cy='350' r='90' fill='#ffffff' opacity='0.03'/>
+                    <rect x='226' y='140' width='60' height='232' rx='12' fill='#ffffff' opacity='0.95'/>
+                    <rect x='140' y='226' width='232' height='60' rx='12' fill='#ffffff' opacity='0.95'/>
+                    <circle cx='256' cy='256' r='45' fill='url(#accentGrad)'/>
+                    <circle cx='256' cy='170' r='18' fill='#ebf5ff'/>
+                    <circle cx='256' cy='342' r='18' fill='#ebf5ff'/>
+                    <circle cx='170' cy='256' r='18' fill='#ebf5ff'/>
+                    <circle cx='342' cy='256' r='18' fill='#ebf5ff'/>
                 </svg>
             </div>
-            <div class='brand-title'>Patient Access</div>
+            <div class='brand-title'>CareSync AI</div>
             <div class='brand-subtitle'>Healthcare Platform</div>
         </div>
         <div class='content'>
@@ -243,7 +267,7 @@ public class EmailService : IEmailService
         </div>
 
         <div class='footer'>
-            <p class='footer-text'>&copy; {DateTime.UtcNow.Year} Patient Access Platform. All rights reserved.</p>
+            <p class='footer-text'>&copy; {DateTime.UtcNow.Year} CareSync AI Platform. All rights reserved.</p>
             <p class='footer-text'>You're receiving this email because you created an account with our platform.</p>
             <div class='footer-links'>
                 <a href='{_frontendUrl}'>Visit Platform</a>
@@ -255,7 +279,7 @@ public class EmailService : IEmailService
 </body>
 </html>";
 
-            var result = await SendEmailAsync(toEmail, "Verify Your Patient Access Account", htmlContent);
+            var result = await SendEmailAsync(toEmail, "Verify Your CareSync AI Account", htmlContent);
 
             if (result)
                 _logger.LogInformation("Verification email sent successfully to {Email}", toEmail);
@@ -464,12 +488,30 @@ public class EmailService : IEmailService
     <div class='email-container'>
         <div class='header'>
             <div class='logo-icon'>
-                <svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-                    <path d='M12 2L2 7L12 12L22 7L12 2Z' fill='#0f62fe' opacity='0.3'/>
-                    <path d='M2 17L12 22L22 17V12L12 17L2 12V17Z' fill='#0f62fe'/>
+                <svg viewBox='0 0 512 512' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                    <defs>
+                        <linearGradient id='bgGrad2' x1='0%' y1='0%' x2='100%' y2='100%'>
+                            <stop offset='0%' style='stop-color:#0f62fe;stop-opacity:1' />
+                            <stop offset='100%' style='stop-color:#0c50d4;stop-opacity:1' />
+                        </linearGradient>
+                        <linearGradient id='accentGrad2' x1='0%' y1='0%' x2='100%' y2='100%'>
+                            <stop offset='0%' style='stop-color:#3d9bff;stop-opacity:1' />
+                            <stop offset='100%' style='stop-color:#0f62fe;stop-opacity:1' />
+                        </linearGradient>
+                    </defs>
+                    <circle cx='256' cy='256' r='240' fill='url(#bgGrad2)'/>
+                    <circle cx='350' cy='180' r='120' fill='#ffffff' opacity='0.05'/>
+                    <circle cx='180' cy='350' r='90' fill='#ffffff' opacity='0.03'/>
+                    <rect x='226' y='140' width='60' height='232' rx='12' fill='#ffffff' opacity='0.95'/>
+                    <rect x='140' y='226' width='232' height='60' rx='12' fill='#ffffff' opacity='0.95'/>
+                    <circle cx='256' cy='256' r='45' fill='url(#accentGrad2)'/>
+                    <circle cx='256' cy='170' r='18' fill='#ebf5ff'/>
+                    <circle cx='256' cy='342' r='18' fill='#ebf5ff'/>
+                    <circle cx='170' cy='256' r='18' fill='#ebf5ff'/>
+                    <circle cx='342' cy='256' r='18' fill='#ebf5ff'/>
                 </svg>
             </div>
-            <div class='brand-title'>Patient Access</div>
+            <div class='brand-title'>CareSync AI</div>
             <div class='brand-subtitle'>Healthcare Platform</div>
         </div>
         <div class='content'>
@@ -478,7 +520,7 @@ public class EmailService : IEmailService
         <p class='body-text'>Hello {toName},</p>
 
         <p class='body-text'>
-            We received a request to reset your password for your Patient Access account. 
+            We received a request to reset your password for your CareSync AI account. 
             If you made this request, click the button below to reset your password:
         </p>
 
@@ -504,7 +546,7 @@ public class EmailService : IEmailService
         </div>
 
         <div class='footer'>
-            <p class='footer-text'>&copy; {DateTime.UtcNow.Year} Patient Access Platform. All rights reserved.</p>
+            <p class='footer-text'>&copy; {DateTime.UtcNow.Year} CareSync AI Platform. All rights reserved.</p>
             <p class='footer-text'>Contact us: support@patientaccess.com | (555) 123-4567</p>
             <div class='footer-links'>
                 <a href='{_frontendUrl}'>Visit Platform</a>
@@ -516,7 +558,7 @@ public class EmailService : IEmailService
 </body>
 </html>";
 
-            var result = await SendEmailAsync(toEmail, "Reset Your Password - Patient Access", htmlContent);
+            var result = await SendEmailAsync(toEmail, "Reset Your Password - CareSync AI", htmlContent);
 
             if (result)
                 _logger.LogInformation("Password reset email sent successfully to {Email}", toEmail);
@@ -732,12 +774,30 @@ public class EmailService : IEmailService
     <div class='email-container'>
         <div class='header'>
             <div class='logo-icon'>
-                <svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-                    <path d='M12 2L2 7L12 12L22 7L12 2Z' fill='#0f62fe' opacity='0.3'/>
-                    <path d='M2 17L12 22L22 17V12L12 17L2 12V17Z' fill='#0f62fe'/>
+                <svg viewBox='0 0 512 512' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                    <defs>
+                        <linearGradient id='bgGrad3' x1='0%' y1='0%' x2='100%' y2='100%'>
+                            <stop offset='0%' style='stop-color:#0f62fe;stop-opacity:1' />
+                            <stop offset='100%' style='stop-color:#0c50d4;stop-opacity:1' />
+                        </linearGradient>
+                        <linearGradient id='accentGrad3' x1='0%' y1='0%' x2='100%' y2='100%'>
+                            <stop offset='0%' style='stop-color:#3d9bff;stop-opacity:1' />
+                            <stop offset='100%' style='stop-color:#0f62fe;stop-opacity:1' />
+                        </linearGradient>
+                    </defs>
+                    <circle cx='256' cy='256' r='240' fill='url(#bgGrad3)'/>
+                    <circle cx='350' cy='180' r='120' fill='#ffffff' opacity='0.05'/>
+                    <circle cx='180' cy='350' r='90' fill='#ffffff' opacity='0.03'/>
+                    <rect x='226' y='140' width='60' height='232' rx='12' fill='#ffffff' opacity='0.95'/>
+                    <rect x='140' y='226' width='232' height='60' rx='12' fill='#ffffff' opacity='0.95'/>
+                    <circle cx='256' cy='256' r='45' fill='url(#accentGrad3)'/>
+                    <circle cx='256' cy='170' r='18' fill='#ebf5ff'/>
+                    <circle cx='256' cy='342' r='18' fill='#ebf5ff'/>
+                    <circle cx='170' cy='256' r='18' fill='#ebf5ff'/>
+                    <circle cx='342' cy='256' r='18' fill='#ebf5ff'/>
                 </svg>
             </div>
-            <div class='brand-title'>Patient Access</div>
+            <div class='brand-title'>CareSync AI</div>
             <div class='brand-subtitle'>Healthcare Platform</div>
         </div>
         <div class='content'>
@@ -781,7 +841,7 @@ public class EmailService : IEmailService
         </div>
 
         <div class='footer'>
-            <p class='footer-text'>&copy; {DateTime.UtcNow.Year} Patient Access Platform. All rights reserved.</p>
+            <p class='footer-text'>&copy; {DateTime.UtcNow.Year} CareSync AI Platform. All rights reserved.</p>
             <p class='footer-text'>Contact us: support@patientaccess.com | (555) 123-4567</p>
             <div class='footer-links'>
                 <a href='{_frontendUrl}'>Visit Platform</a>
@@ -793,34 +853,33 @@ public class EmailService : IEmailService
 </body>
 </html>";
 
-            var message = new EmailMessage
+            var message = new MailMessage
             {
-                From = $"{_senderName} <{_senderEmail}>",
+                From = new MailAddress(_senderEmail, _senderName),
                 Subject = $"Appointment Confirmation - {confirmationNumber}",
-                HtmlBody = htmlContent,
-                Attachments = new List<EmailAttachment>
-                {
-                    new EmailAttachment
-                    {
-                        Filename = pdfFileName,
-                        Content = pdfBytes
-                    }
-                }
+                Body = htmlContent,
+                IsBodyHtml = true
             };
             message.To.Add(toEmail);
 
-            var response = await _resendClient.EmailSendAsync(message);
+            // Attach PDF
+            using var pdfStream = new MemoryStream(pdfBytes);
+            var attachment = new Attachment(pdfStream, pdfFileName, "application/pdf");
+            message.Attachments.Add(attachment);
 
-            if (response != null)
+            using var smtpClient = new SmtpClient(_smtpHost, _smtpPort)
             {
-                _logger.LogInformation(
-                    "Appointment confirmation email sent to {Email} for appointment {ConfirmationNumber}",
-                    toEmail, confirmationNumber);
-                return true;
-            }
+                EnableSsl = _enableSsl,
+                Credentials = new NetworkCredential(_smtpUsername, _smtpPassword),
+                Timeout = 30000
+            };
 
-            _logger.LogWarning("Failed to send appointment confirmation email to {Email}", toEmail);
-            return false;
+            await smtpClient.SendMailAsync(message);
+
+            _logger.LogInformation(
+                "Appointment confirmation email sent to {Email} for appointment {ConfirmationNumber}",
+                toEmail, confirmationNumber);
+            return true;
         }
         catch (Exception ex)
         {
@@ -833,30 +892,38 @@ public class EmailService : IEmailService
     {
         try
         {
-            var message = new EmailMessage
+            using var smtpClient = new SmtpClient(_smtpHost, _smtpPort)
             {
-                From = $"{_senderName} <{_senderEmail}>",
-                Subject = subject,
-                HtmlBody = htmlContent
+                EnableSsl = _enableSsl,
+                Credentials = new NetworkCredential(_smtpUsername, _smtpPassword),
+                Timeout = 30000 // 30 seconds timeout
             };
-            message.To.Add(toEmail);
 
-            _logger.LogInformation("Sending email via Resend. To: {ToEmail}, Subject: {Subject}", toEmail, subject);
-
-            var response = await _resendClient.EmailSendAsync(message);
-
-            if (response != null)
+            using var mailMessage = new MailMessage
             {
-                _logger.LogInformation("Email sent successfully via Resend.");
-                return true;
-            }
+                From = new MailAddress(_senderEmail, _senderName),
+                Subject = subject,
+                Body = htmlContent,
+                IsBodyHtml = true
+            };
+            mailMessage.To.Add(toEmail);
 
-            _logger.LogError("Resend API returned null response for email to {Email}", toEmail);
+            _logger.LogInformation("Sending email via SMTP. To: {ToEmail}, Subject: {Subject}", toEmail, subject);
+
+            await smtpClient.SendMailAsync(mailMessage);
+
+            _logger.LogInformation("Email sent successfully via SMTP to {Email}", toEmail);
+            return true;
+        }
+        catch (SmtpException smtpEx)
+        {
+            _logger.LogError(smtpEx, "SMTP error sending email to {Email}. Status: {Status}", 
+                toEmail, smtpEx.StatusCode);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception calling Resend API. Check your API key and network connection.");
+            _logger.LogError(ex, "Exception sending email to {Email}. Check SMTP settings and network connection.", toEmail);
             return false;
         }
     }
