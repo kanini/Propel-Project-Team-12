@@ -63,7 +63,8 @@ export const RejectCodeModal: React.FC<RejectCodeModalProps> = ({
       setReason('');
       setCustomReason('');
     } catch (error) {
-      toast.error('Failed to reject code');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reject code';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
