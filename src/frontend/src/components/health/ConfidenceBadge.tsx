@@ -18,7 +18,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 export function ConfidenceBadge({ confidenceScore, verificationStatus }: ConfidenceBadgeProps) {
-  const config = statusConfig[verificationStatus] ?? statusConfig.AISuggested;
+  const config = statusConfig[verificationStatus] || statusConfig.AISuggested || { label: 'Unknown', className: 'bg-gray-100 text-gray-800' };
 
   const confidenceColor =
     confidenceScore >= 80

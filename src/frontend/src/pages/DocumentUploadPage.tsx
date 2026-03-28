@@ -22,7 +22,6 @@ export function DocumentUploadPage() {
   const readyCount = Object.values(uploads).filter(
     (u) => u.status === 'chunks_uploaded'
   ).length;
-  const hasAnyUpload = Object.keys(uploads).length > 0;
   const isUploading = Object.values(uploads).some((u) => u.status === 'uploading');
 
   const handleSubmitAll = useCallback(async () => {

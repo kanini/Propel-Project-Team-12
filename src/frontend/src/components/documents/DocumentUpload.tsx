@@ -8,7 +8,6 @@ import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { FileDropZone } from './FileDropZone';
-import { UploadProgressBar } from './UploadProgressBar';
 import { initializeUpload, setUploadSession, updateUploadProgress, markChunksUploaded, setUploadError, removeUpload } from '../../store/documentsSlice';
 import { initializeChunkedUpload, uploadChunk, calculateChunkCount, getChunkBlob } from '../../api/documentsApi';
 

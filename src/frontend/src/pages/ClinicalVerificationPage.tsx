@@ -36,23 +36,15 @@ export function ClinicalVerificationPage() {
   const activeTab = useSelector(selectVerificationTab);
   const actionInProgress = useSelector(selectVerificationAction);
 
-  const [patientId, setPatientId] = useState(urlPatientId ?? '');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   // Auto-load when navigating from queue with a patientId in the URL
   useEffect(() => {
     if (urlPatientId) {
-      setPatientId(urlPatientId);
       dispatch(fetchVerificationDashboard(urlPatientId));
     }
   }, [urlPatientId, dispatch]);
-
-  const handleLoadPatient = () => {
-    if (patientId.trim()) {
-      dispatch(fetchVerificationDashboard(patientId.trim()));
-    }
-  };
 
   useEffect(() => {
     dispatch(setVerificationSearchTerm(searchTerm));

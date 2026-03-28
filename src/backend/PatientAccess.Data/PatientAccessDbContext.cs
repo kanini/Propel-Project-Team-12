@@ -62,5 +62,11 @@ public class PatientAccessDbContext : DbContext
 
         // RAG Pipeline
         modelBuilder.ApplyConfiguration(new DocumentChunkConfiguration());
+
+        // InMemory provider cannot map pgvector Vector type; ignore it for testing
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            modelBuilder.Entity<DocumentChunk>().Ignore(e => e.Embedding);
+        }
     }
 }
