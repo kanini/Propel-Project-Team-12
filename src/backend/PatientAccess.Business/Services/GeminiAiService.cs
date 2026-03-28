@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
 using PatientAccess.Data.Models;
-using Mscc.GenerativeAI;
 
 namespace PatientAccess.Business.Services;
 
@@ -17,7 +16,6 @@ public class GeminiAiService : IGeminiAiService
     private readonly string _apiKey;
     private readonly string _apiEndpoint;
     private readonly int _maxTokens;
-    private readonly GenerativeModel? _model;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
