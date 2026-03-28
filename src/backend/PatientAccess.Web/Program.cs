@@ -23,6 +23,7 @@ using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -296,8 +297,9 @@ builder.Services.AddScoped<WeeklyQualityMetricsJob>(); // Weekly metrics calcula
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
 
 // US_045 - AI Document Intelligence (task_002: Supabase + Tesseract + Gemini pipeline)
-builder.Services.AddHttpClient(); // Required for Gemini API calls
-builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase document download
+builder.Services.AddHttpClient(); // Required for Gemini API calls and Supabase Storage REST API
+
+builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase Storage REST API
 builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction
 builder.Services.AddScoped<IGeminiAiService, GeminiAiService>(); // Gemini AI data extraction
 builder.Services.AddScoped<IClinicalDataExtractionService, ClinicalDataExtractionService>(); // Extraction orchestration
@@ -399,17 +401,29 @@ builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options
 });
 
 // Configure Hangfire for background job processing (US_028 - FR-012)
+// Use a separate connection string with a small pool to avoid exhausting Supabase's session-mode connection limit
+var hangfireConnectionString = new NpgsqlConnectionStringBuilder(
+    builder.Configuration.GetConnectionString("DefaultConnection"))
+{
+    MaxPoolSize = 5,
+    MinPoolSize = 1
+}.ConnectionString;
+
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
     .UsePostgreSqlStorage(options =>
     {
-        options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"));
+        options.UseNpgsqlConnection(hangfireConnectionString);
     }));
 
-// Add Hangfire server
-builder.Services.AddHangfireServer();
+// Add Hangfire server with reduced worker count to stay within Supabase connection limits
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 2;
+    options.SchedulePollingInterval = TimeSpan.FromSeconds(30);
+});
 
 // Configure Health Checks (TR-018, NFR-008)
 var healthChecksBuilder = builder.Services.AddHealthChecks()

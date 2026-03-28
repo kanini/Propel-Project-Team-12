@@ -1,8 +1,8 @@
-# Task - task_002_be_audit_logging_service
+﻿# Task - task_002_be_audit_logging_service
 
 ## Requirement Reference
-- User Story: US_055
-- Story Location: .propel/context/tasks/EP-010/us_055/us_055.md
+- User Story: US_059
+- Story Location: .propel/context/tasks/EP-010/US_059/US_059.md
 - Acceptance Criteria:
     - **AC1**: Given any user performs an auditable action (FR-040), When the action completes, Then an audit record is created within 200ms containing actor ID, action type, target resource, timestamp (UTC), IP address, and result (success/failure).
     - **AC4**: Given high-volume operations, When the system processes bulk actions, Then audit writes are batched asynchronously via Hangfire without dropping any records, and a health check confirms zero audit loss.
@@ -83,7 +83,7 @@ Create Audit Logging Service with asynchronous batching via Hangfire for high-vo
 - Application Insights custom metrics for audit volume
 
 ## Dependent Tasks
-- EP-010: US_055: task_001_db_audit_log_schema (AuditLog entity, DbContext)
+- EP-010: US_059: task_001_db_audit_log_schema (AuditLog entity, DbContext)
 
 ## Impacted Components
 - **NEW**: `src/backend/PatientAccess.Business/Services/AuditLoggingService.cs` - Audit service
@@ -615,16 +615,16 @@ Create Audit Logging Service with asynchronous batching via Hangfire for high-vo
 
 ```
 src/backend/
-├── PatientAccess.Business/
-│   ├── Services/
-│   ├── Interfaces/
-│   └── BackgroundJobs/
-├── PatientAccess.Web/
-│   ├── Middleware/
-│   └── HealthChecks/
-└── PatientAccess.Data/
-    └── Entities/
-        └── AuditLog.cs (from task_001)
+â”œâ”€â”€ PatientAccess.Business/
+â”‚   â”œâ”€â”€ Services/
+â”‚   â”œâ”€â”€ Interfaces/
+â”‚   â””â”€â”€ BackgroundJobs/
+â”œâ”€â”€ PatientAccess.Web/
+â”‚   â”œâ”€â”€ Middleware/
+â”‚   â””â”€â”€ HealthChecks/
+â””â”€â”€ PatientAccess.Data/
+    â””â”€â”€ Entities/
+        â””â”€â”€ AuditLog.cs (from task_001)
 ```
 
 ## Expected Changes
@@ -709,9 +709,9 @@ dotnet run
      - Assert: HealthCheckResult.Status = Healthy
 
 ### Acceptance Criteria Validation
-- **AC1**: ✅ Audit record created within 200ms with all required fields
-- **AC4**: ✅ Batch writes via Hangfire, health check confirms zero audit loss
-- **Edge Case**: ✅ Redis queue used when database unavailable, replay on recovery
+- **AC1**: âœ… Audit record created within 200ms with all required fields
+- **AC4**: âœ… Batch writes via Hangfire, health check confirms zero audit loss
+- **Edge Case**: âœ… Redis queue used when database unavailable, replay on recovery
 
 ## Success Criteria Checklist
 - [MANDATORY] IAuditLoggingService interface with LogActionAsync method (AC1)

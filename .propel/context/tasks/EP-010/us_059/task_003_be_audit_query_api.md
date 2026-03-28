@@ -1,8 +1,8 @@
-# Task - task_003_be_audit_query_api
+﻿# Task - task_003_be_audit_query_api
 
 ## Requirement Reference
-- User Story: US_055
-- Story Location: .propel/context/tasks/EP-010/us_055/us_055.md
+- User Story: US_059
+- Story Location: .propel/context/tasks/EP-010/US_059/US_059.md
 - Acceptance Criteria:
     - **AC3**: Given a compliance review is needed, When I query the audit log, Then I can filter by date range, user, action type, and resource with paginated results returning within 2 seconds (NFR-007).
 
@@ -78,8 +78,8 @@ Create Audit Query API with filtering, pagination, and performance optimization 
 - LINQ optimization with AsNoTracking()
 
 ## Dependent Tasks
-- EP-010: US_055: task_001_db_audit_log_schema (AuditLog entity, composite indexes)
-- EP-010: US_055: task_002_be_audit_logging_service (IAuditLoggingService)
+- EP-010: US_059: task_001_db_audit_log_schema (AuditLog entity, composite indexes)
+- EP-010: US_059: task_002_be_audit_logging_service (IAuditLoggingService)
 
 ## Impacted Components
 - **NEW**: `src/backend/PatientAccess.Web/Controllers/AuditLogsController.cs` - Audit query API
@@ -515,17 +515,17 @@ Create Audit Query API with filtering, pagination, and performance optimization 
 
 ```
 src/backend/
-├── PatientAccess.Business/
-│   ├── Services/
-│   │   └── AuditLoggingService.cs (from task_002)
-│   ├── Interfaces/
-│   │   └── IAuditLoggingService.cs (from task_002)
-│   └── DTOs/
-├── PatientAccess.Web/
-│   └── Controllers/
-└── PatientAccess.Data/
-    └── Entities/
-        └── AuditLog.cs (from task_001)
+â”œâ”€â”€ PatientAccess.Business/
+â”‚   â”œâ”€â”€ Services/
+â”‚   â”‚   â””â”€â”€ AuditLoggingService.cs (from task_002)
+â”‚   â”œâ”€â”€ Interfaces/
+â”‚   â”‚   â””â”€â”€ IAuditLoggingService.cs (from task_002)
+â”‚   â””â”€â”€ DTOs/
+â”œâ”€â”€ PatientAccess.Web/
+â”‚   â””â”€â”€ Controllers/
+â””â”€â”€ PatientAccess.Data/
+    â””â”€â”€ Entities/
+        â””â”€â”€ AuditLog.cs (from task_001)
 ```
 
 ## Expected Changes
@@ -625,7 +625,7 @@ curl -X GET "https://localhost:5001/api/audit-logs?fromDate=2026-01-01&toDate=20
      - Assert: Query time < 2s (uses composite indexes)
 
 ### Acceptance Criteria Validation
-- **AC3**: ✅ Query with filters (date range, user, action type, resource) returns paginated results within 2 seconds
+- **AC3**: âœ… Query with filters (date range, user, action type, resource) returns paginated results within 2 seconds
 
 ## Success Criteria Checklist
 - [MANDATORY] GET /api/audit-logs endpoint with filtering (AC3)

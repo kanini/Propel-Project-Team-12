@@ -72,7 +72,7 @@
 | Persona | Role | Primary Goals | Key Screens |
 |---------|------|---------------|-------------|
 | Patient | Primary end-user / healthcare consumer | Self-service registration, appointment booking, intake completion, document upload, health dashboard access | SCR-001, SCR-002, SCR-003, SCR-006–SCR-016 |
-| Staff | Front Desk / Call Center employee | Walk-in management, queue visibility, arrival marking, clinical data verification, conflict resolution | SCR-002, SCR-004, SCR-017–SCR-020, SCR-023, SCR-024 |
+| Staff | Front Desk / Call Center employee | Walk-in management, queue visibility, arrival marking, clinical data verification, conflict resolution | SCR-002, SCR-004, SCR-017–SCR-020, SCR-023A, SCR-023, SCR-024 |
 | Admin | System Administrator | User management, role assignment, audit log access, system configuration | SCR-002, SCR-005, SCR-021, SCR-022, SCR-025, SCR-026 |
 
 ---
@@ -110,6 +110,7 @@ Patient Access & Clinical Intelligence Platform
 |   +-- SCR-018: Walk-in Booking
 |   +-- SCR-019: Queue Management
 |   +-- SCR-020: Arrival Management
+|   +-- SCR-023A: Verification Queue (Patient Selection)
 |   +-- SCR-023: Clinical Data Verification
 |   +-- SCR-024: Conflict Resolution
 |
@@ -160,6 +161,7 @@ Patient Access & Clinical Intelligence Platform
 | SCR-020 | Arrival Management | UC-013 | UXR-004, UXR-201, UXR-301, UXR-501 | Staff | P1 | Default, Loading, Empty, Error |
 | SCR-021 | User Management | UC-014 | UXR-004, UXR-201, UXR-301, UXR-502, UXR-605 | Admin | P0 | Default, Loading, Empty, Error |
 | SCR-022 | User Create/Edit Form | UC-014 | UXR-201, UXR-203, UXR-301, UXR-601 | Admin | P0 | Default, Loading, Error, Validation |
+| SCR-023A | Verification Queue | UC-015 | UXR-201, UXR-301, UXR-501, UXR-502 | Staff | P0 | Default, Loading, Empty, Error |
 | SCR-023 | Clinical Data Verification | UC-015 | UXR-103, UXR-201, UXR-301, UXR-402, UXR-501 | Staff | P0 | Default, Loading, Empty, Error |
 | SCR-024 | Conflict Resolution | UC-016 | UXR-201, UXR-301, UXR-402, UXR-501, UXR-602 | Staff | P1 | Default, Loading, Empty, Error |
 | SCR-025 | Audit Log Viewer | FR-005, FR-040 | UXR-201, UXR-301, UXR-502, UXR-605 | Admin | P1 | Default, Loading, Empty, Error |
@@ -315,6 +317,7 @@ Patient Access & Clinical Intelligence Platform
 | SCR-020 | SearchBar (1), Table (1), Button (N), Badge (N) | Today's appointments with "Mark Arrived" |
 | SCR-021 | SearchBar (1), Table (1), Button (3), Badge (N), Pagination (1), EmptyState (1) | User list with create/edit/deactivate |
 | SCR-022 | TextField (5), Select (2), Toggle (1), Button (3), Alert (1) | User form with role assignment |
+| SCR-023A | SearchBar (1), Select (3), Table (1), Badge (N), Button (N) | Patient queue with priority, filter controls |
 | SCR-023 | DataGrid (1), Badge (N), Button (3), Tooltip (N), SidePanel (1) | Data points with source reference panel |
 | SCR-024 | SideBySideCompare (1), Badge (N), Button (3), Tooltip (N), Select (1) | Conflicting data comparison |
 | SCR-025 | Table (1), SearchBar (1), FilterPanel (1), Pagination (1), EmptyState (1) | Audit log entries with filtering |
@@ -673,15 +676,16 @@ Patient Access & Clinical Intelligence Platform
 
 ```text
 1. Entry: SCR-004 / Default
-   - Trigger: Staff clicks patient with pending verifications
+   - Trigger: Staff clicks "Verification" in sidebar or "Pending Verifications" stat card
    |
    v
-2. Step: SCR-017 / Default
-   - Action: Staff views 360° Patient View with unverified items highlighted
+2. Step: SCR-023A / Default
+   - Action: Staff views prioritized verification queue of all patients with pending items
+   - Decision: Staff selects patient from queue
    |
    v
 3. Step: SCR-023 / Default
-   - Action: Staff reviews individual data points with source document reference
+   - Action: Staff reviews individual data points for selected patient with source document reference
    |
    v
 4. Decision Loop (per data point):
@@ -889,6 +893,10 @@ Patient Access & Clinical Intelligence Platform
 | SCR-022 | Loading | Web | PatientAccess__Web__UserForm__Loading__v1.jpg |
 | SCR-022 | Error | Web | PatientAccess__Web__UserForm__Error__v1.jpg |
 | SCR-022 | Validation | Web | PatientAccess__Web__UserForm__Validation__v1.jpg |
+| SCR-023A | Default | Web | PatientAccess__Web__VerificationQueue__Default__v1.jpg |
+| SCR-023A | Loading | Web | PatientAccess__Web__VerificationQueue__Loading__v1.jpg |
+| SCR-023A | Empty | Web | PatientAccess__Web__VerificationQueue__Empty__v1.jpg |
+| SCR-023A | Error | Web | PatientAccess__Web__VerificationQueue__Error__v1.jpg |
 | SCR-023 | Default | Web | PatientAccess__Web__ClinicalVerification__Default__v1.jpg |
 | SCR-023 | Loading | Web | PatientAccess__Web__ClinicalVerification__Loading__v1.jpg |
 | SCR-023 | Empty | Web | PatientAccess__Web__ClinicalVerification__Empty__v1.jpg |

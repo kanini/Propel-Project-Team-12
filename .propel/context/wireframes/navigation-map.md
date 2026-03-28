@@ -47,12 +47,13 @@ All `href` attributes used in the 26 Hi-Fi wireframes. Every link target is a va
 | SCR-004 | Sidebar: Queue | SCR-019 |
 | SCR-004 | Sidebar: Arrivals | SCR-020 |
 | SCR-004 | Sidebar: Patient View | SCR-017 |
-| SCR-004 | Sidebar: Verification | SCR-023 |
+| SCR-004 | Sidebar: Verification | SCR-023A |
 | SCR-004 | Sidebar: Walk-in Booking | SCR-018 |
 | SCR-017 | Back to Dashboard | SCR-004 |
 | SCR-018 | "Register new patient" | SCR-001 |
 | SCR-018 | Cancel | SCR-004 |
 | SCR-019 | "+ Add Walk-in" | SCR-018 |
+| SCR-023A | Patient row: Review | SCR-023 |
 | SCR-023 | Resolve (conflict row) | SCR-024 |
 | SCR-024 | Back to Verification | SCR-023 |
 | SCR-024 | Cancel | SCR-023 |
@@ -84,7 +85,7 @@ All `href` attributes used in the 26 Hi-Fi wireframes. Every link target is a va
 | FL-006 Intake | SCR-003 → SCR-012 ↔ SCR-013 | Yes | PASS |
 | FL-007 Documents | SCR-003 → SCR-014 → SCR-015 | Yes | PASS |
 | FL-008 Walk-in | SCR-004 → SCR-018 → SCR-019 | Yes | PASS |
-| FL-009 Verification | SCR-004 → SCR-023 → SCR-024 | Yes | PASS |
+| FL-009 Verification | SCR-004 → SCR-023A → SCR-023 → SCR-024 | Yes | PASS |
 | FL-010 User Mgmt | SCR-005 → SCR-021 → SCR-022 | Yes | PASS |
 | FL-011 Admin Ops | SCR-005 → SCR-025, SCR-026 | Yes | PASS |
 
