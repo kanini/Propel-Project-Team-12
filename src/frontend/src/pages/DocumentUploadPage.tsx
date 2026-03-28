@@ -1,12 +1,38 @@
 /**
  * Document Upload page wrapper (US_042, SCR-014).
  * Matches wireframe SCR-014: Upload clinical documents.
+ * "Submit all documents" triggers batch finalize + RAG pipeline (EP006-EP008).
  */
 
-import { Link } from 'react-router-dom';
+import { useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../store';
 import { DocumentUpload } from '../components/documents/DocumentUpload';
+import { submitAllDocuments } from '../store/documentsSlice';
 
 export function DocumentUploadPage() {
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const uploads = useSelector((state: RootState) => state.documents.uploads);
+  const isSubmittingAll = useSelector((state: RootState) => state.documents.isSubmittingAll);
+  const submitError = useSelector((state: RootState) => state.documents.submitError);
+
+  // Count uploads ready for submission (chunks fully uploaded, not yet finalized)
+  const readyCount = Object.values(uploads).filter(
+    (u) => u.status === 'chunks_uploaded'
+  ).length;
+  const hasAnyUpload = Object.keys(uploads).length > 0;
+  const isUploading = Object.values(uploads).some((u) => u.status === 'uploading');
+
+  const handleSubmitAll = useCallback(async () => {
+    const result = await dispatch(submitAllDocuments());
+    if (submitAllDocuments.fulfilled.match(result)) {
+      // Navigate to document status page after successful submission
+      navigate('/documents/status');
+    }
+  }, [dispatch, navigate]);
+
   return (
     <div className="min-h-screen bg-neutral-100">
       {/* Page header matching wireframe */}
@@ -32,6 +58,16 @@ export function DocumentUploadPage() {
         {/* Upload component */}
         <DocumentUpload />
 
+        {/* Submit error alert */}
+        {submitError && (
+          <div className="mt-4 flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800" role="alert">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{submitError}</span>
+          </div>
+        )}
+
         {/* Action buttons at bottom matching wireframe */}
         <div className="flex justify-end gap-3 mt-6">
           <Link
@@ -41,9 +77,13 @@ export function DocumentUploadPage() {
             View document status
           </Link>
           <button
+            onClick={handleSubmitAll}
+            disabled={readyCount === 0 || isSubmittingAll || isUploading}
             className="px-6 py-2.5 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit all documents
+            {isSubmittingAll
+              ? 'Submitting...'
+              : `Submit all documents${readyCount > 0 ? ` (${readyCount})` : ''}`}
           </button>
         </div>
       </div>

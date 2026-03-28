@@ -25,6 +25,9 @@ import DocumentStatusPage from "./pages/DocumentStatusPage";
 import AppointmentSelectionPage from "./features/intake/pages/AppointmentSelectionPage";
 import IntakePage from "./features/intake/pages/IntakePage";
 import AuditLogsPage from "./pages/AuditLogsPage";
+import { HealthDashboardPage } from "./pages/HealthDashboardPage";
+import { ClinicalVerificationPage } from "./pages/ClinicalVerificationPage";
+import { VerificationQueuePage } from "./pages/VerificationQueuePage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/layout/MainLayout";
 import { SessionTimeoutModal } from "./components/modals/SessionTimeoutModal";
@@ -168,6 +171,18 @@ function App() {
             }
           />
 
+          {/* Health Dashboard 360° Route - SCR-016 */}
+          <Route
+            path="/health-dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["Patient"]}>
+                <MainLayout>
+                  <HealthDashboardPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Provider Browser Route - US_023 */}
           <Route
             path="/providers"
@@ -240,15 +255,23 @@ function App() {
             }
           />
 
+          {/* Clinical Verification Routes - SCR-023 / SCR-023A */}
           <Route
             path="/staff/verification"
             element={
               <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Verification</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <VerificationQueuePage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/staff/verification/:patientId"
+            element={
+              <ProtectedRoute allowedRoles={["Staff", "Admin"]}>
+                <MainLayout>
+                  <ClinicalVerificationPage />
                 </MainLayout>
               </ProtectedRoute>
             }

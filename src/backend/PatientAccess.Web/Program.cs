@@ -17,6 +17,7 @@ using StackExchange.Redis;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Npgsql;
+using Pgvector.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -255,9 +256,19 @@ builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcess
 builder.Services.AddHttpClient(); // Required for Gemini API calls and Supabase Storage REST API
 
 builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase Storage REST API
-builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction
+builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction (legacy, kept for fallback)
 builder.Services.AddScoped<IGeminiAiService, GeminiAiService>(); // Gemini AI data extraction
 builder.Services.AddScoped<IClinicalDataExtractionService, ClinicalDataExtractionService>(); // Extraction orchestration
+
+// RAG Pipeline services (EP006-EP008: Document → Chunk → Embed → pgvector → Cosine Search → LLM)
+builder.Services.AddScoped<IPdfTextExtractionService, PdfTextExtractionService>(); // PDF text extraction via PdfPig
+builder.Services.AddSingleton<ITextChunkingService, TextChunkingService>(); // Text chunking (512 tokens, 12.5% overlap)
+builder.Services.AddScoped<IEmbeddingService, EmbeddingService>(); // Gemini text-embedding-004
+builder.Services.AddScoped<IVectorSearchService, VectorSearchService>(); // pgvector cosine similarity search
+
+// Health Dashboard & Clinical Verification (SCR-016, SCR-023)
+builder.Services.AddScoped<IHealthDashboardService, HealthDashboardService>(); // 360° patient health view
+builder.Services.AddScoped<IClinicalVerificationService, ClinicalVerificationService>(); // Staff verification actions
 
 // Register IHttpContextAccessor for audit logging context extraction
 builder.Services.AddHttpContextAccessor();
@@ -330,13 +341,20 @@ else
 // Register Data Layer Repositories (DI)
 // Example: builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-// Configure Database Context with Entity Framework Core
+// Configure Database Context with Entity Framework Core + pgvector support
+var mainConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var pgDataSourceBuilder = new Npgsql.NpgsqlDataSourceBuilder(mainConnectionString);
+pgDataSourceBuilder.UseVector();
+var pgDataSource = pgDataSourceBuilder.Build();
+
 builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options =>
 {
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
+        pgDataSource,
         npgsqlOptions =>
         {
+            npgsqlOptions.UseVector();
+
             // Enable connection resiliency for transient failures
             npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
@@ -377,6 +395,7 @@ builder.Services.AddHangfire(configuration => configuration
 builder.Services.AddHangfireServer(options =>
 {
     options.WorkerCount = 2;
+    options.Queues = new[] { "default", "document-processing" };
     options.SchedulePollingInterval = TimeSpan.FromSeconds(30);
 });
 
