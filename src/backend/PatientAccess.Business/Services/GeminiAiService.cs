@@ -15,7 +15,7 @@ public class GeminiAiService : IGeminiAiService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GeminiAiService> _logger;
     private readonly string _apiKey;
-    private readonly string _modelName;
+    private readonly string _apiEndpoint;
     private readonly int _maxTokens;
     private readonly GenerativeModel? _model;
 
