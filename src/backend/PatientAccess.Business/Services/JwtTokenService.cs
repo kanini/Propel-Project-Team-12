@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 
 namespace PatientAccess.Business.Services;
@@ -20,7 +21,7 @@ public class JwtTokenService : IJwtTokenService
     private readonly RsaSecurityKey _signingKey;
     private readonly RsaSecurityKey _validationKey;
 
-    public JwtTokenService(IConfiguration configuration)
+    public JwtTokenService(IConfiguration configuration, IHostEnvironment hostEnvironment)
     {
         var jwtSettings = configuration.GetSection("JwtSettings");
 
@@ -30,16 +31,46 @@ public class JwtTokenService : IJwtTokenService
         _clockSkewMinutes = int.Parse(jwtSettings["ClockSkewMinutes"] ?? "5");
 
         // Load RSA keys from src/backend/rsa-keys directory
-        var privateKeyPath = jwtSettings["PrivateKeyPath"] ?? "rsa-keys/private-key.xml";
-        var publicKeyPath = jwtSettings["PublicKeyPath"] ?? "rsa-keys/public-key.xml";
+        var privateKeyPath = jwtSettings["PrivateKeyPath"];
+        var publicKeyPath = jwtSettings["PublicKeyPath"];
+
+        // Resolve relative paths relative to ContentRootPath (project directory)
+        // This ensures keys are found in PatientAccess.Web\rsa-keys\ where GenerateRsaKeys.ps1 creates them
+        if (string.IsNullOrEmpty(privateKeyPath) || !Path.IsPathRooted(privateKeyPath))
+        {
+            var relativePath = privateKeyPath ?? Path.Combine("rsa-keys", "private-key.xml");
+            privateKeyPath = Path.Combine(hostEnvironment.ContentRootPath, relativePath);
+        }
+
+        if (string.IsNullOrEmpty(publicKeyPath) || !Path.IsPathRooted(publicKeyPath))
+        {
+            var relativePath = publicKeyPath ?? Path.Combine("rsa-keys", "public-key.xml");
+            publicKeyPath = Path.Combine(hostEnvironment.ContentRootPath, relativePath);
+        }
 
         // Load private key for signing
+        if (!File.Exists(privateKeyPath))
+        {
+            throw new InvalidOperationException(
+                $"JWT private key not found at {privateKeyPath} (absolute: {Path.GetFullPath(privateKeyPath)}). " +
+                "Run 'powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1' to generate RSA key pair. " +
+                "See docs/AUTHENTICATION.md for setup instructions.");
+        }
+
         var privateKeyXml = File.ReadAllText(privateKeyPath);
         var privateRsa = RSA.Create();
         privateRsa.FromXmlString(privateKeyXml);
         _signingKey = new RsaSecurityKey(privateRsa) { KeyId = "patient-access-rsa-key-1" };
 
         // Load public key for validation
+        if (!File.Exists(publicKeyPath))
+        {
+            throw new InvalidOperationException(
+                $"JWT public key not found at {publicKeyPath} (absolute: {Path.GetFullPath(publicKeyPath)}). " +
+                "Run 'powershell -ExecutionPolicy Bypass -File scripts/GenerateRsaKeys.ps1' to generate RSA key pair. " +
+                "See docs/AUTHENTICATION.md for setup instructions.");
+        }
+
         var publicKeyXml = File.ReadAllText(publicKeyPath);
         var publicRsa = RSA.Create();
         publicRsa.FromXmlString(publicKeyXml);

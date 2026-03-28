@@ -14,4 +14,7 @@ public interface IGeminiAiService
     /// <param name="promptTemplate">Prompt template for extraction</param>
     /// <returns>List of extracted data points</returns>
     Task<List<ExtractedDataPointDto>> ExtractClinicalDataAsync(string ocrText, string promptTemplate);
+    Task<Dictionary<string, List<float>>> GenerateBatchEmbeddingsAsync(List<string> texts, CancellationToken cancellationToken);
+    Task<string> GenerateContentAsync(string systemPrompt, string userPrompt, float temperature, int maxTokens, string responseFormat, CancellationToken cancellationToken);
+    Task<List<float>> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken);
 }

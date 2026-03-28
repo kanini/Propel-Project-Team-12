@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Azure;
-using Azure.AI.OpenAI;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,7 +15,7 @@ using Polly.Retry;
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// Service for medical code mapping using RAG pattern with Azure OpenAI GPT-4o.
+/// Service for medical code mapping using RAG pattern with Gemini AI.
 /// Maps extracted clinical data to ICD-10 diagnosis codes or CPT procedure codes
 /// with confidence scores and LLM-generated rationale (AIR-003, AIR-004, AIR-Q01, AIR-Q03).
 /// </summary>
@@ -26,7 +24,7 @@ public class CodeMappingService : ICodeMappingService
     private readonly ILogger<CodeMappingService> _logger;
     private readonly PatientAccessDbContext _context;
     private readonly IHybridRetrievalService _hybridRetrievalService;
-    private readonly OpenAIClient _openAIClient;
+    private readonly IGeminiAiService _geminiAiService;
     private readonly CodeMappingSettings _settings;
     private readonly IValidator<CodeMappingResponseDto> _validator;
     private readonly AsyncRetryPolicy _retryPolicy;
@@ -51,32 +49,34 @@ public class CodeMappingService : ICodeMappingService
         ILogger<CodeMappingService> logger,
         PatientAccessDbContext context,
         IHybridRetrievalService hybridRetrievalService,
-        OpenAIClient openAIClient,
+        IGeminiAiService geminiAiService,
         IOptions<CodeMappingSettings> settings,
         IValidator<CodeMappingResponseDto> validator)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _hybridRetrievalService = hybridRetrievalService ?? throw new ArgumentNullException(nameof(hybridRetrievalService));
-        _openAIClient = openAIClient ?? throw new ArgumentNullException(nameof(openAIClient));
+        _geminiAiService = geminiAiService ?? throw new ArgumentNullException(nameof(geminiAiService));
         _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
         _validator = validator ?? throw new ArgumentNullException(nameof(validator));
 
         // Configure Polly retry policy: 3 retries with exponential backoff (2s, 4s, 8s)
         _retryPolicy = Policy
-            .Handle<RequestFailedException>()
+            .Handle<HttpRequestException>()
+            .Or<TaskCanceledException>()
             .WaitAndRetryAsync(
                 retryCount: _settings.RetryCount,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                 onRetry: (exception, timeSpan, retryCount, context) =>
                 {
-                    _logger.LogWarning("Azure OpenAI retry {RetryCount} after {Delay}s: {Message}",
+                    _logger.LogWarning("Gemini AI retry {RetryCount} after {Delay}s: {Message}",
                         retryCount, timeSpan.TotalSeconds, exception.Message);
                 });
 
         // Configure Polly circuit breaker: 5 failures trigger 1-minute break
         _circuitBreakerPolicy = Policy
-            .Handle<RequestFailedException>()
+            .Handle<HttpRequestException>()
+            .Or<TaskCanceledException>()
             .CircuitBreakerAsync(
                 exceptionsAllowedBeforeBreaking: _settings.CircuitBreakerThreshold,
                 durationOfBreak: TimeSpan.FromMinutes(1),
@@ -134,7 +134,7 @@ public class CodeMappingService : ICodeMappingService
     }
 
     /// <summary>
-    /// Core code mapping logic using RAG retrieval and GPT-4o inference.
+    /// Core code mapping logic using RAG retrieval and Gemini AI inference.
     /// </summary>
     private async Task<CodeMappingResponseDto> MapToCodes(
         CodeMappingRequestDto request,
@@ -171,39 +171,31 @@ public class CodeMappingService : ICodeMappingService
             .Replace("{retrieved_context}", retrievedContext)
             .Replace("{clinical_text}", request.ClinicalText);
 
-        // 3. Invoke Azure OpenAI GPT-4o for code mapping
-        _logger.LogInformation("Invoking Azure OpenAI GPT-4o for {CodeSystem} mapping", codeSystem);
+        // 3. Invoke Gemini AI for code mapping
+        _logger.LogInformation("Invoking Gemini AI for {CodeSystem} mapping", codeSystem);
 
-        var chatMessages = new ChatRequestMessage[]
-        {
-            new ChatRequestSystemMessage($"You are a medical coding expert specializing in {codeSystem} code assignment."),
-            new ChatRequestUserMessage(userPrompt)
-        };
+        var systemPrompt = $"You are a medical coding expert specializing in {codeSystem} code assignment.";
 
-        var chatOptions = new ChatCompletionsOptions
-        {
-            DeploymentName = _settings.Gpt4oDeploymentName,
-            Messages = { chatMessages[0], chatMessages[1] },
-            Temperature = _settings.Temperature, // 0.0 for deterministic medical coding
-            MaxTokens = _settings.MaxTokens,
-            ResponseFormat = ChatCompletionsResponseFormat.JsonObject // Force JSON output (GPT-4o feature)
-        };
-
-        ChatCompletions response;
+        string llmOutput;
         try
         {
-            response = await _circuitBreakerPolicy.ExecuteAsync(() =>
+            llmOutput = await _circuitBreakerPolicy.ExecuteAsync(() =>
                 _retryPolicy.ExecuteAsync(() =>
-                    _openAIClient.GetChatCompletionsAsync(chatOptions, cancellationToken)));
+                    _geminiAiService.GenerateContentAsync(
+                        systemPrompt,
+                        userPrompt,
+                        temperature: _settings.Temperature, // 0.0 for deterministic medical coding
+                        maxTokens: _settings.MaxTokens,
+                        responseFormat: "json_object", // Force JSON output
+                        cancellationToken: cancellationToken)));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Azure OpenAI GPT-4o invocation failed for {CodeSystem} mapping", codeSystem);
+            _logger.LogError(ex, "Gemini AI invocation failed for {CodeSystem} mapping", codeSystem);
             throw;
         }
 
-        var llmOutput = response.Choices[0].Message.Content;
-        _logger.LogDebug("GPT-4o response: {Output}", llmOutput);
+        _logger.LogDebug("Gemini AI response: {Output}", llmOutput);
 
         // 4. Parse JSON response from LLM
         LLMCodeMappingResponse? parsedResponse;
@@ -216,14 +208,14 @@ public class CodeMappingService : ICodeMappingService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to parse GPT-4o JSON response: {Output}", llmOutput);
+            _logger.LogError(ex, "Failed to parse Gemini AI JSON response: {Output}", llmOutput);
             await TrackSchemaValidityAsync(false, cancellationToken);
             throw new InvalidOperationException("LLM returned invalid JSON format", ex);
         }
 
         if (parsedResponse == null)
         {
-            _logger.LogError("GPT-4o returned null response");
+            _logger.LogError("Gemini AI returned null response");
             await TrackSchemaValidityAsync(false, cancellationToken);
             throw new InvalidOperationException("LLM returned null response");
         }

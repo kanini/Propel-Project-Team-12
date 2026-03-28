@@ -1,7 +1,5 @@
 using System.Text.Json.Serialization;
 using Azure;
-using Azure.AI.OpenAI;
-using PatientAccess.Web.Extensions;
 using PatientAccess.Web.Middleware;
 using PatientAccess.Web.Filters;
 using PatientAccess.Web.HealthChecks;
@@ -19,7 +17,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -142,8 +139,15 @@ builder.Services.AddCors(options =>
 
 // Configure JWT Authentication (TR-012) - RS256 with RSA asymmetric keys
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var publicKeyPath = jwtSettings["PublicKeyPath"]
-    ?? Path.Combine(AppContext.BaseDirectory, "rsa-keys", "public-key.xml");
+var publicKeyPath = jwtSettings["PublicKeyPath"];
+
+// Resolve relative paths relative to ContentRootPath (project directory)
+// This ensures keys are found in PatientAccess.Web\rsa-keys\ where GenerateRsaKeys.ps1 creates them
+if (string.IsNullOrEmpty(publicKeyPath) || !Path.IsPathRooted(publicKeyPath))
+{
+    var relativePath = publicKeyPath ?? Path.Combine("rsa-keys", "public-key.xml");
+    publicKeyPath = Path.Combine(builder.Environment.ContentRootPath, relativePath);
+}
 
 // Load public key for token validation
 if (!File.Exists(publicKeyPath))
@@ -266,15 +270,9 @@ builder.Services.AddScoped<IDocumentChunkingService, DocumentChunkingService>();
 builder.Services.AddScoped<ChunkDocumentsJob>(); // Hangfire background job for chunking
 
 // EP-008-US-050 - Embedding generation services (AIR-R04, DR-010)
-builder.Services.Configure<AzureOpenAISettings>(
-    builder.Configuration.GetSection("AzureOpenAI"));
-builder.Services.AddSingleton(sp =>
-{
-    var settings = sp.GetRequiredService<IOptions<AzureOpenAISettings>>().Value;
-    return new OpenAIClient(new Uri(settings.Endpoint), new AzureKeyCredential(settings.ApiKey));
-});
-builder.Services.AddScoped<IEmbeddingGenerationService, EmbeddingGenerationService>(); // Azure OpenAI embedding generation
-builder.Services.AddScoped<GenerateEmbeddingsJob>(); // Hangfire background job for embeddings
+// Note: Using Gemini AI Service for embedding generation instead of Azure OpenAI
+// Gemini AI Service is already registered below for document intelligence and will be reused for embeddings
+builder.Services.AddScoped<IEmbeddingGenerationService, EmbeddingGenerationService>(); // Gemini AI embedding generation
 
 // EP-008-US-050 - Hybrid retrieval services (AIR-R02, AIR-R03, AIR-R04)
 builder.Services.AddScoped<IHybridRetrievalService, HybridRetrievalService>(); // Semantic + keyword search with Redis caching

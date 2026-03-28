@@ -1,6 +1,4 @@
 using System.Text.RegularExpressions;
-using Azure;
-using Azure.AI.OpenAI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,32 +14,32 @@ using Polly.Retry;
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// Service for generating embeddings using Azure OpenAI text-embedding-3-small (AIR-R04, DR-010).
-/// Produces 1536-dimensional vectors with batch processing, rate limiting, and Polly resilience patterns.
+/// Service for generating embeddings using Google Gemini AI (AIR-R04, DR-010).
+/// Produces embeddings with batch processing, rate limiting, and Polly resilience patterns.
 /// </summary>
 public class EmbeddingGenerationService : IEmbeddingGenerationService
 {
     private readonly ILogger<EmbeddingGenerationService> _logger;
     private readonly PatientAccessDbContext _context;
-    private readonly AzureOpenAISettings _settings;
-    private readonly OpenAIClient _openAIClient;
+    private readonly GeminiSettings _settings;
+    private readonly IGeminiAiService _geminiAiService;
     private readonly AsyncRetryPolicy _retryPolicy;
     private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
 
     public EmbeddingGenerationService(
         ILogger<EmbeddingGenerationService> logger,
         PatientAccessDbContext context,
-        IOptions<AzureOpenAISettings> settings,
-        OpenAIClient openAIClient)
+        IOptions<GeminiSettings> settings,
+        IGeminiAiService geminiAiService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
-        _openAIClient = openAIClient ?? throw new ArgumentNullException(nameof(openAIClient));
+        _geminiAiService = geminiAiService ?? throw new ArgumentNullException(nameof(geminiAiService));
 
         // Configure Polly retry policy: 3 retries with exponential backoff
         _retryPolicy = Policy
-            .Handle<RequestFailedException>() // Azure SDK exception for API failures
+            .Handle<Exception>() // Handle general exceptions from Gemini API
             .WaitAndRetryAsync(
                 retryCount: 3,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
@@ -53,7 +51,7 @@ public class EmbeddingGenerationService : IEmbeddingGenerationService
 
         // Configure Polly circuit breaker: 5 failures trigger 1-minute break
         _circuitBreakerPolicy = Policy
-            .Handle<RequestFailedException>()
+            .Handle<Exception>()
             .CircuitBreakerAsync(
                 exceptionsAllowedBeforeBreaking: 5,
                 durationOfBreak: TimeSpan.FromMinutes(1),
@@ -81,10 +79,7 @@ public class EmbeddingGenerationService : IEmbeddingGenerationService
         return await _circuitBreakerPolicy.ExecuteAsync(() =>
             _retryPolicy.ExecuteAsync(async () =>
             {
-                var options = new EmbeddingsOptions(_settings.EmbeddingDeploymentName, new[] { text });
-                var response = await _openAIClient.GetEmbeddingsAsync(options, cancellationToken);
-
-                var embedding = response.Value.Data[0].Embedding.ToArray().ToList();
+                var embedding = await _geminiAiService.GenerateEmbeddingAsync(text, cancellationToken);
 
                 _logger.LogDebug("Embedding generated: {Dimensions} dimensions", embedding.Count);
 
@@ -115,15 +110,7 @@ public class EmbeddingGenerationService : IEmbeddingGenerationService
         var embeddings = await _circuitBreakerPolicy.ExecuteAsync(() =>
             _retryPolicy.ExecuteAsync(async () =>
             {
-                var options = new EmbeddingsOptions(_settings.EmbeddingDeploymentName, texts);
-                var response = await _openAIClient.GetEmbeddingsAsync(options, cancellationToken);
-
-                var result = new Dictionary<string, List<float>>();
-                for (int i = 0; i < texts.Count; i++)
-                {
-                    result[texts[i]] = response.Value.Data[i].Embedding.ToArray().ToList();
-                }
-
+                var result = await _geminiAiService.GenerateBatchEmbeddingsAsync(texts, cancellationToken);
                 return result;
             }));
 
@@ -171,7 +158,7 @@ public class EmbeddingGenerationService : IEmbeddingGenerationService
             await ProcessBatchAsync(batch, codeSystem, cancellationToken);
             processedCount += batch.Count;
 
-            // Rate limiting: delay between batches to respect Azure OpenAI quotas
+            // Rate limiting: delay between batches to respect Gemini API quotas
             if (i + _settings.BatchSize < pendingChunks.Count)
             {
                 var delaySeconds = 60.0 / _settings.MaxRequestsPerMinute;
@@ -337,7 +324,7 @@ public class EmbeddingGenerationService : IEmbeddingGenerationService
         var lines = chunk.SourceText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
         var term = lines.Length > 0 ? lines[0].Trim() : chunk.SourceText;
 
-        // Limit term length to 500 characters
+        // Limit term to 500 characters
         if (term.Length > 500)
         {
             term = term.Substring(0, 500);

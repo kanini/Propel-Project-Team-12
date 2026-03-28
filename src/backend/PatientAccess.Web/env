@@ -1,0 +1,24 @@
+# Resend Email Service Configuration
+ResendSettings__ApiKey=re_AwfiUfWD_BUikGNE2bwNknBoxvYffu6CQ
+ResendSettings__SenderEmail=onboarding@resend.dev
+ResendSettings__SenderName=Patient Access Platform - Dev
+
+# Database Connection (Password injected into ConnectionStrings:DefaultConnection)
+DB_PASSWORD=Maddy@15092001
+
+# Pusher Real-Time
+Pusher__AppId=2131967
+Pusher__Key=fc5178bb47ede7865d23
+Pusher__Secret=ff93f4bd6b071edef4c1
+
+# Google Gemini AI
+GeminiAI__ApiKey=AIzaSyDT4J8zLtwcF1GjN2nDaqoc6rSZLjfR178
+
+# Supabase Storage
+Supabase__ApiKey=sb_publishable_1pt8tDjGJqh-iJ-27mk4yg_skPBlUSa
+
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
+
+# Redis (Optional)
+RedisSettings__ConnectionString=your-upstash-redis-connection-string-here
