@@ -5,9 +5,17 @@
 # All FTP credentials MUST be stored in GitHub Secrets (not hardcoded).
 #
 # Required GitHub Secrets:
-#   FTP_BACKEND_HOST     - FTP server URL (e.g., ftp://site59724.siteasp.net)
-#   FTP_BACKEND_USERNAME - FTP username
-#   FTP_BACKEND_PASSWORD - FTP password
+#   FTP_BACKEND_HOST       - FTP server URL (e.g., ftp://site59724.siteasp.net)
+#   FTP_BACKEND_USERNAME   - FTP username
+#   FTP_BACKEND_PASSWORD   - FTP password
+#   DB_PASSWORD            - Supabase PostgreSQL password
+#   SMTP__PASSWORD         - Gmail App Password (16 chars, format: xxxx xxxx xxxx xxxx)
+#   GEMINI_API_KEY         - Google Gemini AI API key
+#   SUPABASE_API_KEY       - Supabase service_role (secret) key for storage
+#   PUSHER_APP_ID          - Pusher App ID (optional, if Pusher enabled)
+#   PUSHER_KEY             - Pusher Key (optional, if Pusher enabled)
+#   PUSHER_SECRET          - Pusher Secret (optional, if Pusher enabled)
+#   REDIS_CONNECTION_STRING - Upstash Redis connection string (optional, if Redis enabled)
 #
 # Trigger: Manual dispatch, or after CI passes on main branch
 
@@ -68,18 +76,20 @@ jobs:
           Copy-Item "src/backend/PatientAccess.Web/rsa-keys/private-key.xml" "./publish/rsa-keys/private-key.xml"
           Write-Host "RSA keys copied to publish/rsa-keys/"
 
-      # Inject secrets into appsettings.json connection string (Password= can't be overridden via env vars)
+      # Inject secrets into appsettings.json (Password= and SMTP Password can't be overridden via env vars)
       - name: Inject secrets into config
         shell: bash
         run: |
           sed -i "s|Password=SET_VIA_ENV|Password=${{ secrets.DB_PASSWORD }}|g" ./publish/appsettings.json
           sed -i "s|Password=SET_VIA_ENV|Password=${{ secrets.DB_PASSWORD }}|g" ./publish/appsettings.Development.json
+          sed -i "s|SET_VIA_ENV_SMTP__PASSWORD|${{ secrets.SMTP__PASSWORD }}|g" ./publish/appsettings.json
+          sed -i "s|SET_VIA_ENV_SMTP__PASSWORD|${{ secrets.SMTP__PASSWORD }}|g" ./publish/appsettings.Development.json
 
       - name: Configure web.config for deployment
         shell: bash
         run: |
           sed -i 's|stdoutLogEnabled="false"|stdoutLogEnabled="true"|g' ./publish/web.config
-          sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n          <environmentVariable name="ResendSettings__ApiKey" value="${{ secrets.RESEND_API_KEY }}" />\n          <environmentVariable name="Pusher__AppId" value="${{ secrets.PUSHER_APP_ID }}" />\n          <environmentVariable name="Pusher__Key" value="${{ secrets.PUSHER_KEY }}" />\n          <environmentVariable name="Pusher__Secret" value="${{ secrets.PUSHER_SECRET }}" />\n          <environmentVariable name="GeminiAI__ApiKey" value="${{ secrets.GEMINI_API_KEY }}" />\n          <environmentVariable name="Supabase__ApiKey" value="${{ secrets.SUPABASE_API_KEY }}" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
+          sed -i 's|hostingModel="inprocess" />|hostingModel="inprocess">\n        <environmentVariables>\n          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />\n          <environmentVariable name="SmtpSettings__Password" value="${{ secrets.SMTP__PASSWORD }}" />\n          <environmentVariable name="Pusher__AppId" value="${{ secrets.PUSHER_APP_ID }}" />\n          <environmentVariable name="Pusher__Key" value="${{ secrets.PUSHER_KEY }}" />\n          <environmentVariable name="Pusher__Secret" value="${{ secrets.PUSHER_SECRET }}" />\n          <environmentVariable name="GeminiAI__ApiKey" value="${{ secrets.GEMINI_API_KEY }}" />\n          <environmentVariable name="Supabase__ApiKey" value="${{ secrets.SUPABASE_API_KEY }}" />\n          <environmentVariable name="RedisSettings__ConnectionString" value="${{ secrets.REDIS_CONNECTION_STRING }}" />\n        </environmentVariables>\n      </aspNetCore>|g' ./publish/web.config
 
       # CICD-051: Deploy backend via FTP with app_offline pattern
       - name: Take app offline

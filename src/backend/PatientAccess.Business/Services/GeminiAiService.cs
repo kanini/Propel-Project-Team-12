@@ -5,23 +5,23 @@ using Microsoft.Extensions.Logging;
 using PatientAccess.Business.DTOs;
 using PatientAccess.Business.Interfaces;
 using PatientAccess.Data.Models;
+using Mscc.GenerativeAI;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
-/// Service for AI-powered clinical data extraction using Google Gemini (task_002).
-/// NOTE: This is a stub implementation. Full implementation requires:
-/// - NuGet package: Google.GenerativeAI or HttpClient for Gemini REST API
-/// - Gemini API key from Google AI Studio (free tier)
-/// - Prompt template loading from .propel/prompts/
+/// Service for AI-powered clinical data extraction using Google Gemini.
+/// Uses Mscc.GenerativeAI SDK to interact with Gemini API.
+/// Requires API key from Google AI Studio (https://aistudio.google.com/apikey).
 /// </summary>
 public class GeminiAiService : IGeminiAiService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<GeminiAiService> _logger;
     private readonly string _apiKey;
-    private readonly string _apiEndpoint;
+    private readonly string _modelName;
     private readonly int _maxTokens;
+    private readonly GenerativeModel? _model;
 
     public GeminiAiService(
         IConfiguration configuration,
@@ -31,42 +31,80 @@ public class GeminiAiService : IGeminiAiService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _apiKey = _configuration["GeminiAI:ApiKey"] ?? string.Empty;
-        _apiEndpoint = _configuration["GeminiAI:ApiEndpoint"] ?? "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
+        _modelName = _configuration["GeminiAI:ModelName"] ?? "gemini-1.5-flash-latest";
         _maxTokens = int.Parse(_configuration["GeminiAI:MaxTokens"] ?? "8000");
 
-        if (string.IsNullOrWhiteSpace(_apiKey))
+        if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey == "SET_VIA_ENV_GEMINIAI__APIKEY")
         {
-            _logger.LogWarning("Gemini API key not configured. Service will return stub data.");
+            _logger.LogWarning("Gemini API key not configured. Service will return stub data. Set GEMINIAI__APIKEY environment variable.");
+        }
+        else
+        {
+            try
+            {
+                var googleAi = new GoogleAI(_apiKey);
+                _model = googleAi.GenerativeModel(model: _modelName);
+                _logger.LogInformation("Gemini AI service initialized successfully with model: {ModelName}", _modelName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to initialize Gemini model. Will use stub data.");
+            }
         }
     }
 
-    public Task<List<ExtractedDataPointDto>> ExtractClinicalDataAsync(string ocrText, string promptTemplate)
+    public async Task<List<ExtractedDataPointDto>> ExtractClinicalDataAsync(string ocrText, string promptTemplate)
     {
         _logger.LogInformation("Extracting clinical data using Gemini AI. Text length: {Length}", ocrText.Length);
 
-        if (string.IsNullOrWhiteSpace(_apiKey))
+        if (_model == null)
         {
-            _logger.LogWarning("Gemini API key not configured. Returning stub data.");
-            return Task.FromResult(GetStubExtractedData());
+            _logger.LogWarning("Gemini model not initialized. Returning stub data.");
+            return GetStubExtractedData();
         }
 
         try
         {
-            // Build the prompt
+            // Build the full prompt
             var fullPrompt = promptTemplate.Replace("{OCR_TEXT}", ocrText);
 
-            // TODO: Implement actual Gemini API call
-            // 1. Construct request payload with prompt
-            // 2. Send POST request to Gemini API endpoint
-            // 3. Parse JSON response
-            // 4. Map to ExtractedDataPointDto list
-            // 5. Implement retry logic with exponential backoff
-            // 6. Handle rate limiting (15 RPM, 1M TPM free tier)
+            // Truncate if text is too long
+            if (fullPrompt.Length > _maxTokens * 4) // Rough estimate: 1 token ~= 4 chars
+            {
+                _logger.LogWarning("Prompt too long ({Length} chars). Truncating to fit within token limit.", fullPrompt.Length);
+                var maxChars = _maxTokens * 3; // Leave some room for response
+                fullPrompt = promptTemplate.Replace("{OCR_TEXT}", ocrText.Substring(0, Math.Min(ocrText.Length, maxChars)));
+            }
 
-            _logger.LogInformation("Gemini API call would be made here (stub mode)");
+            _logger.LogDebug("Sending request to Gemini API...");
 
-            // Return stub data for now
-            return Task.FromResult(GetStubExtractedData());
+            // Generate content
+            var response = await _model.GenerateContent(fullPrompt);
+            
+            if (string.IsNullOrWhiteSpace(response?.Text))
+            {
+                _logger.LogWarning("Gemini API returned empty response. Using stub data.");
+                return GetStubExtractedData();
+            }
+
+            _logger.LogInformation("Received response from Gemini API. Response length: {Length}", response.Text.Length);
+            _logger.LogDebug("Gemini response: {Response}", response.Text);
+
+            // Parse JSON response
+            var extractedData = ParseGeminiResponse(response.Text);
+
+            if (extractedData.Count == 0)
+            {
+                _logger.LogWarning("No data extracted from Gemini response. This may indicate low-quality OCR or no clinical data in document.");
+            }
+
+            _logger.LogInformation("Successfully extracted {Count} data points from Gemini AI", extractedData.Count);
+            return extractedData;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse Gemini response as JSON. Response may not be in expected format.");
+            return GetStubExtractedData();
         }
         catch (Exception ex)
         {

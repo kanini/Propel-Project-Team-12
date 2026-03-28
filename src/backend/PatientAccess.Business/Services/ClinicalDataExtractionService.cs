@@ -36,7 +36,7 @@ public class ClinicalDataExtractionService : IClinicalDataExtractionService
         _geminiService = geminiService ?? throw new ArgumentNullException(nameof(geminiService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        _promptTemplatePath = ".propel/prompts/clinical-data-extraction-prompt.md";
+        _promptTemplatePath = ".propel/prompts/clinical-data-extraction.md";
     }
 
     public async Task<ExtractionResultDto> ExtractClinicalDataAsync(Guid documentId)
