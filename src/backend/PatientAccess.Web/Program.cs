@@ -28,6 +28,8 @@ var builder = WebApplication.CreateBuilder(args);
 var envFile = Path.Combine(builder.Environment.ContentRootPath, ".env");
 if (File.Exists(envFile))
 {
+    Console.WriteLine($"DEBUG: Loading .env file from {envFile}");
+
     foreach (var line in File.ReadAllLines(envFile))
     {
         var trimmed = line.Trim();
@@ -36,9 +38,24 @@ if (File.Exists(envFile))
         if (idx <= 0) continue;
         var key = trimmed[..idx].Trim();
         var value = trimmed[(idx + 1)..].Trim();
+
+        // Skip if value is empty to prevent overriding configuration with empty strings
+        if (string.IsNullOrEmpty(value))
+        {
+            Console.WriteLine($"Warning: Skipping .env entry '{key}' because it has an empty value");
+            continue;
+        }
+
         Environment.SetEnvironmentVariable(key, value);
         // Also set in configuration directly (env vars set after builder init aren't picked up)
         var configKey = key.Replace("__", ":");
+
+        // Diagnostic output for connection string related keys
+        if (configKey.Contains("Connection", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($"DEBUG: Setting config key '{configKey}' from .env (value length: {value.Length})");
+        }
+
         builder.Configuration[configKey] = value;
     }
 
@@ -49,7 +66,10 @@ if (File.Exists(envFile))
         var connStr = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
         connStr = connStr.Replace("Password=SET_VIA_ENV", $"Password={dbPassword}");
         builder.Configuration["ConnectionStrings:DefaultConnection"] = connStr;
+        Console.WriteLine($"DEBUG: Injected DB_PASSWORD into connection string");
     }
+
+    Console.WriteLine($"DEBUG: After .env processing, ConnectionString length: {builder.Configuration.GetConnectionString("DefaultConnection")?.Length ?? 0}");
 }
 
 // Add services to the container
@@ -392,6 +412,9 @@ builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options
 
             // Set command timeout to match connection string
             npgsqlOptions.CommandTimeout(30);
+
+            // Enable pgvector extension support for vector similarity search (DR-010)
+            npgsqlOptions.UseVector();
         });
 
     // Enable detailed errors in development
@@ -404,12 +427,80 @@ builder.Services.AddDbContext<PatientAccess.Data.PatientAccessDbContext>(options
 
 // Configure Hangfire for background job processing (US_028 - FR-012)
 // Use a separate connection string with a small pool to avoid exhausting Supabase's session-mode connection limit
-var hangfireConnectionString = new NpgsqlConnectionStringBuilder(
-    builder.Configuration.GetConnectionString("DefaultConnection"))
+var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Diagnostic logging to help identify configuration issues
+Console.WriteLine($"DEBUG: DefaultConnection value: '{defaultConnectionString}' (Length: {defaultConnectionString?.Length ?? 0})");
+
+if (string.IsNullOrWhiteSpace(defaultConnectionString))
 {
-    MaxPoolSize = 5,
-    MinPoolSize = 1
-}.ConnectionString;
+    throw new InvalidOperationException(
+        "Database connection string 'DefaultConnection' is not configured or is empty. " +
+        "Please check:\n" +
+        "1. appsettings.json and appsettings.Development.json have 'ConnectionStrings:DefaultConnection' defined\n" +
+        "2. .env file does not have empty 'ConnectionStrings__DefaultConnection=' entry\n" +
+        "3. Environment variables are not overriding the connection string with empty values");
+}
+
+// Parse connection string - handle both PostgreSQL URI format (from Supabase) and traditional format
+NpgsqlConnectionStringBuilder connectionBuilder;
+try
+{
+    // NpgsqlConnectionStringBuilder can parse URI format, but we need to handle it carefully
+    // Supabase provides URIs like: postgresql://user:pass@host:port/db
+    connectionBuilder = new NpgsqlConnectionStringBuilder(defaultConnectionString);
+}
+catch (ArgumentException ex) when (defaultConnectionString.StartsWith("postgres://") || defaultConnectionString.StartsWith("postgresql://"))
+{
+    // If parsing fails and it's a URI, manually parse and URL-encode credentials
+    // This handles passwords with special characters like @ or : that aren't URL-encoded
+    var uriString = defaultConnectionString;
+
+    // Extract components using regex to handle special characters in password
+    // Use greedy match (.+) for password to capture @ symbols, matching up to the last @
+    var uriMatch = System.Text.RegularExpressions.Regex.Match(
+        uriString,
+        @"^(postgres(?:ql)?://)([^:]+):(.+)@([^@]+)$");
+    
+    if (uriMatch.Success)
+    {
+        var scheme = uriMatch.Groups[1].Value;
+        var username = uriMatch.Groups[2].Value;
+        var password = uriMatch.Groups[3].Value;
+        var hostAndDb = uriMatch.Groups[4].Value;
+        
+        // URL-encode credentials to handle special characters
+        var encodedUsername = Uri.EscapeDataString(username);
+        var encodedPassword = Uri.EscapeDataString(password);
+        
+        // Reconstruct URI with encoded credentials
+        uriString = $"{scheme}{encodedUsername}:{encodedPassword}@{hostAndDb}";
+        
+        Console.WriteLine($"DEBUG: URL-encoded credentials in PostgreSQL URI");
+    }
+    
+    // Now parse the properly encoded URI
+    var uri = new Uri(uriString);
+    var userInfo = uri.UserInfo.Split(':');
+    
+    connectionBuilder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port,
+        Database = uri.AbsolutePath.TrimStart('/'),
+        Username = Uri.UnescapeDataString(userInfo[0]),
+        Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
+        SslMode = SslMode.Require // Supabase requires SSL
+    };
+    
+    Console.WriteLine($"DEBUG: Successfully parsed PostgreSQL URI format connection string");
+}
+
+// Apply Hangfire-specific pooling settings to avoid exhausting Supabase's session-mode connection limit
+connectionBuilder.MaxPoolSize = 5;
+connectionBuilder.MinPoolSize = 1;
+
+var hangfireConnectionString = connectionBuilder.ConnectionString;
 
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

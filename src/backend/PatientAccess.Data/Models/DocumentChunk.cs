@@ -76,4 +76,8 @@ public class DocumentChunk
     /// Timestamp when the chunk was created (UTC).
     /// </summary>
     public DateTime CreatedAt { get; set; }
+    public object DocumentId { get; internal set; }
+    public object ChunkText { get; internal set; }
+    public object Embedding { get; internal set; }
+    public object Metadata { get; internal set; }
 }

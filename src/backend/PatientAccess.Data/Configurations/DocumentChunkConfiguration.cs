@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PatientAccess.Data.Models;
+using Pgvector.EntityFrameworkCore;
 
 namespace PatientAccess.Data.Configurations;
 
 /// <summary>
-/// EF Core Fluent API configuration for the DocumentChunk entity (AIR-R01, AIR-R04).
-/// Configures staging table for pre-embedding chunks with indexes for efficient querying.
+/// Entity configuration for DocumentChunk with pgvector support (AIR-R04, DR-010).
 /// </summary>
 public class DocumentChunkConfiguration : IEntityTypeConfiguration<DocumentChunk>
 {
@@ -14,63 +14,34 @@ public class DocumentChunkConfiguration : IEntityTypeConfiguration<DocumentChunk
     {
         builder.ToTable("DocumentChunks");
 
-        builder.HasKey(e => e.Id);
-        builder.Property(e => e.Id)
-            .HasDefaultValueSql("gen_random_uuid()");
+        builder.HasKey(d => d.Id);
 
-        builder.Property(e => e.CodeSystem)
-            .IsRequired()
-            .HasMaxLength(50);
-
-        builder.Property(e => e.SourceText)
-            .IsRequired()
-            .HasMaxLength(2000);
-
-        builder.Property(e => e.TokenCount)
+        builder.Property(d => d.DocumentId)
             .IsRequired();
 
-        builder.Property(e => e.ChunkIndex)
+        builder.Property(d => d.ChunkIndex)
             .IsRequired();
 
-        builder.Property(e => e.StartToken)
-            .IsRequired();
-
-        builder.Property(e => e.EndToken)
-            .IsRequired();
-
-        builder.Property(e => e.OverlapWithPrevious)
+        builder.Property(d => d.ChunkText)
             .IsRequired()
-            .HasDefaultValue(false);
+            .HasMaxLength(4000);
 
-        builder.Property(e => e.TargetEntityId)
-            .IsRequired(false);
+        // Configure Vector embedding for pgvector
+        builder.Property(d => d.Embedding)
+            .HasColumnType("vector(1536)")
+            .HasDefaultValueSql("vector[]::real[]");
 
-        builder.Property(e => e.IsProcessed)
+        builder.Property(d => d.Metadata)
             .IsRequired()
-            .HasDefaultValue(false);
+            .HasColumnType("jsonb")
+            .HasDefaultValue("{}");
 
-        builder.Property(e => e.ProcessedAt)
-            .HasColumnType("timestamptz");
-
-        builder.Property(e => e.CreatedAt)
+        builder.Property(d => d.CreatedAt)
             .IsRequired()
-            .HasColumnType("timestamptz")
             .HasDefaultValueSql("NOW()");
 
-        // B-tree index on CodeSystem for filtering by code system type
-        builder.HasIndex(e => e.CodeSystem)
-            .HasDatabaseName("IX_DocumentChunks_CodeSystem");
-
-        // B-tree index on IsProcessed for querying pending chunks
-        builder.HasIndex(e => e.IsProcessed)
-            .HasDatabaseName("IX_DocumentChunks_IsProcessed");
-
-        // B-tree index on TargetEntityId for FK lookup after embedding
-        builder.HasIndex(e => e.TargetEntityId)
-            .HasDatabaseName("IX_DocumentChunks_TargetEntityId");
-
-        // Composite index for efficient pending chunk queries by code system
-        builder.HasIndex(e => new { e.CodeSystem, e.IsProcessed })
-            .HasDatabaseName("IX_DocumentChunks_CodeSystem_IsProcessed");
+        // Indexes
+        builder.HasIndex(d => d.DocumentId);
+        builder.HasIndex(d => new { d.DocumentId, d.ChunkIndex });
     }
 }

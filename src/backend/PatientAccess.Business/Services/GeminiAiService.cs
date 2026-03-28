@@ -252,4 +252,35 @@ public class GeminiAiService : IGeminiAiService
         var random = new Random(42); // Fixed seed for consistency
         return Enumerable.Range(0, 768).Select(_ => (float)random.NextDouble()).ToList();
     }
+
+    private List<ExtractedDataPointDto> ParseGeminiResponse(string responseText)
+    {
+        _logger.LogDebug("Parsing Gemini response");
+        
+        // Clean up response text (sometimes Gemini wraps JSON in markdown code blocks)
+        var jsonText = responseText.Trim();
+        if (jsonText.StartsWith("```json"))
+        {
+            jsonText = jsonText.Substring(7);
+        }
+        if (jsonText.StartsWith("```"))
+        {
+            jsonText = jsonText.Substring(3);
+        }
+        if (jsonText.EndsWith("```"))
+        {
+            jsonText = jsonText.Substring(0, jsonText.Length - 3);
+        }
+        jsonText = jsonText.Trim();
+        
+        // Parse JSON with case-insensitive property matching
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        
+        var extractedData = JsonSerializer.Deserialize<List<ExtractedDataPointDto>>(jsonText, options);
+        
+        return extractedData ?? new List<ExtractedDataPointDto>();
+    }
 }
