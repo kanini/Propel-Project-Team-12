@@ -38,7 +38,8 @@ export const BulkVerificationControls: React.FC = () => {
         autoClose: 200, // UXR-501: 200ms feedback
       });
     } catch (error) {
-      toast.error('Failed to accept codes');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to accept codes';
+      toast.error(errorMessage);
     }
   };
 

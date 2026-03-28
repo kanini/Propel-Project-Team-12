@@ -40,8 +40,9 @@ export const CodeVerificationTable: React.FC = () => {
       await dispatch(acceptCode(code.id)).unwrap();
       toast.success('Code accepted', { autoClose: 200 }); // UXR-501: 200ms feedback
     } catch (error) {
-      toast.error('Failed to accept code');
-    }
+          const errorMessage = error instanceof Error ? error.message : 'Failed to accept codes';
+          toast.error(errorMessage);
+        }
   };
 
   const handleModify = (code: MedicalCodeSuggestion) => {

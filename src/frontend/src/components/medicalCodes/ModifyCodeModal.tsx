@@ -60,9 +60,11 @@ export const ModifyCodeModal: React.FC<ModifyCodeModalProps> = ({
         toast.info('No results found. Try a different search term.');
       }
     } catch (error) {
-      toast.error('Failed to search codes');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to search codes';
+      toast.error(errorMessage);
       setSearchResults([]);
-    } finally {
+    } 
+    finally {
       setIsSearching(false);
     }
   };
@@ -98,7 +100,8 @@ export const ModifyCodeModal: React.FC<ModifyCodeModalProps> = ({
       setRationale('');
       setSearchResults([]);
     } catch (error) {
-      toast.error('Failed to modify code');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to modify code';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
