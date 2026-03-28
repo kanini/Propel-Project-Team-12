@@ -9,6 +9,8 @@ import intakeAppointmentReducer from "./slices/intakeAppointmentSlice";
 import intakeReducer from "./slices/intakeSlice";
 import auditLogsReducer from "./slices/auditLogsSlice";
 import staffDashboardReducer from './slices/staffDashboardSlice';
+import healthDashboardReducer from './slices/healthDashboardSlice';
+import clinicalVerificationReducer from './slices/clinicalVerificationSlice';
 
 
 const rootReducer = combineReducers({
@@ -22,6 +24,8 @@ const rootReducer = combineReducers({
   intake: intakeReducer,
   staffDashboard: staffDashboardReducer,
   auditLogs: auditLogsReducer,
+  healthDashboard: healthDashboardReducer,
+  clinicalVerification: clinicalVerificationReducer,
 });
 
 export default rootReducer;

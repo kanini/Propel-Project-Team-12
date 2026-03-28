@@ -223,10 +223,11 @@ public class DocumentProcessingService : IDocumentProcessingService
     private async Task PersistExtractedDataAsync(ClinicalDocument document, ExtractionResultDto extractionResult)
     {
         var entitiesToAdd = new List<ExtractedClinicalData>();
+        // Map DataKey -> ExtractedDataId for linking medical codes
+        var dataKeyToEntityId = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var dataPoint in extractionResult.DataPoints)
         {
-            // Duplicate detection (task_003 edge case)
             var exists = await _context.ExtractedClinicalData
                 .AnyAsync(e => e.DocumentId == document.DocumentId
                     && e.DataType == dataPoint.DataType
@@ -235,12 +236,10 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             if (exists)
             {
-                _logger.LogWarning("Duplicate data point detected: {DataType} - {DataValue} on page {PageNumber}",
-                    dataPoint.DataType, dataPoint.DataValue, dataPoint.SourcePageNumber);
+                _logger.LogWarning("Duplicate data point detected: {DataType} - {DataValue}", dataPoint.DataType, dataPoint.DataValue);
                 continue;
             }
 
-            // Create entity
             var entity = new ExtractedClinicalData
             {
                 ExtractedDataId = Guid.NewGuid(),
@@ -259,15 +258,72 @@ public class DocumentProcessingService : IDocumentProcessingService
             };
 
             entitiesToAdd.Add(entity);
+            dataKeyToEntityId[dataPoint.DataKey] = entity.ExtractedDataId;
         }
 
-        // Batch insert
         if (entitiesToAdd.Any())
         {
             await _context.ExtractedClinicalData.AddRangeAsync(entitiesToAdd);
             await _context.SaveChangesAsync();
-
             _logger.LogInformation("Persisted {Count} extracted clinical data entities", entitiesToAdd.Count);
+        }
+
+        // Persist medical codes linked to extracted data points
+        if (extractionResult.MedicalCodes?.Any() == true)
+        {
+            var codesToAdd = new List<MedicalCode>();
+
+            foreach (var codeSuggestion in extractionResult.MedicalCodes)
+            {
+                // Find the linked ExtractedClinicalData entity
+                Guid? linkedEntityId = null;
+                if (!string.IsNullOrEmpty(codeSuggestion.SourceDataKey) &&
+                    dataKeyToEntityId.TryGetValue(codeSuggestion.SourceDataKey, out var entityId))
+                {
+                    linkedEntityId = entityId;
+                }
+                else if (entitiesToAdd.Any())
+                {
+                    // Fallback: link to first extracted data point
+                    linkedEntityId = entitiesToAdd.First().ExtractedDataId;
+                }
+
+                if (linkedEntityId == null) continue;
+
+                var codeSystem = codeSuggestion.CodeSystem?.ToUpperInvariant() switch
+                {
+                    "ICD10" or "ICD-10" => CodeSystem.ICD10,
+                    "CPT" => CodeSystem.CPT,
+                    _ => CodeSystem.ICD10
+                };
+
+                // Check for duplicate
+                var codeExists = await _context.MedicalCodes
+                    .AnyAsync(m => m.ExtractedDataId == linkedEntityId.Value
+                        && m.CodeSystem == codeSystem
+                        && m.CodeValue == codeSuggestion.CodeValue);
+
+                if (codeExists) continue;
+
+                codesToAdd.Add(new MedicalCode
+                {
+                    MedicalCodeId = Guid.NewGuid(),
+                    ExtractedDataId = linkedEntityId.Value,
+                    CodeSystem = codeSystem,
+                    CodeValue = codeSuggestion.CodeValue,
+                    CodeDescription = codeSuggestion.CodeDescription,
+                    ConfidenceScore = codeSuggestion.ConfidenceScore,
+                    VerificationStatus = MedicalCodeVerificationStatus.AISuggested,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            if (codesToAdd.Any())
+            {
+                await _context.MedicalCodes.AddRangeAsync(codesToAdd);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Persisted {Count} medical codes", codesToAdd.Count);
+            }
         }
     }
 

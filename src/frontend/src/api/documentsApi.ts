@@ -303,3 +303,64 @@ export function getChunkBlob(file: File, chunkIndex: number, chunkSize = 1048576
   const end = Math.min(start + chunkSize, file.size);
   return file.slice(start, end);
 }
+
+/**
+ * Response for a single document in the batch submit result.
+ */
+export interface SubmitDocumentResult {
+  sessionId: string;
+  success: boolean;
+  documentId?: string;
+  fileName?: string;
+  error?: string;
+}
+
+/**
+ * Response for batch submit all documents.
+ */
+export interface SubmitAllDocumentsResponse {
+  results: SubmitDocumentResult[];
+  totalSubmitted: number;
+  totalFailed: number;
+}
+
+/**
+ * Submit all uploaded documents for processing (EP006-EP008).
+ * Finalizes all upload sessions and triggers the RAG pipeline for each.
+ * @param sessionIds - Array of upload session IDs to finalize
+ * @returns Results for each document submission
+ */
+export async function submitAllDocuments(
+  sessionIds: string[]
+): Promise<SubmitAllDocumentsResponse> {
+  const token = localStorage.getItem('token');
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/documents/upload/submit-all`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ uploadSessionIds: sessionIds }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || 'No valid upload sessions to submit');
+      }
+      if (response.status === 401) {
+        throw new Error('Unauthorized. Please log in again.');
+      }
+      throw new Error(`Failed to submit documents: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Network error. Please check your connection and try again.');
+  }
+}

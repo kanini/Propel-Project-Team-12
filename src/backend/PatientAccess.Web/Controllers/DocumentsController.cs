@@ -286,6 +286,81 @@ public class DocumentsController : ControllerBase
     }
 
     /// <summary>
+    /// Batch submit all uploaded documents for processing (EP006-EP008, SCR-014).
+    /// Finalizes each upload session and enqueues RAG pipeline processing for each document.
+    /// Triggered by "Submit all documents" button on the upload page.
+    /// </summary>
+    /// <param name="request">List of upload session IDs to finalize</param>
+    /// <returns>Results for each document submission</returns>
+    /// <response code="200">Batch submission completed (individual results may vary)</response>
+    /// <response code="400">No valid session IDs provided</response>
+    /// <response code="401">User not authenticated</response>
+    [HttpPost("upload/submit-all")]
+    [ProducesResponseType(typeof(SubmitAllDocumentsResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SubmitAllDocuments([FromBody] SubmitAllDocumentsRequestDto request)
+    {
+        try
+        {
+            if (request.UploadSessionIds == null || request.UploadSessionIds.Count == 0)
+            {
+                return BadRequest(new { message = "No upload session IDs provided" });
+            }
+
+            _logger.LogInformation("Batch submit requested for {Count} upload sessions", request.UploadSessionIds.Count);
+
+            var results = new List<SubmitDocumentResultDto>();
+
+            foreach (var sessionId in request.UploadSessionIds)
+            {
+                try
+                {
+                    var finalizeRequest = new FinalizeUploadRequestDto { UploadSessionId = sessionId };
+                    var response = await _uploadService.FinalizeUploadAsync(finalizeRequest);
+
+                    results.Add(new SubmitDocumentResultDto
+                    {
+                        SessionId = sessionId.ToString(),
+                        Success = true,
+                        DocumentId = response.DocumentId,
+                        FileName = response.FileName
+                    });
+
+                    _logger.LogInformation("Session {SessionId} finalized as document {DocumentId}", sessionId, response.DocumentId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to finalize session {SessionId} in batch submit", sessionId);
+                    results.Add(new SubmitDocumentResultDto
+                    {
+                        SessionId = sessionId.ToString(),
+                        Success = false,
+                        Error = ex.Message
+                    });
+                }
+            }
+
+            var responseDto = new SubmitAllDocumentsResponseDto
+            {
+                Results = results,
+                TotalSubmitted = results.Count(r => r.Success),
+                TotalFailed = results.Count(r => !r.Success)
+            };
+
+            _logger.LogInformation("Batch submit complete: {Submitted} submitted, {Failed} failed",
+                responseDto.TotalSubmitted, responseDto.TotalFailed);
+
+            return Ok(responseDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during batch document submission");
+            return StatusCode(500, new { message = "An error occurred during batch submission" });
+        }
+    }
+
+    /// <summary>
     /// Retry processing for a failed document (US_044, Edge Case).
     /// Re-enqueues document in Hangfire for processing pipeline.
     /// </summary>
