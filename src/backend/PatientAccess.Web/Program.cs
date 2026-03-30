@@ -403,55 +403,6 @@ else
     redisEnabled = false; // Ensure it's marked as disabled
 }
 
-// Register Business Layer Services (DI)
-builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
-builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddSingleton<IEmailService, EmailService>();
-builder.Services.AddScoped<IAuditLogService, AuditLogService>(); // US_022 - Audit logging for authentication events
-builder.Services.AddScoped<IAdminService, AdminService>(); // US_021 - User management
-builder.Services.AddScoped<IPatientService, PatientService>(); // US_029 - Walk-in booking (patient search and minimal creation)
-builder.Services.AddScoped<IProviderService, ProviderService>(); // US_023 - Provider browser
-builder.Services.AddScoped<IAppointmentService, AppointmentService>(); // US_024 - Appointment booking
-builder.Services.AddScoped<IWaitlistService, WaitlistService>(); // US_025 - Waitlist enrollment
-builder.Services.AddScoped<ISlotSwapService, SlotSwapService>(); // US_026 - Dynamic preferred slot swap
-builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.SlotAvailabilityMonitor>(); // US_026 - Slot swap monitoring
-builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>(); // US_028 - PDF generation
-builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ConfirmationEmailJob>(); // US_028 - Confirmation email job
-builder.Services.AddSingleton<IPusherService, PusherService>(); // US_030 - Real-time event broadcasting via Pusher Channels
-builder.Services.AddScoped<IQueueManagementService, QueueManagementService>(); // US_030 - Queue management and priority flagging
-builder.Services.AddScoped<IArrivalManagementService, ArrivalManagementService>(); // US_031 - Arrival status marking and search
-builder.Services.AddScoped<IDashboardService, DashboardService>(); // US_067 - Patient dashboard statistics
-builder.Services.AddScoped<IStaffDashboardService, StaffDashboardService>(); // US_068 - Staff dashboard metrics and queue preview
-builder.Services.AddScoped<INotificationService, NotificationService>(); // US_067 - Notification management for dashboard
-builder.Services.AddScoped<IDocumentService, DocumentService>(); // US_067 - Clinical document retrieval for dashboard
-builder.Services.AddScoped<IIntakeAppointmentService, IntakeAppointmentService>(); // US_037 - Intake appointment selection
-builder.Services.AddScoped<IIntakeService, IntakeService>(); // US_033 - Intake session management
-builder.Services.AddScoped<IAiIntakeService, StubAiIntakeService>(); // US_033 - AI intake (stub until task_003)
-builder.Services.AddScoped<IInsurancePrecheckService, InsurancePrecheckService>(); // US_036 - Insurance precheck verification
-
-// US_042 - Document upload services (chunked upload with real-time progress)
-builder.Services.AddMemoryCache(); // Required for upload session tracking
-builder.Services.AddSingleton<ChunkedUploadManager>(); // Singleton for session management
-builder.Services.AddScoped<DocumentUploadService>(); // Scoped for DB context access
-builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob>(); // Background cleanup
-
-// US_043 - Document processing services (Hangfire background jobs)
-builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>(); // Processing orchestration
-builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
-
-// US_045 - AI Document Intelligence (task_002: Supabase + Tesseract + Gemini pipeline)
-builder.Services.AddHttpClient(); // Required for Gemini API calls and Supabase Storage REST API
-
-builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase Storage REST API
-
-#pragma warning disable CA1416 // Validate platform compatibility - TesseractOcrService is Windows-only
-builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction (Windows-only)
-#pragma warning restore CA1416
-
-builder.Services.AddScoped<IGeminiAiService, GeminiAiService>(); // Gemini AI data extraction
-builder.Services.AddScoped<IClinicalDataExtractionService, ClinicalDataExtractionService>(); // Extraction orchestration
-
 // US_058 - AI Safety & Operational Guardrails (task_002: human-in-the-loop, confidence thresholds)
 builder.Services.AddScoped<ConfidenceThresholdEvaluator>(); // AC2 - Confidence threshold evaluation
 builder.Services.AddScoped<VerificationWorkflowService>(); // AC1 - Staff verification workflow
@@ -463,9 +414,6 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
 {
     builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ProcessAuditBatchJob>();
 }
-
-// Register IHttpContextAccessor for audit logging context extraction
-builder.Services.AddHttpContextAccessor();
 
 // Register Data Layer Repositories (DI)
 // Example: builder.Services.AddScoped<IUserRepository, UserRepository>();
