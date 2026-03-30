@@ -122,7 +122,7 @@ export default function DocumentStatusList() {
             </p>
           </div>
           <button
-            onClick={() => navigate('/documents/upload')}
+            onClick={() => navigate('/documents')}
             className="px-6 py-3 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 font-medium"
           >
             Upload your first document

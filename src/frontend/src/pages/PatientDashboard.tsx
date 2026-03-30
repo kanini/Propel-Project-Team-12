@@ -231,7 +231,7 @@ export const PatientDashboard = () => {
                         <span className="text-sm font-medium text-neutral-700">Upload Documents</span>
                       </button>
                       <button
-                        onClick={() => navigate('/intake')}
+                        onClick={() => navigate('/health-dashboard')}
                         className="flex flex-col items-center gap-2 p-4 border border-neutral-200 rounded-md hover:border-primary-300 hover:bg-primary-50 transition-all"
                       >
                         <div className="w-10 h-10 rounded-md bg-primary-50 text-primary-500 flex items-center justify-center text-xl">
