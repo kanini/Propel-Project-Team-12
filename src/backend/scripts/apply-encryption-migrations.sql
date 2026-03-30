@@ -91,8 +91,7 @@ BEGIN
     END IF;
     
     -- pgp_sym_encrypt with AES-256 cipher (FR-041)
-    -- gitleaks:allow
-    RETURN pgp_sym_encrypt(plaintext_ssn, encryption_key, 'cipher-algo=aes256');
+    RETURN pgp_sym_encrypt(plaintext_ssn, encryption_key, 'cipher-algo=aes256'); -- gitleaks:allow
 END;
 $$;
 
@@ -126,8 +125,7 @@ BEGIN
     END IF;
     
     -- pgp_sym_encrypt with AES-256 cipher (FR-041)
-    -- gitleaks:allow
-    RETURN pgp_sym_encrypt(plaintext_insurance_id, encryption_key, 'cipher-algo=aes256');
+    RETURN pgp_sym_encrypt(plaintext_insurance_id, encryption_key, 'cipher-algo=aes256'); -- gitleaks:allow
 END;
 $$;
 
