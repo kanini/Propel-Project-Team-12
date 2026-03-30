@@ -13,6 +13,9 @@ interface ConfidenceBadgeProps {
 const statusConfig: Record<string, { label: string; className: string }> = {
   AISuggested: { label: 'AI Suggested', className: 'bg-blue-100 text-blue-800' },
   Verified: { label: 'Verified', className: 'bg-green-100 text-green-800' },
+  StaffVerified: { label: 'Verified', className: 'bg-green-100 text-green-800' }, // Backend enum value
+  Accepted: { label: 'Verified', className: 'bg-green-100 text-green-800' }, // Medical code accepted
+  Modified: { label: 'Verified', className: 'bg-green-100 text-green-800' }, // Medical code modified
   Rejected: { label: 'Rejected', className: 'bg-red-100 text-red-800' },
   Conflict: { label: 'Conflict', className: 'bg-yellow-100 text-yellow-800' },
 };
