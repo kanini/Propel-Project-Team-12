@@ -190,7 +190,25 @@ public class ArrivalManagementService : IArrivalManagementService
             ScheduledDateTime = appointment.ScheduledDateTime,
             ProviderName = appointment.Provider?.Name ?? "Unknown",
             VisitReason = appointment.VisitReason ?? string.Empty,
-            Status = appointment.Status.ToString()
+            Status = appointment.Status.ToString(),
+            NoShowRiskScore = appointment.NoShowRiskScore,
+            RiskLevel = appointment.NoShowRiskScore.HasValue
+                ? DeriveRiskLevel(appointment.NoShowRiskScore.Value)
+                : null
+        };
+    }
+
+    /// <summary>
+    /// Derive risk level from score (US_038 - FR-023)
+    /// Low: < 40, Medium: 40-70, High: > 70
+    /// </summary>
+    private static string DeriveRiskLevel(decimal score)
+    {
+        return score switch
+        {
+            < 40 => "Low",
+            >= 40 and <= 70 => "Medium",
+            _ => "High"
         };
     }
 }

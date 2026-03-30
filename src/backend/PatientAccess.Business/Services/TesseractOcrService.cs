@@ -67,12 +67,12 @@ public class TesseractOcrService : ITesseractOcrService
             // Initialize Docnet library for PDF processing
             using var docReader = DocLib.Instance.GetDocReader(pdfPath, new PageDimensions(1920, 2560));
             var pageCount = docReader.GetPageCount();
-            
+
             _logger.LogInformation("PDF loaded successfully. Page count: {PageCount}", pageCount);
 
             // Initialize Tesseract engine
             using var ocrEngine = new TesseractEngine(_tessdataPath, _language, EngineMode.Default);
-            
+
             // Process each page
             for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
             {
@@ -101,14 +101,14 @@ public class TesseractOcrService : ITesseractOcrService
 
                         System.Runtime.InteropServices.Marshal.Copy(rawBytes, 0, bitmapData.Scan0, rawBytes.Length);
                         bitmap.UnlockBits(bitmapData);
-                        
+
                         bitmap.Save(tempImagePath, System.Drawing.Imaging.ImageFormat.Png);
                     }
 
                     // Perform OCR on the image
                     using var img = Pix.LoadFromFile(tempImagePath);
                     using var page = ocrEngine.Process(img);
-                    
+
                     var extractedText = page.GetText();
                     var confidence = page.GetMeanConfidence() * 100;
 
@@ -120,13 +120,13 @@ public class TesseractOcrService : ITesseractOcrService
                         Language = _language
                     });
 
-                    _logger.LogInformation("Page {PageNumber} OCR completed. Confidence: {Confidence:F2}%, Text length: {Length}", 
+                    _logger.LogInformation("Page {PageNumber} OCR completed. Confidence: {Confidence:F2}%, Text length: {Length}",
                         pageNumber, confidence, extractedText?.Length ?? 0);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to process page {PageNumber}", pageNumber);
-                    
+
                     // Add error result for this page
                     ocrResults.Add(new OcrResultDto
                     {
@@ -163,7 +163,7 @@ public class TesseractOcrService : ITesseractOcrService
         }
 
         _logger.LogInformation("OCR extraction completed. Successfully extracted {PageCount} pages", ocrResults.Count);
-        
+
         return await Task.FromResult(ocrResults);
     }
 }

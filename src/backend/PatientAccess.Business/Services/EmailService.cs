@@ -36,6 +36,17 @@ public class EmailService : IEmailService
         _smtpPassword = configuration["SmtpSettings:Password"] ?? throw new InvalidOperationException("SMTP password not configured");
         _senderEmail = configuration["SmtpSettings:SenderEmail"] ?? _smtpUsername;
         _senderName = configuration["SmtpSettings:SenderName"] ?? "CareSync AI";
+
+        // Validate SMTP configuration
+        if (string.IsNullOrWhiteSpace(_smtpPassword) || _smtpPassword.Contains("SET_VIA_ENV"))
+        {
+            _logger.LogError("SMTP password is not properly configured. Email functionality will not work.");
+            throw new InvalidOperationException("SMTP password not configured. Check appsettings.Development.json or environment variables.");
+        }
+
+        _logger.LogInformation(
+            "EmailService initialized - Host: {Host}, Port: {Port}, EnableSSL: {SSL}, Username: {Username}, Sender: {Sender}",
+            _smtpHost, _smtpPort, _enableSsl, _smtpUsername, _senderEmail);
     }
 
     public async Task<bool> SendVerificationEmailAsync(string toEmail, string toName, string verificationToken)
@@ -44,7 +55,7 @@ public class EmailService : IEmailService
         {
             var verificationLink = $"{_frontendUrl}/verify-email?token={Uri.EscapeDataString(verificationToken)}";
 
-                    var htmlContent = $@"
+            var htmlContent = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -862,10 +873,18 @@ public class EmailService : IEmailService
             };
             message.To.Add(toEmail);
 
+            _logger.LogInformation(
+                "Preparing to send appointment confirmation email to {Email} with confirmation {ConfirmationNumber}. PDF size: {Size} bytes",
+                toEmail, confirmationNumber, pdfBytes.Length);
+
             // Attach PDF
             using var pdfStream = new MemoryStream(pdfBytes);
             var attachment = new Attachment(pdfStream, pdfFileName, "application/pdf");
             message.Attachments.Add(attachment);
+
+            _logger.LogDebug(
+                "Connecting to SMTP server {Host}:{Port} with SSL={EnableSSL}",
+                _smtpHost, _smtpPort, _enableSsl);
 
             using var smtpClient = new SmtpClient(_smtpHost, _smtpPort)
             {
@@ -877,9 +896,16 @@ public class EmailService : IEmailService
             await smtpClient.SendMailAsync(message);
 
             _logger.LogInformation(
-                "Appointment confirmation email sent to {Email} for appointment {ConfirmationNumber}",
+                "Appointment confirmation email sent successfully to {Email} for confirmation {ConfirmationNumber}",
                 toEmail, confirmationNumber);
             return true;
+        }
+        catch (SmtpException smtpEx)
+        {
+            _logger.LogError(smtpEx,
+                "SMTP error sending appointment confirmation email to {Email}. StatusCode: {StatusCode}",
+                toEmail, smtpEx.StatusCode);
+            return false;
         }
         catch (Exception ex)
         {
@@ -917,7 +943,7 @@ public class EmailService : IEmailService
         }
         catch (SmtpException smtpEx)
         {
-            _logger.LogError(smtpEx, "SMTP error sending email to {Email}. Status: {Status}", 
+            _logger.LogError(smtpEx, "SMTP error sending email to {Email}. Status: {Status}",
                 toEmail, smtpEx.StatusCode);
             return false;
         }

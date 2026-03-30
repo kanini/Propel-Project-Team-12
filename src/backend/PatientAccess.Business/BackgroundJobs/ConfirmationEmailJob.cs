@@ -43,7 +43,7 @@ public class ConfirmationEmailJob
     {
         try
         {
-            _logger.LogInformation("Processing confirmation email job for appointment {AppointmentId}", appointmentId);
+            _logger.LogInformation("========== STARTING confirmation email job for appointment {AppointmentId} ==========", appointmentId);
 
             // Fetch appointment with navigation properties
             var appointment = await _context.Appointments
@@ -58,9 +58,14 @@ public class ConfirmationEmailJob
                 throw new InvalidOperationException($"Appointment {appointmentId} not found");
             }
 
+            _logger.LogInformation(
+                "Appointment loaded - Patient: {PatientName} ({PatientEmail}), Provider: {ProviderName}, DateTime: {DateTime}",
+                appointment.Patient.Name, appointment.Patient.Email, appointment.Provider.Name, appointment.ScheduledDateTime);
+
             // Generate PDF (AC-1)
             _logger.LogInformation("Generating PDF for appointment {AppointmentId}", appointmentId);
             var pdfBytes = await _pdfService.GenerateConfirmationPdfAsync(appointment);
+            _logger.LogInformation("PDF generated successfully. Size: {Size} bytes", pdfBytes.Length);
 
             // Save PDF to file system
             var pdfDirectory = Path.Combine("pdfs");
@@ -108,13 +113,13 @@ public class ConfirmationEmailJob
             }
 
             _logger.LogInformation(
-                "Successfully sent confirmation email for appointment {AppointmentId}",
+                "========== SUCCESS: Confirmation email sent for appointment {AppointmentId} ==========",
                 appointmentId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Error processing confirmation email job for appointment {AppointmentId}",
+                "========== ERROR: Processing confirmation email job for appointment {AppointmentId} ==========",
                 appointmentId);
             throw; // Rethrow to trigger Hangfire retry
         }
