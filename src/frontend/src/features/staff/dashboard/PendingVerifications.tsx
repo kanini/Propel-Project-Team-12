@@ -1,7 +1,7 @@
 /**
  * Pending Verifications Component for US_068 - Staff Dashboard
  * Displays patients with pending clinical data verifications (EP-009)
- * Shows top 5 patients with priority, name, and pending counts
+ * Shows top 3 newest patients with priority, name, and pending counts
  */
 
 import { useEffect } from 'react';
@@ -21,9 +21,9 @@ export function PendingVerifications() {
   const isLoading = useAppSelector(selectQueueLoading);
   const error = useAppSelector(selectQueueError);
 
-  // Fetch top 5 patients on mount
+  // Fetch top 3 newest patients on mount
   useEffect(() => {
-    dispatch(fetchVerificationQueue({ limit: 5 }));
+    dispatch(fetchVerificationQueue({ limit: 3 }));
   }, [dispatch]);
 
   // Priority badge styling
@@ -62,7 +62,7 @@ export function PendingVerifications() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700 text-sm">{error}</p>
           <button
-            onClick={() => dispatch(fetchVerificationQueue({ limit: 5 }))}
+            onClick={() => dispatch(fetchVerificationQueue({ limit: 3 }))}
             className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
           >
             Retry

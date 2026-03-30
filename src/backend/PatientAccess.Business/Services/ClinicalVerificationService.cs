@@ -44,6 +44,10 @@ public class ClinicalVerificationService : IClinicalVerificationService
 
         // Apply search term filter in memory (EF can't translate complex string ops in GroupBy)
         var filtered = patientGroups.AsEnumerable();
+        
+        // Filter to only include patients with pending verifications
+        filtered = filtered.Where(p => p.PendingClinicalData + p.PendingMedicalCodes > 0);
+        
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var term = searchTerm.Trim().ToLowerInvariant();
@@ -53,8 +57,8 @@ public class ClinicalVerificationService : IClinicalVerificationService
         }
 
         var items = filtered
-            .OrderByDescending(p => p.PendingClinicalData + p.PendingMedicalCodes)
-            .ThenByDescending(p => p.LastUploadDate)
+            .OrderByDescending(p => p.LastUploadDate)
+            .ThenByDescending(p => p.PendingClinicalData + p.PendingMedicalCodes)
             .Take(limit)
             .Select(p =>
             {
@@ -108,7 +112,9 @@ public class ClinicalVerificationService : IClinicalVerificationService
                 DataType = e.DataType.ToString(),
                 DataValue = e.DataValue,
                 ConfidenceScore = e.ConfidenceScore,
-                VerificationStatus = e.VerificationStatus.ToString(),
+                VerificationStatus = e.VerificationStatus == VerificationStatus.StaffVerified 
+                    ? "Verified" 
+                    : e.VerificationStatus.ToString(),
                 SourceDocument = e.Document?.FileName,
                 SourcePageNumber = e.SourcePageNumber,
                 SourceTextExcerpt = e.SourceTextExcerpt
@@ -120,7 +126,10 @@ public class ClinicalVerificationService : IClinicalVerificationService
                 CodeValue = m.CodeValue,
                 CodeDescription = m.CodeDescription,
                 ConfidenceScore = m.ConfidenceScore,
-                VerificationStatus = m.VerificationStatus.ToString(),
+                VerificationStatus = m.VerificationStatus == MedicalCodeVerificationStatus.Accepted || 
+                                    m.VerificationStatus == MedicalCodeVerificationStatus.Modified
+                    ? "Verified" 
+                    : m.VerificationStatus.ToString(),
                 VerifiedByName = m.Verifier?.Name,
                 VerifiedAt = m.VerifiedAt
             }).ToList()

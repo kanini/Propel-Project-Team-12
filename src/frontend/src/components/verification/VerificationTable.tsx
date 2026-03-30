@@ -32,7 +32,18 @@ export function VerificationTable({
       !searchTerm ||
       item.dataType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.dataValue.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || item.verificationStatus === statusFilter;
+    
+    // Handle status filtering with case-insensitive comparison and normalization
+    const itemStatus = (item.verificationStatus || '').trim();
+    const filterStatus = (statusFilter || '').trim();
+    
+    // Normalize backend enum values to frontend expected values  
+    const normalizedStatus = 
+      itemStatus === 'StaffVerified' ? 'Verified' : itemStatus;
+    
+    const matchesStatus = !filterStatus || 
+      normalizedStatus.toLowerCase() === filterStatus.toLowerCase();
+    
     return matchesSearch && matchesStatus;
   });
 
