@@ -27,7 +27,7 @@ public class EmailService : IEmailService
         ILogger<EmailService> logger)
     {
         _logger = logger;
-        _frontendUrl = configuration["FrontendUrl"] ?? "https://bms1091.runasp.net";
+        _frontendUrl = configuration["FrontendUrl"] ?? "https://propeliq.infinityfree.me";
 
         _smtpHost = configuration["SmtpSettings:Host"] ?? throw new InvalidOperationException("SMTP host not configured");
         _smtpPort = int.Parse(configuration["SmtpSettings:Port"] ?? "587");

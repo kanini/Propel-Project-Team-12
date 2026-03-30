@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PatientAccess.Data.Configurations;
 using PatientAccess.Data.Models;
+using Pgvector.EntityFrameworkCore;
 
 namespace PatientAccess.Data;
 
@@ -32,6 +33,9 @@ public class PatientAccessDbContext : DbContext
     public DbSet<InsuranceRecord> InsuranceRecords => Set<InsuranceRecord>();
     public DbSet<NoShowHistory> NoShowHistory => Set<NoShowHistory>();
 
+    // RAG Pipeline
+    public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
+
     // EP-005 US_037 - System configuration
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
@@ -58,6 +62,15 @@ public class PatientAccessDbContext : DbContext
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
         modelBuilder.ApplyConfiguration(new InsuranceRecordConfiguration());
         modelBuilder.ApplyConfiguration(new NoShowHistoryConfiguration());
+
+        // RAG Pipeline
+        modelBuilder.ApplyConfiguration(new DocumentChunkConfiguration());
+
+        // InMemory provider cannot map pgvector Vector type; ignore it for testing
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            modelBuilder.Entity<DocumentChunk>().Ignore(e => e.Embedding);
+        }
 
         // EP-005 US_037 - System settings configuration
         modelBuilder.ApplyConfiguration(new SystemSettingConfiguration());

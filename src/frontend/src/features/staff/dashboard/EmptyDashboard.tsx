@@ -18,7 +18,7 @@ export function EmptyDashboard() {
         Use Walk-in Booking to add patients to the queue
       </p>
       <button
-        onClick={() => navigate('/staff/walkin')}
+        onClick={() => navigate('/staff/walk-in')}
         className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium shadow-sm hover:shadow-md transition-all"
       >
         Book Walk-in Appointment →
