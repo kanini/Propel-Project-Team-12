@@ -136,7 +136,7 @@ public class GeminiAiService : IGeminiAiService
             {
                 foreach (var code in codesArr.EnumerateArray())
                 {
-                    result.MedicalCodes.Add(new MedicalCodeSuggestionDto
+                    result.MedicalCodes.Add(new GeminiMedicalCodeDto
                     {
                         CodeSystem = code.GetProperty("code_system").GetString() ?? "ICD10",
                         CodeValue = code.GetProperty("code_value").GetString() ?? "",
@@ -183,7 +183,7 @@ public class GeminiAiService : IGeminiAiService
                 new() { DataType = ClinicalDataType.Allergy, DataKey = "DrugAllergy", DataValue = "Penicillin - Hives", ConfidenceScore = 92.0m, SourceTextExcerpt = "Allergies: Penicillin (Hives)" },
                 new() { DataType = ClinicalDataType.Diagnosis, DataKey = "Condition", DataValue = "Hypertension", ConfidenceScore = 94.0m, SourceTextExcerpt = "Diagnosis: Essential Hypertension" }
             },
-            MedicalCodes = new List<MedicalCodeSuggestionDto>
+            MedicalCodes = new List<GeminiMedicalCodeDto>
             {
                 new() { CodeSystem = "ICD10", CodeValue = "I10", CodeDescription = "Essential (primary) hypertension", ConfidenceScore = 92m, SourceDataKey = "Condition" },
                 new() { CodeSystem = "CPT", CodeValue = "99213", CodeDescription = "Office/outpatient visit, estab patient, 20-29 min", ConfidenceScore = 85m, SourceDataKey = "Encounter" }

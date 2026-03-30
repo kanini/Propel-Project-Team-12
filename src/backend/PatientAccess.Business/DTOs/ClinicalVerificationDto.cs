@@ -64,7 +64,7 @@ public class RejectActionDto
     public string? Reason { get; set; }
 }
 
-public class ModifyCodeDto
+public class ModifyCodeActionDto
 {
     public Guid MedicalCodeId { get; set; }
     public string CodeValue { get; set; } = string.Empty;

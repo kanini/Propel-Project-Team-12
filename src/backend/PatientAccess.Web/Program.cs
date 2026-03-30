@@ -22,6 +22,7 @@ using Pgvector.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Load .env file for local development (secrets not committed to git)
+// Environment variables (from GitHub Secrets or cloud config) take priority over .env file
 var envFile = Path.Combine(builder.Environment.ContentRootPath, ".env");
 if (File.Exists(envFile))
 {
@@ -33,10 +34,19 @@ if (File.Exists(envFile))
         if (idx <= 0) continue;
         var key = trimmed[..idx].Trim();
         var value = trimmed[(idx + 1)..].Trim();
-        Environment.SetEnvironmentVariable(key, value);
-        // Also set in configuration directly (env vars set after builder init aren't picked up)
+        
+        // Only set if not already defined by environment variable (deployment takes priority)
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+        {
+            Environment.SetEnvironmentVariable(key, value);
+        }
+        
+        // Also set in configuration (environment variables override .env values)
         var configKey = key.Replace("__", ":");
-        builder.Configuration[configKey] = value;
+        if (string.IsNullOrEmpty(builder.Configuration[configKey]))
+        {
+            builder.Configuration[configKey] = value;
+        }
     }
 
     // Inject DB_PASSWORD into connection string if provided

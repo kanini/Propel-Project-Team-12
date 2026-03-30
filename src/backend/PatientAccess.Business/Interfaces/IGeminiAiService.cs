@@ -10,10 +10,10 @@ public interface IGeminiAiService
 public class GeminiExtractionResponseDto
 {
     public List<ExtractedDataPointDto> DataPoints { get; set; } = new();
-    public List<MedicalCodeSuggestionDto> MedicalCodes { get; set; } = new();
+    public List<GeminiMedicalCodeDto> MedicalCodes { get; set; } = new();
 }
 
-public class MedicalCodeSuggestionDto
+public class GeminiMedicalCodeDto
 {
     public string CodeSystem { get; set; } = string.Empty; // "ICD10" or "CPT"
     public string CodeValue { get; set; } = string.Empty;

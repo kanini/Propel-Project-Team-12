@@ -97,7 +97,7 @@ public class ClinicalVerificationController : ControllerBase
     /// </summary>
     [HttpPost("codes/{id:guid}/modify")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> ModifyMedicalCode(Guid id, [FromBody] ModifyCodeDto dto)
+    public async Task<IActionResult> ModifyMedicalCode(Guid id, [FromBody] ModifyCodeActionDto dto)
     {
         var staffId = GetStaffUserId();
         await _service.ModifyMedicalCodeAsync(id, dto.CodeValue, dto.CodeDescription, staffId);
