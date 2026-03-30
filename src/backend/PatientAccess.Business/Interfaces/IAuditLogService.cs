@@ -97,29 +97,4 @@ public interface IAuditLogService
         DateTime? endDate = null,
         int page = 1,
         int pageSize = 25);
-
-    /// <summary>
-    /// Logs any auditable action with full details (AC1 - US_059).
-    /// Completes within 200ms via async processing with Redis queue fallback.
-    /// </summary>
-    /// <param name="userId">User ID performing the action (nullable for system actions).</param>
-    /// <param name="actionType">Type of action (Create, Read, Update, Delete, Export, Print, etc.).</param>
-    /// <param name="resourceType">Resource type (Patient, ClinicalDocument, Appointment, etc.).</param>
-    /// <param name="resourceId">Resource identifier.</param>
-    /// <param name="ipAddress">Client IP address.</param>
-    /// <param name="result">Result: Success, Failure, PartialSuccess (AC1).</param>
-    /// <param name="actionDetails">Optional JSONB details.</param>
-    /// <param name="userAgent">Optional user agent string.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Task completing within 200ms (AC1 - US_059).</returns>
-    Task LogActionAsync(
-        Guid? userId,
-        string actionType,
-        string resourceType,
-        Guid? resourceId,
-        string ipAddress,
-        string result = "Success",
-        string? actionDetails = null,
-        string? userAgent = null,
-        CancellationToken cancellationToken = default);
 }

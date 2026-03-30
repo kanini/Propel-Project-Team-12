@@ -282,7 +282,7 @@ public class ExtractionTestController : ControllerBase
         }
 
         data.VerificationStatus = request.IsVerified 
-            ? VerificationStatus.Verified 
+            ? VerificationStatus.StaffVerified 
             : VerificationStatus.Rejected;
         data.VerifiedBy = request.VerifiedById;
         data.VerifiedAt = DateTime.UtcNow;

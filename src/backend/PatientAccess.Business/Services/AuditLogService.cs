@@ -6,31 +6,25 @@ using Microsoft.Extensions.Logging;
 using PatientAccess.Business.Interfaces;
 using PatientAccess.Data;
 using PatientAccess.Data.Models;
-using StackExchange.Redis;
 
 namespace PatientAccess.Business.Services;
 
 /// <summary>
 /// Implements audit logging for authentication and authorization events.
 /// Logs are written asynchronously to prevent blocking auth operations.
-/// US_059: Enhanced with Redis queue for resilience and <200ms performance (AC1, Edge Case).
+/// Failures are logged to app logger but do not disrupt auth flows (AC edge case).
 /// </summary>
 public class AuditLogService : IAuditLogService
 {
     private readonly PatientAccessDbContext _context;
-    private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<AuditLogService> _logger;
-    
-    private const string REDIS_AUDIT_QUEUE = "audit:queue";
 
     public AuditLogService(
         PatientAccessDbContext context,
-        ILogger<AuditLogService> logger,
-        IConnectionMultiplexer? redis = null)
+        ILogger<AuditLogService> logger)
     {
         _context = context;
         _logger = logger;
-        _redis = redis;
     }
 
     /// <summary>
@@ -247,84 +241,5 @@ public class AuditLogService : IAuditLogService
         using var sha256 = SHA256.Create();
         var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(email.ToLowerInvariant()));
         return Convert.ToBase64String(hashBytes);
-    }
-
-    /// <summary>
-    /// Logs any auditable action with full details (AC1 - US_059).
-    /// Completes within 200ms via async processing with Redis queue fallback (Edge Case).
-    /// </summary>
-    public async Task LogActionAsync(
-        Guid? userId,
-        string actionType,
-        string resourceType,
-        Guid? resourceId,
-        string ipAddress,
-        string result = "Success",
-        string? actionDetails = null,
-        string? userAgent = null,
-        CancellationToken cancellationToken = default)
-    {
-        var auditLog = new AuditLog
-        {
-            UserId = userId,
-            Timestamp = DateTime.UtcNow,
-            ActionType = actionType,
-            ResourceType = resourceType,
-            ResourceId = resourceId,
-            IpAddress = ipAddress ?? "Unknown",
-            UserAgent = userAgent ?? "Unknown",
-            ActionDetails = actionDetails ?? "{}",
-            Result = result
-        };
-
-        try
-        {
-            // Try direct database write first (fastest path)
-            await _context.AuditLogs.AddAsync(auditLog, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogDebug(
-                "Audit log created: UserId={UserId}, Action={Action}, Resource={Resource}, Result={Result} (AC1 - US_059)",
-                userId, actionType, resourceType, result);
-        }
-        catch (Exception dbEx)
-        {
-            // Edge Case: Database unavailable - fallback to Redis queue (US_059)
-            _logger.LogWarning(
-                dbEx,
-                "Database unavailable for audit log. Queuing to Redis (Edge Case - US_059)");
-
-            if (_redis != null)
-            {
-                try
-                {
-                    var database = _redis.GetDatabase();
-                    var auditJson = JsonSerializer.Serialize(auditLog);
-                    
-                    await database.ListRightPushAsync(REDIS_AUDIT_QUEUE, auditJson);
-
-                    _logger.LogInformation(
-                        "Audit log queued to Redis: UserId={UserId}, Action={Action} (Edge Case - US_059)",
-                        userId, actionType);
-                }
-                catch (Exception redisEx)
-                {
-                    // Critical: Both database and Redis failed
-                    _logger.LogError(
-                        redisEx,
-                        "CRITICAL: Failed to queue audit log to Redis. POTENTIAL AUDIT LOSS: UserId={UserId}, Action={Action}",
-                        userId, actionType);
-                    
-                    // Don't throw - preserve non-blocking behavior for app operations
-                }
-            }
-            else
-            {
-                _logger.LogError(
-                    dbEx,
-                    "CRITICAL: Database unavailable and Redis not configured. AUDIT LOSS: UserId={UserId}, Action={Action}",
-                    userId, actionType);
-            }
-        }
     }
 }

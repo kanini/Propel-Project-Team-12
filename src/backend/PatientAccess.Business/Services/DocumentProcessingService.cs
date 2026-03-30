@@ -249,7 +249,7 @@ public class DocumentProcessingService : IDocumentProcessingService
                 DataKey = dataPoint.DataKey,
                 DataValue = dataPoint.DataValue,
                 ConfidenceScore = dataPoint.ConfidenceScore,
-                VerificationStatus = VerificationStatus.Pending,
+                VerificationStatus = VerificationStatus.AISuggested,
                 SourcePageNumber = dataPoint.SourcePageNumber,
                 SourceTextExcerpt = dataPoint.SourceTextExcerpt,
                 ExtractedAt = DateTime.UtcNow,

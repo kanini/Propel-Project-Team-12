@@ -58,7 +58,7 @@ public class StaffDashboardService : IStaffDashboardService
                 .CountAsync();
 
             var pendingVerifications = await _context.ExtractedClinicalData
-                .Where(ecd => ecd.VerificationStatus == VerificationStatus.Pending)
+                .Where(ecd => ecd.VerificationStatus == VerificationStatus.AISuggested)
                 .CountAsync();
 
             var metrics = new StaffDashboardMetricsDto
