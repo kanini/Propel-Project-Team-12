@@ -81,10 +81,7 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             // Persist extracted data points (task_003)
             _logger.LogInformation("Persisting {DataPointCount} extracted data points", extractionResult.TotalDataPoints);
-            var persistedEntities = await PersistExtractedDataAsync(document, extractionResult);
-
-            // Enqueue code mapping jobs for diagnoses (US_051 auto-trigger)
-            await EnqueueCodeMappingJobsAsync(persistedEntities);
+            await PersistExtractedDataAsync(document, extractionResult);
 
             // Flag for manual review if low confidence (task_003 AC7)
             document.RequiresManualReview = extractionResult.RequiresManualReview;
@@ -224,13 +221,14 @@ public class DocumentProcessingService : IDocumentProcessingService
     /// Persists extracted clinical data to database with duplicate detection (task_003).
     /// Returns list of persisted entities for downstream processing (code mapping, etc.).
     /// </summary>
-    private async Task<List<ExtractedClinicalData>> PersistExtractedDataAsync(ClinicalDocument document, ExtractionResultDto extractionResult)
+    private async Task PersistExtractedDataAsync(ClinicalDocument document, ExtractionResultDto extractionResult)
     {
         var entitiesToAdd = new List<ExtractedClinicalData>();
+        // Map DataKey -> ExtractedDataId for linking medical codes
+        var dataKeyToEntityId = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var dataPoint in extractionResult.DataPoints)
         {
-            // Duplicate detection (task_003 edge case)
             var exists = await _context.ExtractedClinicalData
                 .AnyAsync(e => e.DocumentId == document.DocumentId
                     && e.DataType == dataPoint.DataType
@@ -239,12 +237,10 @@ public class DocumentProcessingService : IDocumentProcessingService
 
             if (exists)
             {
-                _logger.LogWarning("Duplicate data point detected: {DataType} - {DataValue} on page {PageNumber}",
-                    dataPoint.DataType, dataPoint.DataValue, dataPoint.SourcePageNumber);
+                _logger.LogWarning("Duplicate data point detected: {DataType} - {DataValue}", dataPoint.DataType, dataPoint.DataValue);
                 continue;
             }
 
-            // Create entity
             var entity = new ExtractedClinicalData
             {
                 ExtractedDataId = Guid.NewGuid(),
@@ -263,60 +259,73 @@ public class DocumentProcessingService : IDocumentProcessingService
             };
 
             entitiesToAdd.Add(entity);
+            dataKeyToEntityId[dataPoint.DataKey] = entity.ExtractedDataId;
         }
 
-        // Batch insert
         if (entitiesToAdd.Any())
         {
             await _context.ExtractedClinicalData.AddRangeAsync(entitiesToAdd);
             await _context.SaveChangesAsync();
-
             _logger.LogInformation("Persisted {Count} extracted clinical data entities", entitiesToAdd.Count);
         }
 
-        return entitiesToAdd;
-    }
-
-    /// <summary>
-    /// Enqueues code mapping background jobs for extracted diagnoses (US_051 auto-trigger).
-    /// Diagnoses → ICD-10 mapping via RAG pipeline.
-    /// </summary>
-    private async Task EnqueueCodeMappingJobsAsync(List<ExtractedClinicalData> extractedEntities)
-    {
-        var diagnosisEntities = extractedEntities
-            .Where(e => e.DataType == ClinicalDataType.Diagnosis)
-            .ToList();
-
-        if (!diagnosisEntities.Any())
+        // Persist medical codes linked to extracted data points
+        if (extractionResult.MedicalCodes?.Any() == true)
         {
-            _logger.LogInformation("No diagnosis entities found for code mapping");
-            return;
-        }
+            var codesToAdd = new List<MedicalCode>();
 
-        _logger.LogInformation("Enqueuing ICD-10 code mapping jobs for {Count} diagnoses", diagnosisEntities.Count);
-
-        foreach (var entity in diagnosisEntities)
-        {
-            try
+            foreach (var codeSuggestion in extractionResult.MedicalCodes)
             {
-                Hangfire.BackgroundJob.Enqueue<BackgroundJobs.CodeMappingJob>(
-                    job => job.MapToICD10Async(entity.ExtractedDataId, entity.DataValue));
+                // Find the linked ExtractedClinicalData entity
+                Guid? linkedEntityId = null;
+                if (!string.IsNullOrEmpty(codeSuggestion.SourceDataKey) &&
+                    dataKeyToEntityId.TryGetValue(codeSuggestion.SourceDataKey, out var entityId))
+                {
+                    linkedEntityId = entityId;
+                }
+                else if (entitiesToAdd.Any())
+                {
+                    // Fallback: link to first extracted data point
+                    linkedEntityId = entitiesToAdd.First().ExtractedDataId;
+                }
 
-                _logger.LogDebug("ICD-10 mapping job enqueued for ExtractedDataId: {ExtractedDataId}, Text: {ClinicalText}",
-                    entity.ExtractedDataId, entity.DataValue);
+                if (linkedEntityId == null) continue;
+
+                var codeSystem = codeSuggestion.CodeSystem?.ToUpperInvariant() switch
+                {
+                    "ICD10" or "ICD-10" => CodeSystem.ICD10,
+                    "CPT" => CodeSystem.CPT,
+                    _ => CodeSystem.ICD10
+                };
+
+                // Check for duplicate
+                var codeExists = await _context.MedicalCodes
+                    .AnyAsync(m => m.ExtractedDataId == linkedEntityId.Value
+                        && m.CodeSystem == codeSystem
+                        && m.CodeValue == codeSuggestion.CodeValue);
+
+                if (codeExists) continue;
+
+                codesToAdd.Add(new MedicalCode
+                {
+                    MedicalCodeId = Guid.NewGuid(),
+                    ExtractedDataId = linkedEntityId.Value,
+                    CodeSystem = codeSystem,
+                    CodeValue = codeSuggestion.CodeValue,
+                    CodeDescription = codeSuggestion.CodeDescription,
+                    ConfidenceScore = codeSuggestion.ConfidenceScore,
+                    VerificationStatus = MedicalCodeVerificationStatus.AISuggested,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
-            catch (Exception ex)
+
+            if (codesToAdd.Any())
             {
-                // Log error but don't fail document processing if job enqueue fails
-                _logger.LogError(ex, 
-                    "Failed to enqueue ICD-10 mapping job for ExtractedDataId: {ExtractedDataId}",
-                    entity.ExtractedDataId);
+                await _context.MedicalCodes.AddRangeAsync(codesToAdd);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Persisted {Count} medical codes", codesToAdd.Count);
             }
         }
-
-        // Note: CPT mapping not auto-triggered yet (requires procedure extraction)
-        // Future enhancement: Add CPT mapping when ClinicalDataType.Procedure is extracted
-        await Task.CompletedTask;
     }
 
     /// <summary>

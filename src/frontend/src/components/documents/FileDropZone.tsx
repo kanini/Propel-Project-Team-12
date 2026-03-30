@@ -1,18 +1,18 @@
 /**
  * File drop zone component for drag-and-drop or click-to-upload (US_042, SCR-014).
- * Matches wireframe SCR-014 design.
+ * Supports multiple file selection matching wireframe SCR-014.
  */
 
 import { useState, useRef } from 'react';
 
 interface FileDropZoneProps {
-  onFileSelected: (file: File) => void;
+  onFilesSelected: (files: File[]) => void;
   disabled?: boolean;
 }
 
-export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
+export function FileDropZone({ onFilesSelected, disabled }: FileDropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -20,22 +20,32 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
 
   const validateFile = (file: File): string | null => {
     if (file.type !== ALLOWED_MIME_TYPE) {
-      return 'Only PDF files are supported';
+      return `${file.name}: Only PDF files are supported`;
     }
     if (file.size > MAX_FILE_SIZE) {
-      return 'File size must not exceed 10 MB';
+      return `${file.name}: File size must not exceed 10 MB`;
     }
     return null;
   };
 
-  const handleFile = (file: File) => {
-    const error = validateFile(file);
-    if (error) {
-      setValidationError(error);
-      return;
+  const handleFiles = (fileList: File[]) => {
+    const errors: string[] = [];
+    const validFiles: File[] = [];
+
+    for (const file of fileList) {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(error);
+      } else {
+        validFiles.push(file);
+      }
     }
-    setValidationError(null);
-    onFileSelected(file);
+
+    setValidationErrors(errors);
+
+    if (validFiles.length > 0) {
+      onFilesSelected(validFiles);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -46,8 +56,8 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
     if (disabled) return;
 
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0 && files[0]) {
-      handleFile(files[0]);
+    if (files.length > 0) {
+      handleFiles(files);
     }
   };
 
@@ -73,8 +83,12 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0 && files[0]) {
-      handleFile(files[0]);
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+    // Reset input so re-selecting the same files triggers change
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -119,12 +133,16 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
         </div>
       </div>
 
-      {validationError && (
+      {validationErrors.length > 0 && (
         <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md" role="alert">
           <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
           </svg>
-          <p className="text-sm text-red-600">{validationError}</p>
+          <div className="text-sm text-red-600">
+            {validationErrors.map((err, i) => (
+              <p key={i}>{err}</p>
+            ))}
+          </div>
         </div>
       )}
 
@@ -132,6 +150,7 @@ export function FileDropZone({ onFileSelected, disabled }: FileDropZoneProps) {
         ref={fileInputRef}
         type="file"
         accept=".pdf,application/pdf"
+        multiple
         onChange={handleFileInput}
         className="hidden"
         aria-label="File input"

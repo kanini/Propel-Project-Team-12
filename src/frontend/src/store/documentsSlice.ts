@@ -9,7 +9,7 @@ export interface UploadState {
   sessionId: string | null;
   file: File | null;
   progress: number; // 0-100
-  status: 'idle' | 'validating' | 'uploading' | 'complete' | 'error' | 'paused';
+  status: 'idle' | 'validating' | 'uploading' | 'chunks_uploaded' | 'submitting' | 'complete' | 'error' | 'paused';
   error: string | null;
   chunksReceived: number;
   totalChunks: number;
@@ -27,6 +27,8 @@ interface DocumentsState {
   documentsLoading: boolean;
   documentsError: string | null;
   retryingDocumentId: string | null; // Track retry in progress
+  isSubmittingAll: boolean; // Track batch submit in progress
+  submitError: string | null;
 }
 
 const initialState: DocumentsState = {
@@ -36,6 +38,8 @@ const initialState: DocumentsState = {
   documentsLoading: false,
   documentsError: null,
   retryingDocumentId: null,
+  isSubmittingAll: false,
+  submitError: null,
 };
 
 /**
@@ -68,6 +72,34 @@ export const retryDocumentProcessing = createAsyncThunk(
         return rejectWithValue(error.message);
       }
       return rejectWithValue('Failed to retry document processing');
+    }
+  }
+);
+
+/**
+ * Async thunk: Submit all uploaded documents for processing (EP006-EP008).
+ * Finalizes all upload sessions with 'chunks_uploaded' status, triggering the RAG pipeline for each.
+ */
+export const submitAllDocuments = createAsyncThunk(
+  'documents/submitAllDocuments',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { documents: DocumentsState };
+      // Note: pending reducer already changed chunks_uploaded → submitting before this runs
+      const sessionIds = Object.values(state.documents.uploads)
+        .filter((u) => u.status === 'submitting' && u.sessionId)
+        .map((u) => u.sessionId as string);
+
+      if (sessionIds.length === 0) {
+        return rejectWithValue('No documents ready to submit');
+      }
+
+      return await documentsApi.submitAllDocuments(sessionIds);
+    } catch (error) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Failed to submit documents');
     }
   }
 );
@@ -121,7 +153,17 @@ const documentsSlice = createSlice({
       if (state.uploads[uploadId]) {
         state.uploads[uploadId].chunksReceived = chunksReceived;
         state.uploads[uploadId].progress = percentComplete;
-        state.uploads[uploadId].status = percentComplete >= 100 ? 'complete' : 'uploading';
+        // When all chunks uploaded, mark as 'chunks_uploaded' (awaiting submit)
+        state.uploads[uploadId].status = percentComplete >= 100 ? 'chunks_uploaded' : 'uploading';
+      }
+    },
+
+    // Explicitly mark upload as chunks_uploaded (all chunks received, not yet submitted)
+    markChunksUploaded: (state, action: PayloadAction<{ uploadId: string }>) => {
+      const { uploadId } = action.payload;
+      if (state.uploads[uploadId]) {
+        state.uploads[uploadId].status = 'chunks_uploaded';
+        state.uploads[uploadId].progress = 100;
       }
     },
 
@@ -234,6 +276,48 @@ const documentsSlice = createSlice({
       .addCase(retryDocumentProcessing.rejected, (state) => {
         state.retryingDocumentId = null;
       });
+
+    // Submit all documents (batch finalize + trigger processing)
+    builder
+      .addCase(submitAllDocuments.pending, (state) => {
+        state.isSubmittingAll = true;
+        state.submitError = null;
+        // Mark all chunks_uploaded sessions as submitting
+        for (const key of Object.keys(state.uploads)) {
+          if (state.uploads[key]?.status === 'chunks_uploaded') {
+            state.uploads[key].status = 'submitting';
+          }
+        }
+      })
+      .addCase(submitAllDocuments.fulfilled, (state, action) => {
+        state.isSubmittingAll = false;
+        // Mark each successfully finalized upload as complete
+        for (const result of action.payload.results) {
+          const uploadEntry = Object.entries(state.uploads).find(
+            ([, u]) => u.sessionId === result.sessionId
+          );
+          if (uploadEntry) {
+            const [uploadId] = uploadEntry;
+            if (result.success && state.uploads[uploadId]) {
+              state.uploads[uploadId].status = 'complete';
+              state.uploads[uploadId].documentId = result.documentId ?? null;
+            } else if (state.uploads[uploadId]) {
+              state.uploads[uploadId].status = 'error';
+              state.uploads[uploadId].error = result.error ?? 'Submission failed';
+            }
+          }
+        }
+      })
+      .addCase(submitAllDocuments.rejected, (state, action) => {
+        state.isSubmittingAll = false;
+        state.submitError = action.payload as string;
+        // Revert submitting uploads back to chunks_uploaded
+        for (const key of Object.keys(state.uploads)) {
+          if (state.uploads[key]?.status === 'submitting') {
+            state.uploads[key].status = 'chunks_uploaded';
+          }
+        }
+      });
   },
 });
 
@@ -241,6 +325,7 @@ export const {
   initializeUpload,
   setUploadSession,
   updateUploadProgress,
+  markChunksUploaded,
   completeUpload,
   setUploadError,
   pauseUpload,

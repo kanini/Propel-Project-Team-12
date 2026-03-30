@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PatientAccess.Data.Configurations;
 using PatientAccess.Data.Models;
+using Pgvector.EntityFrameworkCore;
 
 namespace PatientAccess.Data;
 
@@ -32,16 +33,8 @@ public class PatientAccessDbContext : DbContext
     public DbSet<InsuranceRecord> InsuranceRecords => Set<InsuranceRecord>();
     public DbSet<NoShowHistory> NoShowHistory => Set<NoShowHistory>();
 
-    // EP-008 US_050 Knowledge Base Vector Indices (AIR-R04)
-    public DbSet<ICD10Code> ICD10Codes => Set<ICD10Code>();
-    public DbSet<CPTCode> CPTCodes => Set<CPTCode>();
-    public DbSet<ClinicalTerminology> ClinicalTerminology => Set<ClinicalTerminology>();
-    
-    // EP-008 US_050 Task 2: Document Chunking Staging (AIR-R01)
+    // RAG Pipeline
     public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
-
-    // EP-008 US_051 Task 1: Quality Metrics Tracking (AIR-Q01, AIR-Q03)
-    public DbSet<QualityMetric> QualityMetrics => Set<QualityMetric>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,15 +60,13 @@ public class PatientAccessDbContext : DbContext
         modelBuilder.ApplyConfiguration(new InsuranceRecordConfiguration());
         modelBuilder.ApplyConfiguration(new NoShowHistoryConfiguration());
 
-        // EP-008 US_050 Vector Index configurations (AIR-R04)
-        modelBuilder.ApplyConfiguration(new ICD10CodeConfiguration());
-        modelBuilder.ApplyConfiguration(new CPTCodeConfiguration());
-        modelBuilder.ApplyConfiguration(new ClinicalTerminologyConfiguration());
-        
-        // EP-008 US_050 Task 2 Document Chunking Staging (AIR-R01)
+        // RAG Pipeline
         modelBuilder.ApplyConfiguration(new DocumentChunkConfiguration());
 
-        // EP-008 US_051 Task 1 Quality Metrics Tracking (AIR-Q01, AIR-Q03)
-        modelBuilder.ApplyConfiguration(new QualityMetricConfiguration());
+        // InMemory provider cannot map pgvector Vector type; ignore it for testing
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            modelBuilder.Entity<DocumentChunk>().Ignore(e => e.Embedding);
+        }
     }
 }

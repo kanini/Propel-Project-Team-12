@@ -14,7 +14,10 @@ export function UploadProgressBar({ progress, status, fileName, chunksReceived, 
   const getStatusColor = () => {
     switch (status) {
       case 'complete':
+      case 'chunks_uploaded':
         return 'bg-green-500';
+      case 'submitting':
+        return 'bg-blue-500';
       case 'error':
         return 'bg-red-500';
       case 'paused':
@@ -30,8 +33,12 @@ export function UploadProgressBar({ progress, status, fileName, chunksReceived, 
         return 'Validating...';
       case 'uploading':
         return `Uploading ${progress}%`;
+      case 'chunks_uploaded':
+        return 'Uploaded — Ready to submit';
+      case 'submitting':
+        return 'Submitting for processing...';
       case 'complete':
-        return 'Upload Complete';
+        return 'Submitted — Processing queued';
       case 'error':
         return 'Upload Failed';
       case 'paused':

@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using PatientAccess.Data;
+using Pgvector.EntityFrameworkCore;
 
 namespace PatientAccess.Web.Extensions;
 
@@ -29,12 +31,16 @@ public static class ServiceCollectionExtensions
                 "Please configure it in appsettings.json, User Secrets, or environment variables. " +
                 "See docs/DATABASE_SETUP.md for detailed instructions.");
 
+        // Build NpgsqlDataSource with pgvector support
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.UseVector();
+        var dataSource = dataSourceBuilder.Build();
+
         // Register DbContext with Npgsql provider
         services.AddDbContext<PatientAccessDbContext>(options =>
         {
-            options.UseNpgsql(connectionString, npgsqlOptions =>
+            options.UseNpgsql(dataSource, npgsqlOptions =>
             {
-                // Enable pgvector extension support (DR-010, AIR-R04)
                 npgsqlOptions.UseVector();
 
                 // Enable retry on failure for transient errors
