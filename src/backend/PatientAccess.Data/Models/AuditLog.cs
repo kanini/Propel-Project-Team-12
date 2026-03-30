@@ -37,12 +37,6 @@ public class AuditLog
 
     public string? UserAgent { get; set; }
 
-    /// <summary>
-    /// Result of the action: Success, Failure, PartialSuccess (AC1 - US_059).
-    /// Tracks whether the audited action completed successfully.
-    /// </summary>
-    public string Result { get; set; } = "Success";
-
     // Navigation properties
     public User? User { get; set; }
 }
