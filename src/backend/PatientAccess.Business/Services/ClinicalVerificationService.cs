@@ -34,7 +34,7 @@ public class ClinicalVerificationService : IClinicalVerificationService
             {
                 g.Key.PatientId,
                 PatientName = g.Key.Name,
-                PendingClinicalData = g.Count(e => e.VerificationStatus == VerificationStatus.AISuggested),
+                PendingClinicalData = g.Count(e => e.VerificationStatus == VerificationStatus.Pending),
                 PendingMedicalCodes = g.SelectMany(e => e.MedicalCodes)
                     .Count(m => m.VerificationStatus == MedicalCodeVerificationStatus.AISuggested),
                 TotalClinicalData = g.Count(),
@@ -102,8 +102,8 @@ public class ClinicalVerificationService : IClinicalVerificationService
 
         return new ClinicalVerificationDashboardDto
         {
-            PendingCount = extractedData.Count(e => e.VerificationStatus == VerificationStatus.AISuggested),
-            VerifiedCount = extractedData.Count(e => e.VerificationStatus == VerificationStatus.StaffVerified),
+            PendingCount = extractedData.Count(e => e.VerificationStatus == VerificationStatus.Pending),
+            VerifiedCount = extractedData.Count(e => e.VerificationStatus == VerificationStatus.Verified),
             RejectedCount = extractedData.Count(e => e.VerificationStatus == VerificationStatus.Rejected),
             ConflictCount = 0, // Conflict detection is a future enhancement
             ClinicalData = extractedData.Select(e => new VerificationItemDto
@@ -112,9 +112,7 @@ public class ClinicalVerificationService : IClinicalVerificationService
                 DataType = e.DataType.ToString(),
                 DataValue = e.DataValue,
                 ConfidenceScore = e.ConfidenceScore,
-                VerificationStatus = e.VerificationStatus == VerificationStatus.StaffVerified 
-                    ? "Verified" 
-                    : e.VerificationStatus.ToString(),
+                VerificationStatus = e.VerificationStatus.ToString(),
                 SourceDocument = e.Document?.FileName,
                 SourcePageNumber = e.SourcePageNumber,
                 SourceTextExcerpt = e.SourceTextExcerpt
@@ -141,7 +139,7 @@ public class ClinicalVerificationService : IClinicalVerificationService
         var entity = await _context.ExtractedClinicalData.FindAsync(extractedDataId)
             ?? throw new InvalidOperationException($"Extracted data {extractedDataId} not found");
 
-        entity.VerificationStatus = VerificationStatus.StaffVerified;
+        entity.VerificationStatus = VerificationStatus.Verified;
         entity.VerifiedBy = staffUserId;
         entity.VerifiedAt = DateTime.UtcNow;
         entity.UpdatedAt = DateTime.UtcNow;

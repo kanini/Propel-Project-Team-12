@@ -70,4 +70,76 @@ public class AuditLogsController : ControllerBase
                 new { error = "Failed to retrieve audit logs" });
         }
     }
+
+    /// <summary>
+    /// Exports audit log entries to CSV format for compliance reporting (US_059 - AC3).
+    /// </summary>
+    /// <param name="userId">Optional: filter by user ID.</param>
+    /// <param name="actionType">Optional: filter by action type.</param>
+    /// <param name="startDate">Optional: filter by start date (inclusive).</param>
+    /// <param name="endDate">Optional: filter by end date (inclusive).</param>
+    /// <response code="200">CSV file download</response>
+    /// <response code="403">User is not an admin</response>
+    [HttpGet("export")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportAuditLogsToCsv(
+        [FromQuery] Guid? userId = null,
+        [FromQuery] string? actionType = null,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        _logger.LogInformation(
+            "Admin exporting audit logs to CSV: UserId={UserId}, ActionType={ActionType}",
+            userId, actionType);
+
+        try
+        {
+            // Query all matching records (no pagination for export)
+            var result = await _auditLogService.GetAuditLogsAsync(
+                userId, actionType, startDate, endDate, 1, int.MaxValue);
+
+            // Generate CSV content
+            var csv = new System.Text.StringBuilder();
+            
+            // CSV Header
+            csv.AppendLine("AuditLogId,UserId,UserName,UserEmail,Timestamp,ActionType,ResourceType,IpAddress,Result");
+
+            // CSV Rows
+            foreach (var log in result.Items)
+            {
+                csv.AppendLine($"\"{log.AuditLogId}\",\"{log.UserId}\",\"{EscapeCsv(log.UserName)}\",\"{EscapeCsv(log.UserEmail)}\",\"{log.Timestamp:O}\",\"{EscapeCsv(log.ActionType)}\",\"{EscapeCsv(log.ResourceType)}\",\"{EscapeCsv(log.IpAddress)}\",\"Success\"");
+            }
+
+            var fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+
+            return File(bytes, "text/csv", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting audit logs to CSV");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { error = "Failed to export audit logs" });
+        }
+    }
+
+    /// <summary>
+    /// Escapes CSV field values to prevent injection and formatting issues.
+    /// </summary>
+    private static string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        {
+            return value.Replace("\"", "\"\"");
+        }
+
+        return value;
+    }
 }

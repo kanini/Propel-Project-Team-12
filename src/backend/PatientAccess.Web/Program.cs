@@ -9,6 +9,7 @@ using PatientAccess.Business.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -17,6 +18,8 @@ using StackExchange.Redis;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Npgsql;
+using AspNetCoreRateLimit;
+using Prometheus;
 using Pgvector.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -115,10 +118,42 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<SwaggerAuthorizationOperationFilter>();
 });
 
-// Configure CORS (TR-014)
+// Configure CORS for HTTPS-only origins in production (TR-014, US_056 - AC2)
 var corsSettings = builder.Configuration.GetSection("CorsSettings");
-var allowedOrigins = corsSettings.GetSection("AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:5173" };
+var allowedOrigins = corsSettings.GetSection("AllowedOrigins").Get<string[]>();
+
+// Validate CORS configuration based on environment
+if (builder.Environment.IsDevelopment())
+{
+    // Development: Allow localhost HTTP/HTTPS for frontend dev server
+    allowedOrigins ??= new[] { "http://localhost:5173", "http://localhost:3000" };
+}
+else
+{
+    // Production: Validate HTTPS-only origins (FR-042, AC2)
+    if (allowedOrigins == null || allowedOrigins.Length == 0)
+    {
+        var frontendUrl = builder.Configuration["FrontendUrl"];
+        if (string.IsNullOrWhiteSpace(frontendUrl))
+        {
+            throw new InvalidOperationException(
+                "FrontendUrl not configured in appsettings.json. " +
+                "Set FrontendUrl in appsettings.json or CorsSettings:AllowedOrigins array.");
+        }
+        allowedOrigins = new[] { frontendUrl };
+    }
+
+    // Validate all origins use HTTPS in production (AC2 - US_056)
+    foreach (var origin in allowedOrigins)
+    {
+        if (!origin.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"CORS origin '{origin}' must use HTTPS in production (FR-042, AC2 - US_056). " +
+                $"HTTP-only origins are not permitted for PHI data protection.");
+        }
+    }
+}
 
 builder.Services.AddCors(options =>
 {
@@ -126,7 +161,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Required for cookie-based sessions
     });
 });
 
@@ -212,9 +248,30 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSingleton<IAuthorizationHandler, SamePatientAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuditingAuthorizationHandler>();
 
+// Configure Rate Limiting with Redis (AC2 - US_057)
+builder.Services.AddMemoryCache();
+
+// Load rate limit configuration
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+
+// Redis-backed distributed rate limiting (for multi-instance deployment)
+builder.Services.AddSingleton<IIpPolicyStore, DistributedCacheIpPolicyStore>();
+builder.Services.AddSingleton<IRateLimitCounterStore, DistributedCacheRateLimitCounterStore>();
+
+// Rate limit configuration
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+// Processing strategy
+builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+
+// Register API Monitoring Services (AC3 - US_057)
+builder.Services.AddSingleton<PatientAccess.Web.Services.MetricsService>();
+
 // Register HttpClient for external API calls
 builder.Services.AddHttpClient();
 
+// ========================================
 // Register Business Layer Services (DI)
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
@@ -278,6 +335,8 @@ builder.Services.AddScoped<IClinicalVerificationService, ClinicalVerificationSer
 builder.Services.AddHttpContextAccessor();
 
 // Configure Redis Connection (US_006 - Upstash Redis Configuration)
+// ========================================
+// IMPORTANT: Must be configured before service registrations that depend on IConnectionMultiplexer
 var redisSettings = builder.Configuration.GetSection("RedisSettings");
 var redisEnabled = redisSettings.GetValue<bool>("Enabled", true);
 var redisConnectionString = redisSettings["ConnectionString"];
@@ -332,6 +391,7 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
     {
         Console.WriteLine($"Redis initialization failed. Application will use database-only session management. Error: {ex.Message}");
         // Continue without Redis - application will fall back to database session storage
+        redisEnabled = false; // Mark as disabled for conditional service registration
     }
 }
 else
@@ -340,7 +400,72 @@ else
 
     // Register in-memory distributed cache as fallback (US_067)
     builder.Services.AddDistributedMemoryCache();
+    redisEnabled = false; // Ensure it's marked as disabled
 }
+
+// Register Business Layer Services (DI)
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>(); // US_022 - Audit logging for authentication events
+builder.Services.AddScoped<IAdminService, AdminService>(); // US_021 - User management
+builder.Services.AddScoped<IPatientService, PatientService>(); // US_029 - Walk-in booking (patient search and minimal creation)
+builder.Services.AddScoped<IProviderService, ProviderService>(); // US_023 - Provider browser
+builder.Services.AddScoped<IAppointmentService, AppointmentService>(); // US_024 - Appointment booking
+builder.Services.AddScoped<IWaitlistService, WaitlistService>(); // US_025 - Waitlist enrollment
+builder.Services.AddScoped<ISlotSwapService, SlotSwapService>(); // US_026 - Dynamic preferred slot swap
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.SlotAvailabilityMonitor>(); // US_026 - Slot swap monitoring
+builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>(); // US_028 - PDF generation
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ConfirmationEmailJob>(); // US_028 - Confirmation email job
+builder.Services.AddSingleton<IPusherService, PusherService>(); // US_030 - Real-time event broadcasting via Pusher Channels
+builder.Services.AddScoped<IQueueManagementService, QueueManagementService>(); // US_030 - Queue management and priority flagging
+builder.Services.AddScoped<IArrivalManagementService, ArrivalManagementService>(); // US_031 - Arrival status marking and search
+builder.Services.AddScoped<IDashboardService, DashboardService>(); // US_067 - Patient dashboard statistics
+builder.Services.AddScoped<IStaffDashboardService, StaffDashboardService>(); // US_068 - Staff dashboard metrics and queue preview
+builder.Services.AddScoped<INotificationService, NotificationService>(); // US_067 - Notification management for dashboard
+builder.Services.AddScoped<IDocumentService, DocumentService>(); // US_067 - Clinical document retrieval for dashboard
+builder.Services.AddScoped<IIntakeAppointmentService, IntakeAppointmentService>(); // US_037 - Intake appointment selection
+builder.Services.AddScoped<IIntakeService, IntakeService>(); // US_033 - Intake session management
+builder.Services.AddScoped<IAiIntakeService, StubAiIntakeService>(); // US_033 - AI intake (stub until task_003)
+builder.Services.AddScoped<IInsurancePrecheckService, InsurancePrecheckService>(); // US_036 - Insurance precheck verification
+
+// US_042 - Document upload services (chunked upload with real-time progress)
+builder.Services.AddMemoryCache(); // Required for upload session tracking
+builder.Services.AddSingleton<ChunkedUploadManager>(); // Singleton for session management
+builder.Services.AddScoped<DocumentUploadService>(); // Scoped for DB context access
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob>(); // Background cleanup
+
+// US_043 - Document processing services (Hangfire background jobs)
+builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>(); // Processing orchestration
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.DocumentProcessingJob>(); // Background processing job
+
+// US_045 - AI Document Intelligence (task_002: Supabase + Tesseract + Gemini pipeline)
+builder.Services.AddHttpClient(); // Required for Gemini API calls and Supabase Storage REST API
+
+builder.Services.AddScoped<ISupabaseStorageService, SupabaseStorageService>(); // Supabase Storage REST API
+
+#pragma warning disable CA1416 // Validate platform compatibility - TesseractOcrService is Windows-only
+builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>(); // OCR text extraction (Windows-only)
+#pragma warning restore CA1416
+
+builder.Services.AddScoped<IGeminiAiService, GeminiAiService>(); // Gemini AI data extraction
+builder.Services.AddScoped<IClinicalDataExtractionService, ClinicalDataExtractionService>(); // Extraction orchestration
+
+// US_058 - AI Safety & Operational Guardrails (task_002: human-in-the-loop, confidence thresholds)
+builder.Services.AddScoped<ConfidenceThresholdEvaluator>(); // AC2 - Confidence threshold evaluation
+builder.Services.AddScoped<VerificationWorkflowService>(); // AC1 - Staff verification workflow
+builder.Services.AddScoped<IAIGuardrailsService, AIGuardrailsService>(); // AC1, AC2 - Guardrails orchestration
+
+// US_059 - Immutable Audit Log Service (task_002: batch processing, health monitoring)
+// Only register ProcessAuditBatchJob if Redis is available
+if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ProcessAuditBatchJob>();
+}
+
+// Register IHttpContextAccessor for audit logging context extraction
+builder.Services.AddHttpContextAccessor();
 
 // Register Data Layer Repositories (DI)
 // Example: builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -421,7 +546,12 @@ var healthChecksBuilder = builder.Services.AddHealthChecks()
         "document-processing",
         failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
         tags: new[] { "documents", "processing" },
-        timeout: TimeSpan.FromSeconds(5)); // US_043: Document processing backlog health
+        timeout: TimeSpan.FromSeconds(5)) // US_043: Document processing backlog health
+    .AddCheck<AuditLogHealthCheck>(
+        "audit-logs",
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "audit", "compliance" },
+        timeout: TimeSpan.FromSeconds(5)); // US_059: Audit log batch processing health (AC4)
 
 // Add Redis health check if enabled (US_006)
 if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
@@ -433,6 +563,101 @@ if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
         tags: new[] { "cache", "redis" },
         timeout: TimeSpan.FromSeconds(5));
 }
+
+// ========================================
+// TLS/HTTPS Configuration (US_056 - AC2, FR-042)
+// ========================================
+
+// Configure Kestrel for TLS 1.2+ minimum protocol (AC2 - US_056)
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ConfigureHttpsDefaults(httpsOptions =>
+    {
+        // Enforce TLS 1.2 minimum (blocks SSL 3.0, TLS 1.0, TLS 1.1)
+        // TLS 1.3 is also enabled for modern clients that support it
+        httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
+                                     System.Security.Authentication.SslProtocols.Tls13;
+    });
+});
+
+// Configure HSTS (HTTP Strict Transport Security) for production (AC2 - US_056)
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365); // 1 year HSTS max-age
+    options.IncludeSubDomains = true;         // Apply HSTS to all subdomains
+    options.Preload = false;                  // Set to true only after domain added to HSTS preload list
+});
+
+// ========================================
+// HttpClient TLS Configuration for External Services (US_056 - AC3)
+// ========================================
+
+// Configure Azure OpenAI client with TLS certificate validation (AC3 - US_056)
+builder.Services.AddHttpClient("AzureOpenAI", client =>
+{
+    var endpoint = builder.Configuration["AzureOpenAI:Endpoint"];
+    var apiKey = builder.Configuration["AzureOpenAI:ApiKey"];
+
+    if (!string.IsNullOrWhiteSpace(endpoint) && !string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.BaseAddress = new Uri(endpoint);
+        client.DefaultRequestHeaders.Add("api-key", apiKey);
+        client.Timeout = TimeSpan.FromSeconds(30);
+    }
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    // TLS certificate validation enabled by default (AC3)
+    // ServerCertificateCustomValidationCallback = null uses default validation
+    ServerCertificateCustomValidationCallback = null,
+    SslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
+                   System.Security.Authentication.SslProtocols.Tls13
+});
+
+// Configure Twilio client with TLS certificate validation (AC3 - US_056)
+builder.Services.AddHttpClient("Twilio", client =>
+{
+    var accountSid = builder.Configuration["Twilio:AccountSid"];
+    var authToken = builder.Configuration["Twilio:AuthToken"];
+
+    if (!string.IsNullOrWhiteSpace(accountSid) && !string.IsNullOrWhiteSpace(authToken))
+    {
+        client.BaseAddress = new Uri("https://api.twilio.com");
+
+        // Basic authentication (Twilio uses HTTP Basic Auth)
+        var credentials = Convert.ToBase64String(
+            System.Text.Encoding.ASCII.GetBytes($"{accountSid}:{authToken}"));
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+
+        client.Timeout = TimeSpan.FromSeconds(30);
+    }
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = null, // Use default TLS validation (AC3)
+    SslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
+                   System.Security.Authentication.SslProtocols.Tls13
+});
+
+// Configure SendGrid client with TLS certificate validation (AC3 - US_056)
+builder.Services.AddHttpClient("SendGrid", client =>
+{
+    var apiKey = builder.Configuration["SendGrid:ApiKey"];
+
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.BaseAddress = new Uri("https://api.sendgrid.com");
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        client.Timeout = TimeSpan.FromSeconds(30);
+    }
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = null, // Use default TLS validation (AC3)
+    SslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
+                   System.Security.Authentication.SslProtocols.Tls13
+});
 
 var app = builder.Build();
 
@@ -521,11 +746,70 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         // Schedule upload session cleanup job (US_042) - runs every 30 minutes
         PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob.Schedule();
         app.Logger.LogInformation("Scheduled upload session cleanup job to run every 30 minutes");
+        
+        // Schedule audit batch processing job (US_059 - AC4) - only if Redis is enabled
+        // When Redis is disabled, audit logs are written directly to database without queuing
+        if (redisEnabled && !string.IsNullOrWhiteSpace(redisConnectionString))
+        {
+            Hangfire.RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.ProcessAuditBatchJob>(
+                "process-audit-batch",
+                job => job.ExecuteAsync(CancellationToken.None),
+                "*/5 * * * * *"); // Every 5 seconds
+            app.Logger.LogInformation("Scheduled audit batch processing job to run every 5 seconds (US_059 - AC4)");
+        }
+        else
+        {
+            app.Logger.LogInformation("Redis disabled - audit logs will be written directly to database (no batch processing)");
+        }
     }
 }
 
+// ========================================
+// HTTPS/TLS Middleware Pipeline (US_056 - AC2, FR-042)
+// ========================================
+
+// Configure forwarded headers for Railway/Render reverse proxy (AC2 - US_056)
+// Railway and Render terminate TLS at the edge and forward requests to the app over HTTP
+// This middleware reads X-Forwarded-For and X-Forwarded-Proto headers to restore original client info
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                       ForwardedHeaders.XForwardedProto,
+    // Railway/Render use trusted proxies, accept all forwarded headers
+    // In production with known proxy IPs, configure KnownProxies/KnownNetworks for additional security
+    KnownNetworks = { },
+    KnownProxies = { }
+});
+
+// Configure HTTPS redirection with permanent redirect (AC2 - US_056)
+// HTTP 307 (Temporary Redirect) preserves HTTP method (POST remains POST after redirect)
+app.UseHttpsRedirection();
+
+// Configure HSTS (HTTP Strict Transport Security) for production only (AC2 - US_056)
+// HSTS instructs browsers to always use HTTPS for future requests (max-age: 1 year)
+// Not enabled in development to allow local HTTP testing
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+// Add security headers (X-Content-Type-Options, X-Frame-Options, CSP) (AC2 - US_056)
+app.UseSecurityHeaders();
+
+// Add Prometheus metrics endpoint (AC3 - US_057)
+app.UseMetricServer("/metrics"); // Exposes /metrics endpoint (Prometheus format)
+
+// Add custom API metrics middleware (AC3 - US_057)
+app.UseApiMetrics();
+
 // Use audit logging middleware early to capture IP and User Agent for all requests (US_022)
 app.UseMiddleware<AuditLoggingMiddleware>();
+
+// Add IP rate limiting middleware (AC2 - US_057)
+app.UseIpRateLimiting();
+
+// Add security alert detection middleware (AC4 - US_057)
+app.UseSecurityAlerts();
 
 // Use rate limiting middleware for registration endpoint (FR-001)
 app.UseMiddleware<RegistrationRateLimitingMiddleware>();

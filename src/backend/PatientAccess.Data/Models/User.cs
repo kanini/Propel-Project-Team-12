@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace PatientAccess.Data.Models;
 
 /// <summary>
@@ -29,6 +31,31 @@ public class User
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Encrypted Social Security Number (stored as BYTEA, encrypted with pgcrypto).
+    /// NEVER store plaintext SSN in database. Use database functions encrypt_ssn/decrypt_ssn
+    /// for encryption/decryption with column encryption key.
+    /// Encrypted using AES-256 cipher (US_056, AC1, FR-041).
+    /// </summary>
+    [Column("SSNEncrypted")]
+    public byte[]? SSNEncrypted { get; set; }
+
+    /// <summary>
+    /// Encrypted Insurance ID Number (stored as BYTEA, encrypted with pgcrypto).
+    /// Use database functions encrypt_insurance_id/decrypt_insurance_id for encryption/decryption.
+    /// Encrypted using AES-256 cipher (US_056, AC1, FR-041).
+    /// </summary>
+    [Column("InsuranceIDEncrypted")]
+    public byte[]? InsuranceIDEncrypted { get; set; }
+
+    /// <summary>
+    /// Encryption key version identifier for key rotation support.
+    /// Default: "v1". Updated during key rotation migrations.
+    /// Used to identify which encryption key was used to encrypt SSN/InsuranceID (US_056).
+    /// </summary>
+    [Column("EncryptionKeyVersion")]
+    public string EncryptionKeyVersion { get; set; } = "v1";
 
     // Navigation properties
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();

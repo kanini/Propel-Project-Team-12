@@ -69,8 +69,8 @@ public class HealthDashboardService : IHealthDashboardService
             Stats = new DashboardStatsOverviewDto
             {
                 TotalExtractedItems = extractedData.Count,
-                VerifiedItems = extractedData.Count(e => e.VerificationStatus == VerificationStatus.StaffVerified),
-                PendingItems = extractedData.Count(e => e.VerificationStatus == VerificationStatus.AISuggested),
+                VerifiedItems = extractedData.Count(e => e.VerificationStatus == VerificationStatus.Verified),
+                PendingItems = extractedData.Count(e => e.VerificationStatus == VerificationStatus.Pending),
                 TotalDocuments = totalDocuments,
                 TotalMedicalCodes = allCodes.Count
             }
