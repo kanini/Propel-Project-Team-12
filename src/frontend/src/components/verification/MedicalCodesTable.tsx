@@ -38,7 +38,26 @@ export function MedicalCodesTable({
       code.codeValue.toLowerCase().includes(searchTerm.toLowerCase()) ||
       code.codeDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
       code.codeSystem.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || code.verificationStatus === statusFilter;
+    
+    // Handle status filtering with case-insensitive comparison and normalization
+    const codeStatus = (code.verificationStatus || '').trim();
+    const filterStatus = (statusFilter || '').trim();
+    
+    // Normalize backend enum values to frontend expected values
+    const normalizedStatus = 
+      (codeStatus === 'Accepted' || codeStatus === 'Modified' || codeStatus === 'StaffVerified') 
+        ? 'Verified' 
+        : codeStatus;
+    
+    const matchesStatus = !filterStatus || 
+      normalizedStatus.toLowerCase() === filterStatus.toLowerCase();
+    
+    // Debug: Log filter status values to help diagnose the issue  
+    if (filterStatus === 'Verified' && codes.indexOf(code) < 5) {
+      console.log('Medical Code:', code.codeValue, 'Raw Status:', code.verificationStatus, 
+        'Normalized:', normalizedStatus, 'Matches:', matchesStatus);
+    }
+    
     return matchesSearch && matchesStatus;
   });
 
