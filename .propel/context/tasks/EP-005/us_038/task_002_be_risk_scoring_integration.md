@@ -219,21 +219,21 @@ dotnet build PatientAccess.sln
 
 ## Implementation Validation Strategy
 
-- [ ] `AppointmentResponseDto` includes `NoShowRiskScore` and `RiskLevel` fields
-- [ ] Booking endpoint returns risk score in response for new appointments
-- [ ] Walk-in appointments still get NoShowRiskScore = 0 (existing behavior preserved)
+- [x] `AppointmentResponseDto` includes `NoShowRiskScore` and `RiskLevel` fields
+- [x] Booking endpoint returns risk score in response for new appointments
+- [x] Walk-in appointments still get NoShowRiskScore = 0 (existing behavior preserved)
 - [ ] First-time patient booking creates NoShowHistory record with neutral defaults
 - [ ] Marking an appointment as NoShow increments `NoShowCount` in NoShowHistory
 - [ ] Receiving a confirmation updates `ConfirmationResponseRate` in NoShowHistory
-- [ ] `INoShowRiskService` resolves from DI without runtime errors
-- [ ] Solution builds without warnings
+- [x] `INoShowRiskService` resolves from DI without runtime errors
+- [x] Solution builds without warnings
 
 ## Implementation Checklist
 
-- [ ] Add `NoShowRiskScore` and `RiskLevel` nullable properties to `AppointmentResponseDto`
-- [ ] Inject `INoShowRiskService` into `AppointmentService` and call on booking
+- [x] Add `NoShowRiskScore` and `RiskLevel` nullable properties to `AppointmentResponseDto`
+- [x] Inject `INoShowRiskService` into `AppointmentService` and call on booking
 - [ ] Create NoShowHistory record for first-time patients when none exists
 - [ ] Implement NoShowHistory update when appointment status changes to NoShow
 - [ ] Implement NoShowHistory update when appointment confirmation is received
-- [ ] Add `RiskScoringWeights` configuration section to `appsettings.json`
-- [ ] Register `INoShowRiskService` as Scoped in `Program.cs` DI container
+- [x] Add `RiskScoringWeights` configuration section to `appsettings.json`
+- [x] Register `INoShowRiskService` as Scoped in `Program.cs` DI container

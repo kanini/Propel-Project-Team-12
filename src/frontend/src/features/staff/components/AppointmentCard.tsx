@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import type { ArrivalAppointment } from "../../../types/arrival";
+import { RiskBadge } from "../../../components/common/RiskBadge";
 
 interface AppointmentCardProps {
   appointment: ArrivalAppointment;
@@ -91,12 +92,20 @@ export function AppointmentCard({
               DOB: {appointment.dateOfBirth}
             </p>
           </div>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}
-            aria-label={`Appointment status: ${statusInfo.label}`}
-          >
-            {statusInfo.label}
-          </span>
+          <div className="flex items-center gap-2">
+            {appointment.noShowRiskScore != null && appointment.riskLevel && (
+              <RiskBadge
+                score={appointment.noShowRiskScore}
+                riskLevel={appointment.riskLevel}
+              />
+            )}
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}
+              aria-label={`Appointment status: ${statusInfo.label}`}
+            >
+              {statusInfo.label}
+            </span>
+          </div>
         </div>
 
         {/* Appointment Details */}

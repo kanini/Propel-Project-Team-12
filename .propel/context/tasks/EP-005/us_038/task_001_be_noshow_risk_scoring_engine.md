@@ -190,20 +190,20 @@ dotnet build PatientAccess.Business
 
 ## Implementation Validation Strategy
 
-- [ ] `INoShowRiskService` interface compiles with correct method signature
-- [ ] `NoShowRiskService` reads configurable weights from SystemSettings with appsettings fallback
-- [ ] Score calculation returns value within 0-100 range for all input combinations
-- [ ] First-time patient (no NoShowHistory record) returns neutral history/confirmation factors (50)
-- [ ] Walk-in appointment returns fixed score of 0 immediately
-- [ ] RiskLevel correctly derived: Low (<40), Medium (40-70), High (>70)
-- [ ] Single DB query for NoShowHistory (verify via logging or profiling meets 100ms NFR-016)
+- [x] `INoShowRiskService` interface compiles with correct method signature
+- [x] `NoShowRiskService` reads configurable weights from SystemSettings with appsettings fallback
+- [x] Score calculation returns value within 0-100 range for all input combinations
+- [x] First-time patient (no NoShowHistory record) returns neutral history/confirmation factors (50)
+- [x] Walk-in appointment returns fixed score of 0 immediately
+- [x] RiskLevel correctly derived: Low (<40), Medium (40-70), High (>70)
+- [x] Single DB query for NoShowHistory (verify via logging or profiling meets 100ms NFR-016)
 
 ## Implementation Checklist
 
-- [ ] Create `NoShowRiskScoreDto` with score, risk level, and factor breakdown fields
-- [ ] Create `INoShowRiskService` interface with `CalculateRiskScoreAsync` method
-- [ ] Implement configurable weight reading from SystemSettings with appsettings fallback
-- [ ] Implement lead time factor calculation with hour-range mapping
-- [ ] Implement no-show history factor with rate-based mapping and first-time patient neutral handling
-- [ ] Implement confirmation response rate factor with neutral default for missing data
-- [ ] Implement walk-in override (return 0 immediately) and final weighted score clamping
+- [x] Create `NoShowRiskScoreDto` with score, risk level, and factor breakdown fields
+- [x] Create `INoShowRiskService` interface with `CalculateRiskScoreAsync` method
+- [x] Implement configurable weight reading from SystemSettings with appsettings fallback
+- [x] Implement lead time factor calculation with hour-range mapping
+- [x] Implement no-show history factor with rate-based mapping and first-time patient neutral handling
+- [x] Implement confirmation response rate factor with neutral default for missing data
+- [x] Implement walk-in override (return 0 immediately) and final weighted score clamping

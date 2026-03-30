@@ -269,11 +269,11 @@ dotnet build PatientAccess.sln
 
 ## Implementation Checklist
 
-- [ ] Create `IReminderService` interface with `ScheduleRemindersAsync`, `CancelRemindersAsync`, `ProcessDueRemindersAsync`
-- [ ] Implement `ReminderService` reading intervals from SystemSettings and creating Notification records per channel
-- [ ] Implement `CancelRemindersAsync` setting pending notifications to Cancelled on appointment cancellation
-- [ ] Create `ReminderSchedulerJob` as recurring Hangfire job running every 30 seconds
-- [ ] Create `ReminderDeliveryJob` with `AutomaticRetry(Attempts=3, DelaysInSeconds=[60, 240, 960])`
-- [ ] Add `GET/PUT /api/admin/settings` endpoints to `AdminController`
-- [ ] Register services and recurring job in `Program.cs` DI container
-- [ ] Integrate `IReminderService` into `AppointmentService` booking and cancellation flows
+- [x] Create `IReminderService` interface with `ScheduleRemindersAsync`, `CancelRemindersAsync`, `ProcessDueRemindersAsync`
+- [x] Implement `ReminderService` reading intervals from SystemSettings and creating Notification records per channel
+- [x] Implement `CancelRemindersAsync` setting pending notifications to Cancelled on appointment cancellation
+- [x] Create `ReminderSchedulerJob` as recurring Hangfire job running every 30 seconds
+- [x] Create `ReminderDeliveryJob` with `AutomaticRetry(Attempts=3, DelaysInSeconds=[60, 240, 960])`
+- [x] Add `GET/PUT /api/admin/settings` endpoints to `AdminController`
+- [x] Register services and recurring job in `Program.cs` DI container
+- [x] Integrate `IReminderService` into `AppointmentService` booking and cancellation flows

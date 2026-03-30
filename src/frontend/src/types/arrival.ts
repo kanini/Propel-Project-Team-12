@@ -14,12 +14,14 @@ export interface ArrivalAppointment {
   providerName: string;
   visitReason: string;
   status:
-    | "Scheduled"
-    | "Confirmed"
-    | "Arrived"
-    | "Cancelled"
-    | "Completed"
-    | "NoShow";
+  | "Scheduled"
+  | "Confirmed"
+  | "Arrived"
+  | "Cancelled"
+  | "Completed"
+  | "NoShow";
+  noShowRiskScore?: number; // 0-100, US_038 - FR-023
+  riskLevel?: 'Low' | 'Medium' | 'High'; // US_038 - FR-023
 }
 
 /**

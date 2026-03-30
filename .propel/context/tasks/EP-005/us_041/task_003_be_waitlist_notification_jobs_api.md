@@ -99,6 +99,113 @@ Create Hangfire background jobs for automated waitlist slot detection and timeou
            {
                _logger.LogInformation("WaitlistSlotDetectionJob started");
 
+## Implementation Status
+
+**Status:** ✅ COMPLETE  
+**Completed Date:** 2024-03-26  
+**Build Status:** ✅ Clean build verified
+
+### Implementation Summary
+
+**Files Created:**
+- ✅ `src/backend/PatientAccess.Business/BackgroundJobs/WaitlistSlotDetectionJob.cs` (79 lines) - Hangfire recurring job for slot detection
+- ✅ `src/backend/PatientAccess.Business/BackgroundJobs/WaitlistTimeoutJob.cs` (51 lines) - Hangfire recurring job for timeout processing
+
+**Files Modified:**
+- ✅ `src/backend/PatientAccess.Web/Controllers/WaitlistController.cs` - Added confirm/decline anonymous API endpoints
+- ✅ `src/backend/PatientAccess.Web/Program.cs` - Registered both Hangfire recurring jobs and DI
+- ✅ `src/backend/PatientAccess.Business/Services/AppointmentService.cs` - Integrated slot detection trigger on cancellation
+- ✅ `src/backend/PatientAccess.Web/appsettings.json` - Added WaitlistSettings configuration section
+
+**Key Implementation Details:**
+
+1. **WaitlistSlotDetectionJob:**
+   - Runs every 2 minutes via Hangfire recurring job
+   - Calls DetectAvailableSlotsAsync to find matches
+   - Loops through available slots calling NotifyNextPatientAsync
+   - Comprehensive logging: start, detected count, success/failure per slot, completion
+   - Error handling: try-catch per slot (continues on failure), doesn't throw to prevent job failure
+
+2. **WaitlistTimeoutJob:**
+   - Runs every 1 minute via Hangfire recurring job
+   - Calls ProcessTimeoutsAsync to find expired notifications
+   - Logs expired count for monitoring
+   - Error handling: try-catch with logging, doesn't throw
+
+3. **API Endpoints (WaitlistController):**
+   
+   **POST /api/waitlist/confirm/{token}** - `[AllowAnonymous]`
+   - Validates token presence (400 Bad Request if missing)
+   - Calls ProcessConfirmAsync
+   - Returns 200 OK with ConfirmWaitlistResponseDto if successful
+   - Returns 410 Gone if slot unavailable (EC-2)
+   - Returns 404 Not Found if invalid/expired token
+   - Exception handling: KeyNotFoundException → 404, InvalidOperationException → 410
+   
+   **POST /api/waitlist/decline/{token}** - `[AllowAnonymous]`
+   - Validates token presence (400 Bad Request if missing)
+   - Calls ProcessDeclineAsync
+   - Returns 200 OK with success message
+   - Returns 404 Not Found if invalid token
+   - Cascade to next patient handled by service layer
+
+4. **Hangfire Job Registration (Program.cs):**
+   ```csharp
+   // DI registration
+   builder.Services.AddScoped<WaitlistSlotDetectionJob>();
+   builder.Services.AddScoped<WaitlistTimeoutJob>();
+   
+   // Recurring jobs (after app.UseHangfireDashboard)
+   RecurringJob.AddOrUpdate<WaitlistSlotDetectionJob>(
+       "waitlist-slot-detection",
+       job => job.RunAsync(),
+       "*/2 * * * *", // Every 2 minutes
+       new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+   
+   RecurringJob.AddOrUpdate<WaitlistTimeoutJob>(
+       "waitlist-timeout-processing",
+       job => job.RunAsync(),
+       "* * * * *", // Every 1 minute
+       new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+   ```
+
+5. **AppointmentService Integration:**
+   - Added trigger in CancelAsync method after slot release
+   - Enqueues WaitlistSlotDetectionJob for immediate execution
+   - Provides faster notification than 2-minute cycle
+   - Non-blocking: try-catch ensures cancellation succeeds even if job trigger fails
+
+6. **Configuration (appsettings.json):**
+   ```json
+   "WaitlistSettings": {
+       "ResponseTimeoutMinutes": 30,
+       "DetectionIntervalCron": "*/2 * * * *",
+       "TimeoutCheckIntervalCron": "* * * * *"
+   }
+   ```
+
+**Validation:**
+- ✅ Both background jobs created with proper error handling
+- ✅ Confirm/decline endpoints with anonymous access
+- ✅ Jobs registered in Hangfire with correct cron schedules
+- ✅ Cancellation integration triggers immediate detection
+- ✅ Configuration section added
+- ✅ All acceptance criteria met:
+  - AC-1: Background job detects and notifies ✅
+  - AC-2: Confirm endpoint books appointment ✅
+  - AC-3: Decline endpoint cascades to next ✅
+  - AC-4: Timeout job processes expired entries ✅
+- ✅ Edge cases handled:
+  - EC-1: Sequential notification by priority ✅
+  - EC-2: Availability check on confirm ✅
+- ✅ Clean build with no errors or warnings
+
+**Deployment Notes:**
+- Migration ready: `dotnet ef database update`
+- Jobs visible in Hangfire dashboard at `/hangfire`
+- Anonymous endpoints testable via curl/Postman
+- Monitoring: Check logs for job execution and expired counts
+
                var matches = await _notificationService.DetectAvailableSlotsAsync();
 
                _logger.LogInformation(

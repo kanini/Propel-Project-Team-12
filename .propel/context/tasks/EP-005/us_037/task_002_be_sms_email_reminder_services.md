@@ -205,10 +205,10 @@ dotnet build PatientAccess.sln
 
 ## Implementation Checklist
 
-- [ ] Create `ISmsService` interface with `SendSmsAsync` and `SendAppointmentReminderSmsAsync` methods
-- [ ] Implement `SmsService` with Twilio client, dev-mode fallback, and null-phone handling
-- [ ] Add `SendAppointmentReminderAsync` method to `IEmailService` interface
-- [ ] Implement reminder email method in `EmailService` with SendGrid and dev-mode fallback
-- [ ] Add `TwilioSettings` and `SendGridSettings` configuration sections to appsettings files
-- [ ] Register `ISmsService` as Singleton in `Program.cs` DI container
-- [ ] Add Twilio NuGet package reference to `PatientAccess.Business.csproj`
+- [x] Create `ISmsService` interface with `SendSmsAsync` and `SendAppointmentReminderSmsAsync` methods
+- [x] Implement `SmsService` with Twilio client, dev-mode fallback, and null-phone handling
+- [x] Add `SendAppointmentReminderAsync` method to `IEmailService` interface
+- [x] Implement reminder email method in `EmailService` with SendGrid and dev-mode fallback
+- [x] Add `TwilioSettings` and `SendGridSettings` configuration sections to appsettings files
+- [x] Register `ISmsService` as Singleton in `Program.cs` DI container
+- [x] Add Twilio NuGet package reference to `PatientAccess.Business.csproj`

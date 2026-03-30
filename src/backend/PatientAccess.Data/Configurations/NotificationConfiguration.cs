@@ -80,5 +80,9 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 
         builder.HasIndex(n => n.ScheduledTime)
             .HasDatabaseName("IX_Notifications_ScheduledTime");
+
+        // US_037 - Composite index for efficient reminder scheduler query (Status=Pending AND ScheduledTime<=NOW())
+        builder.HasIndex(n => new { n.Status, n.ScheduledTime })
+            .HasDatabaseName("IX_Notifications_Status_ScheduledTime");
     }
 }

@@ -10,7 +10,7 @@ namespace PatientAccess.Data;
 /// </summary>
 public class PatientAccessDbContext : DbContext
 {
-    public PatientAccessDbContext(DbContextOptions<PatientAccessDbContext> options) 
+    public PatientAccessDbContext(DbContextOptions<PatientAccessDbContext> options)
         : base(options)
     {
     }
@@ -31,6 +31,9 @@ public class PatientAccessDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<InsuranceRecord> InsuranceRecords => Set<InsuranceRecord>();
     public DbSet<NoShowHistory> NoShowHistory => Set<NoShowHistory>();
+
+    // EP-005 US_037 - System configuration
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,5 +58,44 @@ public class PatientAccessDbContext : DbContext
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
         modelBuilder.ApplyConfiguration(new InsuranceRecordConfiguration());
         modelBuilder.ApplyConfiguration(new NoShowHistoryConfiguration());
+
+        // EP-005 US_037 - System settings configuration
+        modelBuilder.ApplyConfiguration(new SystemSettingConfiguration());
+
+        // US_037 - Seed default reminder settings
+        SeedSystemSettings(modelBuilder);
+    }
+
+    /// <summary>
+    /// Seeds default system settings for reminder configuration (US_037).
+    /// </summary>
+    private void SeedSystemSettings(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SystemSetting>().HasData(
+            new SystemSetting
+            {
+                SystemSettingId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Key = "Reminder.Intervals",
+                Value = "[48, 24, 2]",
+                Description = "Reminder intervals in hours before appointment (e.g., 48h, 24h, 2h)",
+                CreatedAt = new DateTime(2026, 3, 26, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new SystemSetting
+            {
+                SystemSettingId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Key = "Reminder.SmsEnabled",
+                Value = "true",
+                Description = "Enable SMS reminders via Twilio",
+                CreatedAt = new DateTime(2026, 3, 26, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new SystemSetting
+            {
+                SystemSettingId = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+                Key = "Reminder.EmailEnabled",
+                Value = "true",
+                Description = "Enable email reminders via SendGrid",
+                CreatedAt = new DateTime(2026, 3, 26, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
     }
 }

@@ -17,13 +17,16 @@ namespace PatientAccess.Web.Controllers;
 public class WaitlistController : ControllerBase
 {
     private readonly IWaitlistService _waitlistService;
+    private readonly IWaitlistNotificationService _notificationService;
     private readonly ILogger<WaitlistController> _logger;
 
     public WaitlistController(
         IWaitlistService waitlistService,
+        IWaitlistNotificationService notificationService,
         ILogger<WaitlistController> logger)
     {
         _waitlistService = waitlistService ?? throw new ArgumentNullException(nameof(waitlistService));
+        _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -223,6 +226,119 @@ public class WaitlistController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting waitlist entry {EntryId}", id);
             return StatusCode(500, new { message = "An error occurred while deleting waitlist entry" });
+        }
+    }
+
+    /// <summary>
+    /// Confirms waitlist slot offer via anonymous token link (US_041 - AC-2).
+    /// Books appointment if slot is still available, returns 410 Gone if slot unavailable.
+    /// </summary>
+    /// <param name="token">Response token from notification email/SMS</param>
+    /// <returns>200 OK with appointment details, 410 Gone if slot taken, 404 if invalid token</returns>
+    /// <response code="200">Appointment booked successfully</response>
+    /// <response code="404">Invalid or expired token</response>
+    /// <response code="410">Slot no longer available (re-booked by another patient)</response>
+    [HttpPost("confirm/{token}")]
+    [AllowAnonymous] // US_041 - AC-2: Allow token-based access without authentication
+    [ProducesResponseType(typeof(ConfirmWaitlistResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ConfirmWaitlistResponseDto), StatusCodes.Status410Gone)]
+    public async Task<IActionResult> ConfirmWaitlistOffer([FromRoute] string token)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest(new { message = "Token is required" });
+            }
+
+            _logger.LogInformation("Processing waitlist confirmation for token {Token}", token);
+
+            var result = await _notificationService.ProcessConfirmAsync(token);
+
+            if (!result.Success)
+            {
+                // EC-2: Slot no longer available
+                _logger.LogWarning("Waitlist confirmation failed - slot unavailable for token {Token}", token);
+                return StatusCode(StatusCodes.Status410Gone, result);
+            }
+
+            _logger.LogInformation(
+                "Waitlist confirmation successful. Appointment {AppointmentId} booked for token {Token}",
+                result.AppointmentId, token);
+
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Invalid or expired token: {Token}", token);
+            return NotFound(new { message = "Invalid or expired confirmation link" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Response deadline expired
+            _logger.LogWarning(ex, "Expired token: {Token}", token);
+            return StatusCode(StatusCodes.Status410Gone, new
+            {
+                success = false,
+                message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing waitlist confirmation for token {Token}", token);
+            return StatusCode(500, new { message = "An error occurred while processing confirmation" });
+        }
+    }
+
+    /// <summary>
+    /// Declines waitlist slot offer via anonymous token link (US_041 - AC-3).
+    /// Resets waitlist entry to Active status and cascades offer to next patient.
+    /// </summary>
+    /// <param name="token">Response token from notification email/SMS</param>
+    /// <returns>200 OK, 404 if invalid token</returns>
+    /// <response code="200">Declined successfully, slot offered to next patient</response>
+    /// <response code="404">Invalid or expired token</response>
+    [HttpPost("decline/{token}")]
+    [AllowAnonymous] // US_041 - AC-3: Allow token-based access without authentication
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeclineWaitlistOffer([FromRoute] string token)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest(new { message = "Token is required" });
+            }
+
+            _logger.LogInformation("Processing waitlist decline for token {Token}", token);
+
+            var success = await _notificationService.ProcessDeclineAsync(token);
+
+            if (!success)
+            {
+                _logger.LogWarning("Waitlist decline failed for token {Token}", token);
+                return NotFound(new { message = "Invalid or expired decline link" });
+            }
+
+            _logger.LogInformation("Waitlist decline successful for token {Token}. Slot cascaded to next patient.", token);
+
+            return Ok(new
+            {
+                success = true,
+                message = "You have successfully declined the appointment offer. The slot will be offered to the next patient on the waitlist."
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Invalid token: {Token}", token);
+            return NotFound(new { message = "Invalid or expired decline link" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing waitlist decline for token {Token}", token);
+            return StatusCode(500, new { message = "An error occurred while processing decline" });
         }
     }
 }

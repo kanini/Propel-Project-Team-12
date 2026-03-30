@@ -52,4 +52,41 @@ public interface IEmailService
     /// <param name="resetToken">Unique password reset token</param>
     /// <returns>True if email sent successfully, false otherwise</returns>
     Task<bool> SendPasswordResetEmailAsync(string toEmail, string toName, string resetToken);
+
+    /// <summary>
+    /// Sends appointment reminder email with appointment details (US_037 - FR-022, AC-1).
+    /// Separate from confirmation email - no PDF attachment, different content.
+    /// </summary>
+    /// <param name="toEmail">Patient email address</param>
+    /// <param name="toName">Patient name</param>
+    /// <param name="providerName">Provider name</param>
+    /// <param name="scheduledDateTime">Appointment date and time</param>
+    /// <param name="location">Appointment location/address</param>
+    /// <returns>True if email sent successfully, false otherwise</returns>
+    Task<bool> SendAppointmentReminderAsync(
+        string toEmail,
+        string toName,
+        string providerName,
+        DateTime scheduledDateTime,
+        string location);
+
+    /// <summary>
+    /// Sends waitlist slot availability notification with confirm/decline links (US_041 - AC-1).
+    /// </summary>
+    /// <param name="toEmail">Patient email address</param>
+    /// <param name="toName">Patient name</param>
+    /// <param name="providerName">Provider name</param>
+    /// <param name="slotStartTime">Available slot start time</param>
+    /// <param name="confirmUrl">URL to confirm booking</param>
+    /// <param name="declineUrl">URL to decline offer</param>
+    /// <param name="timeoutMinutes">Response timeout in minutes</param>
+    /// <returns>True if email sent successfully, false otherwise</returns>
+    Task<bool> SendWaitlistSlotNotificationAsync(
+        string toEmail,
+        string toName,
+        string providerName,
+        DateTime slotStartTime,
+        string confirmUrl,
+        string declineUrl,
+        int timeoutMinutes);
 }

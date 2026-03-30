@@ -914,6 +914,186 @@ public class EmailService : IEmailService
         }
     }
 
+    public async Task<bool> SendAppointmentReminderAsync(
+        string toEmail,
+        string toName,
+        string providerName,
+        DateTime scheduledDateTime,
+        string location)
+    {
+        try
+        {
+            var manageAppointmentLink = $"{_frontendUrl}/appointments";
+
+            var htmlContent = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #F59E0B; color: white; padding: 20px; text-align: center; }}
+        .content {{ padding: 30px; background-color: #f9f9f9; }}
+        .info-box {{ background-color: white; padding: 20px; margin: 20px 0; border-left: 4px solid #F59E0B; border-radius: 4px; }}
+        .button {{ display: inline-block; padding: 12px 30px; background-color: #F59E0B; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+        .footer {{ padding: 20px; text-align: center; font-size: 12px; color: #666; }}
+        .icon {{ font-size: 24px; margin-bottom: 10px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <div class='icon'>⏰</div>
+            <h1>Appointment Reminder</h1>
+        </div>
+        <div class='content'>
+            <p>Dear {toName},</p>
+            <p>This is a friendly reminder about your upcoming appointment:</p>
+            
+            <div class='info-box'>
+                <p style='margin: 0 0 15px 0;'><strong>📅 Date & Time:</strong> {scheduledDateTime:MMMM dd, yyyy 'at' h:mm tt}</p>
+                <p style='margin: 0 0 15px 0;'><strong>👨‍⚕️ Provider:</strong> {providerName}</p>
+                <p style='margin: 0;'><strong>📍 Location:</strong> {location}</p>
+            </div>
+
+            <p><strong>Please remember to:</strong></p>
+            <ul>
+                <li>Arrive 15 minutes early for check-in</li>
+                <li>Bring valid photo ID and insurance card</li>
+                <li>Bring a list of current medications</li>
+            </ul>
+
+            <div style='text-align: center;'>
+                <a href='{manageAppointmentLink}' class='button'>Manage Appointment</a>
+            </div>
+
+            <p style='margin-top: 20px;'>If you need to cancel or reschedule, please provide at least 24 hours notice.</p>
+            
+            <p><strong>Questions?</strong> Contact us at:<br>
+            Phone: (555) 123-4567<br>
+            Email: support@patientaccess.com</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; {DateTime.UtcNow.Year} Patient Access Platform. All rights reserved.</p>
+            <p>You are receiving this reminder because you have an upcoming appointment.</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            var result = await SendEmailAsync(toEmail,
+                $"Appointment Reminder - {scheduledDateTime:MMMM dd} at {scheduledDateTime:h:mm tt}",
+                htmlContent);
+
+            if (result)
+                _logger.LogInformation(
+                    "Appointment reminder email sent to {Email} for appointment on {DateTime}",
+                    toEmail, scheduledDateTime);
+            else
+                _logger.LogWarning(
+                    "Failed to send appointment reminder email to {Email}",
+                    toEmail);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error sending appointment reminder email to {Email}",
+                toEmail);
+            return false;
+        }
+    }
+
+    public async Task<bool> SendWaitlistSlotNotificationAsync(
+        string toEmail,
+        string toName,
+        string providerName,
+        DateTime slotStartTime,
+        string confirmUrl,
+        string declineUrl,
+        int timeoutMinutes)
+    {
+        try
+        {
+            var htmlContent = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #10B981; color: white; padding: 20px; text-align: center; }}
+        .content {{ padding: 30px; background-color: #f9f9f9; }}
+        .slot-box {{ background-color: white; padding: 20px; margin: 20px 0; border-left: 4px solid #10B981; border-radius: 4px; }}
+        .button {{ display: inline-block; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 5px; font-weight: bold; }}
+        .button-confirm {{ background-color: #10B981; color: white; }}
+        .button-decline {{ background-color: #EF4444; color: white; }}
+        .footer {{ padding: 20px; text-align: center; font-size: 12px; color: #666; }}
+        .urgent {{ background-color: #FEF3C7; padding: 15px; border-radius: 4px; margin: 20px 0; }}
+        .icon {{ font-size: 24px; margin-bottom: 10px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <div class='icon'>🎉</div>
+            <h1>Your Preferred Slot is Available!</h1>
+        </div>
+        <div class='content'>
+            <p>Dear {toName},</p>
+            <p>Great news! A slot matching your waitlist preferences has become available:</p>
+            
+            <div class='slot-box'>
+                <p><strong>Provider:</strong> {providerName}</p>
+                <p><strong>Date & Time:</strong> {slotStartTime:MMMM dd, yyyy 'at' h:mm tt}</p>
+            </div>
+
+            <div class='urgent'>
+                <p><strong>⏰ Time-Sensitive:</strong> This offer expires in <strong>{timeoutMinutes} minutes</strong>. Please respond promptly to secure your appointment.</p>
+            </div>
+
+            <p><strong>Please choose one of the following options:</strong></p>
+            
+            <div style='text-align: center; margin: 30px 0;'>
+                <a href='{confirmUrl}' class='button button-confirm'>✓ Confirm Appointment</a>
+                <a href='{declineUrl}' class='button button-decline'>✗ Decline Offer</a>
+            </div>
+
+            <p style='font-size: 12px; color: #666;'><em>If you confirm, the appointment will be booked automatically and you'll receive a confirmation email. If you decline or don't respond within {timeoutMinutes} minutes, we'll offer the slot to the next person on the waitlist.</em></p>
+        </div>
+        <div class='footer'>
+            <p>&copy; {DateTime.UtcNow.Year} Patient Access Platform. All rights reserved.</p>
+            <p>Questions? Contact us: support@patientaccess.com | (555) 123-4567</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+            var result = await SendEmailAsync(toEmail,
+                $"Waitlist Alert: Slot Available - {slotStartTime:MMMM dd} at {slotStartTime:h:mm tt}",
+                htmlContent);
+
+            if (result)
+                _logger.LogInformation(
+                    "Waitlist slot notification email sent to {Email} for slot starting {DateTime}",
+                    toEmail, slotStartTime);
+            else
+                _logger.LogWarning(
+                    "Failed to send waitlist slot notification email to {Email}",
+                    toEmail);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error sending waitlist slot notification email to {Email}",
+                toEmail);
+            return false;
+        }
+    }
+
     private async Task<bool> SendEmailAsync(string toEmail, string subject, string htmlContent)
     {
         try

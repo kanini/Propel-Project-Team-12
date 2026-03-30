@@ -39,6 +39,8 @@ export interface Appointment {
     preferredSlotId?: string;
     createdAt: string;
     confirmationNumber?: string;
+    noShowRiskScore?: number; // 0-100, US_038 - FR-023
+    riskLevel?: 'Low' | 'Medium' | 'High'; // US_038 - FR-023
     intakeStatus?: 'pending' | 'inProgress' | 'completed';
 }
 

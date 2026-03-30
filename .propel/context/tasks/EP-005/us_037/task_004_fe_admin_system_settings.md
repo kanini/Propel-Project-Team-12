@@ -205,12 +205,12 @@ npm run lint
 
 ## Implementation Checklist
 
-- [ ] Create TypeScript interfaces in `types/settings.ts` for SystemSetting and ReminderSettings
-- [ ] Create `settingsSlice.ts` with `fetchSettings` and `updateSettings` async thunks
-- [ ] Build `SystemSettingsPage` component with reminder intervals editor and channel toggles
-- [ ] Implement all 4 SCR-026 states: Default, Loading, Error, Validation
-- [ ] Add form validation (positive integers, at least one interval, at least one channel)
-- [ ] Replace "Coming soon" placeholder in `App.tsx` with `SystemSettingsPage`
-- [ ] Ensure accessibility: labels, aria attributes, focus management per UXR-201, UXR-301, UXR-601
+- [x] Create TypeScript interfaces in `types/settings.ts` for SystemSetting and ReminderSettings
+- [x] Create `settingsSlice.ts` with `fetchSettings` and `updateSettings` async thunks
+- [x] Build `SystemSettingsPage` component with reminder intervals editor and channel toggles
+- [x] Implement all 4 SCR-026 states: Default, Loading, Error, Validation
+- [x] Add form validation (positive integers, at least one interval, at least one channel)
+- [x] Replace "Coming soon" placeholder in `App.tsx` with `SystemSettingsPage`
+- [x] Ensure accessibility: labels, aria attributes, focus management per UXR-201, UXR-301, UXR-601
 - **[UI Tasks - MANDATORY]** Reference wireframe from Design References table during implementation
 - **[UI Tasks - MANDATORY]** Validate UI matches wireframe before marking task complete

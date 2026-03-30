@@ -98,6 +98,37 @@ Extend the `WaitlistEntry` model with fields required for the notification-confi
        .HasForeignKey(w => w.NotifiedSlotId)
        .OnDelete(DeleteBehavior.SetNull);
 
+## Implementation Status
+
+**Status:** ✅ COMPLETE  
+**Completed Date:** 2024-03-26  
+**Build Status:** ✅ Clean build verified
+
+### Implementation Summary
+
+**Files Modified:**
+- ✅ `src/backend/PatientAccess.Data/Models/WaitlistEntry.cs` - Added 4 notification fields (NotifiedAt, ResponseToken, ResponseDeadline, NotifiedSlotId) and NotifiedSlot navigation property
+- ✅ `src/backend/PatientAccess.Data/Configurations/WaitlistEntryConfiguration.cs` - Added column configs, unique filtered index on ResponseToken, partial index on (Status, ResponseDeadline), FK to TimeSlot with SetNull behavior
+
+**Migration Generated:**
+- ✅ `AddWaitlistNotificationFields` migration created successfully
+- Adds 4 nullable columns to WaitlistEntries table
+- Creates unique filtered index for O(1) token lookup
+- Creates partial index for timeout job optimization (Status=Notified only)
+- Creates FK relationship to TimeSlots with ON DELETE SET NULL
+
+**Validation:**
+- ✅ All fields added to entity model
+- ✅ EF Core configuration complete with proper indexes
+- ✅ Migration builds successfully
+- ✅ Ready for `dotnet ef database update` deployment
+
+**Implementation Notes:**
+- Unique filtered index on ResponseToken ensures O(1) lookup for confirm/decline operations
+- Partial index on (Status, ResponseDeadline) optimizes timeout job queries (only scans Notified entries)
+- SetNull FK behavior ensures graceful handling if TimeSlot is deleted
+- All 4 fields nullable to support Active → Notified → Fulfilled/Cancelled/Expired transitions
+
    // Index for timeout detection job: find Notified entries past deadline
    builder.HasIndex(w => new { w.Status, w.ResponseDeadline })
        .HasFilter("\"Status\" = 2"); // WaitlistStatus.Notified = 2

@@ -9,6 +9,7 @@ import intakeAppointmentReducer from "./slices/intakeAppointmentSlice";
 import intakeReducer from "./slices/intakeSlice";
 import auditLogsReducer from "./slices/auditLogsSlice";
 import staffDashboardReducer from './slices/staffDashboardSlice';
+import settingsReducer from './settingsSlice'; // US_037 - System settings management
 
 
 const rootReducer = combineReducers({
@@ -22,6 +23,7 @@ const rootReducer = combineReducers({
   intake: intakeReducer,
   staffDashboard: staffDashboardReducer,
   auditLogs: auditLogsReducer,
+  settings: settingsReducer, // US_037 - System settings
 });
 
 export default rootReducer;

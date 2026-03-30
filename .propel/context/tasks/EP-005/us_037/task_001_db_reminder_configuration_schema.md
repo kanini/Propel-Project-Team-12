@@ -181,9 +181,9 @@ dotnet ef database update --project PatientAccess.Data --startup-project Patient
 
 ## Implementation Checklist
 
-- [ ] Create `SystemSetting.cs` entity model with key-value structure
-- [ ] Create `SystemSettingConfiguration.cs` with unique key index and column constraints
-- [ ] Add `Cancelled = 5` to `NotificationStatus` enum
-- [ ] Add composite index `(Status, ScheduledTime)` to `NotificationConfiguration`
-- [ ] Register `DbSet<SystemSetting>` and seed default reminder intervals in `PatientAccessDbContext`
-- [ ] Generate and verify EF Core migration
+- [x] Create `SystemSetting.cs` entity model with key-value structure
+- [x] Create `SystemSettingConfiguration.cs` with unique key index and column constraints
+- [x] Add `Cancelled = 5` to `NotificationStatus` enum
+- [x] Add composite index `(Status, ScheduledTime)` to `NotificationConfiguration`
+- [x] Register `DbSet<SystemSetting>` and seed default reminder intervals in `PatientAccessDbContext`
+- [x] Generate and verify EF Core migration

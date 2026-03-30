@@ -185,19 +185,19 @@ npm run lint
 - [ ] Unit tests pass
 - [ ] **[UI Tasks]** Visual comparison against wireframe completed at 375px, 768px, 1440px
 - [ ] **[UI Tasks]** Run `/analyze-ux` to validate wireframe alignment
-- [ ] RiskBadge renders green for Low (<40), amber for Medium (40-70), red for High (>70)
-- [ ] RiskBadge has accessible aria-label with score description
-- [ ] Badge only appears when noShowRiskScore is not null (backward-compatible)
-- [ ] Text label accompanies color (WCAG 2.2 AA — color is not sole indicator)
-- [ ] Staff AppointmentCard displays risk badge alongside status badge
+- [x] RiskBadge renders green for Low (<40), amber for Medium (40-70), red for High (>70)
+- [x] RiskBadge has accessible aria-label with score description
+- [x] Badge only appears when noShowRiskScore is not null (backward-compatible)
+- [x] Text label accompanies color (WCAG 2.2 AA — color is not sole indicator)
+- [x] Staff AppointmentCard displays risk badge alongside status badge
 
 ## Implementation Checklist
 
-- [ ] Add `noShowRiskScore` and `riskLevel` optional fields to `Appointment` TypeScript interface
-- [ ] Create `RiskBadge` component with green/amber/red color mapping and accessible aria-label
-- [ ] Integrate `RiskBadge` into Staff `AppointmentCard` header alongside status badge
+- [x] Add `noShowRiskScore` and `riskLevel` optional fields to `Appointment` TypeScript interface
+- [x] Create `RiskBadge` component with green/amber/red color mapping and accessible aria-label
+- [x] Integrate `RiskBadge` into Staff `AppointmentCard` header alongside status badge
 - [ ] Add conditional rendering in patient `AppointmentCard` for Staff-context views
-- [ ] Ensure ArrivalAppointment type includes risk fields if used in Staff arrival views
-- [ ] Verify WCAG accessibility: text label + color, aria-label with score description
+- [x] Ensure ArrivalAppointment type includes risk fields if used in Staff arrival views
+- [x] Verify WCAG accessibility: text label + color, aria-label with score description
 - **[UI Tasks - MANDATORY]** Reference wireframe from Design References table during implementation
 - **[UI Tasks - MANDATORY]** Validate UI matches wireframe before marking task complete

@@ -60,6 +60,17 @@ public class AppointmentResponseDto
     public DateTime? PreferredSlotStartTime { get; set; }
 
     /// <summary>
+    /// Calculated no-show risk score (0-100). Null for legacy appointments without scoring (US_038 - FR-023).
+    /// </summary>
+    public decimal? NoShowRiskScore { get; set; }
+
+    /// <summary>
+    /// Risk level derived from score: "Low" (< 40), "Medium" (40-70), "High" (> 70).
+    /// Null when score is null (US_038 - FR-023).
+    /// </summary>
+    public string? RiskLevel { get; set; }
+
+    /// <summary>
     /// Patient intake completion status for this appointment.
     /// Values: "pending" (not started), "inProgress" (started but not completed), "completed" (fully completed).
     /// </summary>

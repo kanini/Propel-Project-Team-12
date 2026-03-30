@@ -12,6 +12,7 @@ import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage";
 import VerifyEmailPage from "./features/auth/pages/VerifyEmailPage";
 import UserManagementPage from "./features/admin/pages/UserManagementPage";
+import { SystemSettingsPage } from "./features/admin/pages/SystemSettingsPage"; // US_037 - Admin settings
 import ProviderBrowser from "./pages/ProviderBrowser";
 import AppointmentBooking from "./pages/AppointmentBooking";
 import { PatientDashboard } from "./pages/PatientDashboard";
@@ -296,10 +297,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
                 <MainLayout>
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-2">Settings</h1>
-                    <p className="text-neutral-500">Coming soon</p>
-                  </div>
+                  <SystemSettingsPage />
                 </MainLayout>
               </ProtectedRoute>
             }

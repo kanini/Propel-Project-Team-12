@@ -219,12 +219,17 @@ builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHashingService, PasswordHashingService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<PatientAccess.Business.Interfaces.ISmsService, PatientAccess.Business.Services.SmsService>(); // US_037 - SMS reminder delivery via Twilio
 builder.Services.AddScoped<IAuditLogService, AuditLogService>(); // US_022 - Audit logging for authentication events
 builder.Services.AddScoped<IAdminService, AdminService>(); // US_021 - User management
 builder.Services.AddScoped<IPatientService, PatientService>(); // US_029 - Walk-in booking (patient search and minimal creation)
 builder.Services.AddScoped<IProviderService, ProviderService>(); // US_023 - Provider browser
 builder.Services.AddScoped<IAppointmentService, AppointmentService>(); // US_024 - Appointment booking
+builder.Services.AddScoped<INoShowRiskService, NoShowRiskService>(); // US_038 - No-show risk scoring
 builder.Services.AddScoped<IWaitlistService, WaitlistService>(); // US_025 - Waitlist enrollment
+builder.Services.AddScoped<IWaitlistNotificationService, WaitlistNotificationService>(); // US_041 - Waitlist slot availability notifications
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.WaitlistSlotDetectionJob>(); // US_041 - Slot detection job
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.WaitlistTimeoutJob>(); // US_041 - Timeout processing job
 builder.Services.AddScoped<ISlotSwapService, SlotSwapService>(); // US_026 - Dynamic preferred slot swap
 builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.SlotAvailabilityMonitor>(); // US_026 - Slot swap monitoring
 builder.Services.AddScoped<IPdfGenerationService, PdfGenerationService>(); // US_028 - PDF generation
@@ -240,6 +245,11 @@ builder.Services.AddScoped<IIntakeAppointmentService, IntakeAppointmentService>(
 builder.Services.AddScoped<IIntakeService, IntakeService>(); // US_033 - Intake session management
 builder.Services.AddScoped<IAiIntakeService, StubAiIntakeService>(); // US_033 - AI intake (stub until task_003)
 builder.Services.AddScoped<IInsurancePrecheckService, InsurancePrecheckService>(); // US_036 - Insurance precheck verification
+
+// US_037 - Reminder scheduling and delivery services
+builder.Services.AddScoped<IReminderService, ReminderService>(); // US_037 - Reminder scheduling engine
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ReminderSchedulerJob>(); // US_037 - Recurring job scanning due reminders
+builder.Services.AddScoped<PatientAccess.Business.BackgroundJobs.ReminderDeliveryJob>(); // US_037 - Delivery job with exponential backoff
 
 // US_042 - Document upload services (chunked upload with real-time progress)
 builder.Services.AddMemoryCache(); // Required for upload session tracking
@@ -502,6 +512,39 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
         // Schedule upload session cleanup job (US_042) - runs every 30 minutes
         PatientAccess.Business.BackgroundJobs.UploadSessionCleanupJob.Schedule();
         app.Logger.LogInformation("Scheduled upload session cleanup job to run every 30 minutes");
+
+        // US_037 - Schedule reminder scheduler job - runs every 30 seconds (NFR-017: 30-second delivery window)
+        RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.ReminderSchedulerJob>(
+            "reminder-scheduler",
+            job => job.RunAsync(),
+            "*/30 * * * * *", // Every 30 seconds (cron with seconds: sec min hour day month dow)
+            new RecurringJobOptions
+            {
+                TimeZone = TimeZoneInfo.Utc
+            });
+        app.Logger.LogInformation("Scheduled reminder scheduler job to run every 30 seconds");
+
+        // US_041 - Schedule waitlist slot detection job - runs every 2 minutes
+        RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.WaitlistSlotDetectionJob>(
+            "waitlist-slot-detection",
+            job => job.RunAsync(),
+            "*/2 * * * *", // Every 2 minutes
+            new RecurringJobOptions
+            {
+                TimeZone = TimeZoneInfo.Utc
+            });
+        app.Logger.LogInformation("Scheduled waitlist slot detection job to run every 2 minutes");
+
+        // US_041 - Schedule waitlist timeout processing job - runs every 1 minute
+        RecurringJob.AddOrUpdate<PatientAccess.Business.BackgroundJobs.WaitlistTimeoutJob>(
+            "waitlist-timeout-processing",
+            job => job.RunAsync(),
+            "* * * * *", // Every 1 minute
+            new RecurringJobOptions
+            {
+                TimeZone = TimeZoneInfo.Utc
+            });
+        app.Logger.LogInformation("Scheduled waitlist timeout processing job to run every 1 minute");
     }
 }
 
