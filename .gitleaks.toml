@@ -16,4 +16,5 @@ paths = [
   '''node_modules[/\\]''',
   '''bin[/\\]Debug[/\\]''',
   '''obj[/\\]''',
+  '''src[/\\]backend[/\\]scripts[/\\]migrations[/\\]20260323_enable_pgcrypto\.sql$''',
 ]
